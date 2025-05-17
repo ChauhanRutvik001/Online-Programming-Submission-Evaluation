@@ -23,7 +23,8 @@ const batchSchema = new Schema(
         ref: "User",
         default: [],
       },
-    ],    subject: {
+    ],    
+    subject: {
       type: String,
       required: false,
     },

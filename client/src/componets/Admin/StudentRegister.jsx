@@ -190,12 +190,13 @@ const AdminStudentRegister = () => {
     setIsLoading(true);
     
     try {
-      const response = await axiosInstance.post("/admin/student-register", {
+      const response = await axiosInstance.post("/admin/faculty/student-register", {
         id: newStudent.id.toLowerCase(),
         username: newStudent.username,
         batch: newStudent.batch.toLowerCase(),
         semester: newStudent.semester
       });
+      console.log("Single student registration response:", response.data);
       
       toast.success("Student registered successfully!");
       setNewStudent({ id: "", username: "", batch: "", semester: "" });
@@ -246,7 +247,7 @@ const AdminStudentRegister = () => {
     setRegisterLoading(true);
 
     try {
-      const response = await axiosInstance.post("/admin/bulk-student-register", {
+      const response = await axiosInstance.post("/admin/faculty/bulk-student-register", {
         students: selectedData
       });
 

@@ -41,7 +41,7 @@ const CreateFaculty = () => {
     try {
       setIsLoading(true);
       const response = await axiosInstance.post(
-        "/admin/create-faculty",
+        "/admin/faculty/create-faculty",
         formData
       );
 
@@ -198,7 +198,7 @@ const CreateFaculty = () => {
 
     try {
       setRegisterLoading(true);
-      const response = await axiosInstance.post("/admin/bulk-create-faculty", {
+      const response = await axiosInstance.post("/admin/faculty/bulk-create-faculty", {
         facultyList: selectedFacultyList,
       });
 

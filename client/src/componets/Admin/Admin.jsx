@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +6,18 @@ import toast from "react-hot-toast";
 
 // Skeleton loader component for stats cards
 const StatCardSkeleton = () => (
+  <div className="animate-pulse bg-gray-800/80 rounded-xl p-5 flex flex-col">
+    <div className="h-8 bg-gray-700 rounded w-1/2 mb-4"></div>
+    <div className="h-12 bg-gray-700 rounded mb-3"></div>
+    <div className="flex justify-between items-end">
+      <div className="h-4 bg-gray-700 rounded w-1/3"></div>
+      <div className="h-8 w-8 bg-gray-700 rounded-full"></div>
+    </div>
+  </div>
+);
+
+// Activity skeleton loader
+const ActivitySkeleton = () => (
   <div className="animate-pulse bg-gray-800/80 rounded-xl p-5 flex flex-col">
     <div className="h-5 w-28 bg-gray-600 rounded mb-2 skeleton-shimmer"></div>
     <div className="h-10 w-20 bg-gray-600 rounded mt-2 skeleton-shimmer"></div>
@@ -76,7 +87,7 @@ const Admin = () => {
         setLoading(true);
         
         // Fetch real data from backend API
-        const response = await axiosInstance.get('/admin/dashboard-stats');
+        const response = await axiosInstance.get('/admin/batch/dashboard-stats');
         
         if (response.data && response.data.success) {
           // Set stats from API response
@@ -202,8 +213,7 @@ const Admin = () => {
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
             </svg>
           </div>
-        );
-      default:
+        );      default:
         return (
           <div className="p-2 rounded-full bg-gray-500/20 text-gray-400">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -220,7 +230,7 @@ const Admin = () => {
     <div className="relative min-h-screen  bg-gray-900 text-white ">
       <style>{gridBgStyle}</style>
       {/* Header Section */}
-      <div className=" from-gray-900 py- mb-8 relative overflow-hidden">
+      <div className=" from-gray-900  mb-8 relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]"></div>
         <div className="absolute inset-0  "></div>
         <div className="container mx-auto px-4 relative z-10">
@@ -291,8 +301,7 @@ const Admin = () => {
                     <div>
                       <p className="text-purple-300 text-sm font-medium">Total Faculty</p>
                       <h3 className="mt-1 text-4xl font-bold text-white">{stats.faculty}</h3>
-                    </div>
-                    <div className="p-3 bg-purple-500/20 rounded-lg">
+                    </div>                    <div className="p-3 bg-purple-500/20 rounded-lg">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-purple-400" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                       </svg>
@@ -331,7 +340,7 @@ const Admin = () => {
                   </div>
                   <div className="mt-4 flex justify-between">
                     <button 
-                      onClick={() => navigate("/admin/batches")}
+                      onClick={() => navigate("/admin/batch/batches")}
                       className="text-emerald-300 hover:text-white text-sm font-medium transition-colors duration-300 flex items-center"
                     >
                       View Details
@@ -377,7 +386,7 @@ const Admin = () => {
           )}
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-6">
           {/* Quick Actions */}
           <div className="lg:col-span-2 bg-gradient-to-br from-gray-800/90 to-gray-900/90 rounded-2xl shadow-lg overflow-hidden border border-gray-700/50 backdrop-blur-sm transition-all duration-500 hover:shadow-blue-900/20 hover:shadow-xl relative">
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[length:16px_16px]"></div>
@@ -419,9 +428,8 @@ const Admin = () => {
                   </div>
                 </button>
                 
-                {/* <button
-                  className="group bg-gradient-to-br from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white w-full py-5 px-4 rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-purple-700/30 hover:shadow-xl flex items-center justify-center overflow-hidden relative"
-                  onClick={() => navigate("/admin/batches")}
+                {/* <button                  className="group bg-gradient-to-br from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white w-full py-5 px-4 rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-purple-700/30 hover:shadow-xl flex items-center justify-center overflow-hidden relative"
+                  onClick={() => navigate("/admin/batch/batches")}
                 >
                   <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-purple-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"></div>
@@ -435,7 +443,7 @@ const Admin = () => {
                 
                 <button
                   className="group bg-gradient-to-br from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white w-full py-5 px-4 rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-amber-700/30 hover:shadow-xl flex items-center justify-center overflow-hidden relative"
-                  onClick={() => navigate("/admin/batches/create")}
+                  onClick={() => navigate("/admin/batch/batches/create")}
                 >
                   <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"></div>

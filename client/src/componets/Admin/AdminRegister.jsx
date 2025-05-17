@@ -18,7 +18,7 @@ const AdminRegister = () => {
   const fetchFacultys = async (page) => {
     try {
       setLoading(true);
-      const response = await axiosInstance.post("/admin/get-faculty-by-admin", {
+      const response = await axiosInstance.post("/admin/faculty/get-faculty-by-admin", {
         page,
         limit: itemsPerPage,
       });

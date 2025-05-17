@@ -21,11 +21,10 @@ const CreateBatch = () => {
   useEffect(() => {
     fetchFaculty();
     fetchStudents();
-  }, []);
-  const fetchFaculty = async () => {
+  }, []);  const fetchFaculty = async () => {
     setFacultyLoading(true);
     try {
-      const response = await axiosInstance.post('/admin/get-faculty-by-admin', {
+      const response = await axiosInstance.post('/admin/faculty/get-faculty-by-admin', {
         page: 1,
         limit: 100 // Get all faculty
       });
@@ -40,11 +39,10 @@ const CreateBatch = () => {
       setFacultyLoading(false);
     }
   };
-
   const fetchStudents = async () => {
     setStudentLoading(true);
     try {
-      const response = await axiosInstance.post('/admin/get-students', {
+      const response = await axiosInstance.post('/admin/faculty/get-students', {
         page: 1,
         limit: 1000 // Get all students for selection
       });
@@ -102,11 +100,11 @@ const CreateBatch = () => {
         students: selectedStudents
       };
       
-      const response = await axiosInstance.post('/admin/batches', payload);
+      const response = await axiosInstance.post('/admin/batch/batches', payload);
       
       if (response.data.success) {
         toast.success('Batch created successfully!');
-        navigate('/admin/batches');
+        navigate('/admin/batch/batches');
       }
     } catch (error) {
       console.error('Error creating batch:', error);
@@ -283,7 +281,7 @@ const CreateBatch = () => {
           <div className="mt-6 flex justify-end">
             <button
               type="button"
-              onClick={() => navigate('/admin/batches')}
+              onClick={() => navigate('/admin/batch/batches')}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 mr-3"
             >
               Cancel

@@ -18,10 +18,9 @@ const BatchManagement = () => {
     fetchFaculty();
     fetchBatches(currentPage);
   }, [currentPage, facultyFilter]);
-
   const fetchFaculty = async () => {
     try {
-      const response = await axiosInstance.post('/admin/get-faculty-by-admin', {
+      const response = await axiosInstance.post('/admin/faculty/get-faculty-by-admin', {
         page: 1,
         limit: 100 // Get all faculty for filtering
       });
@@ -41,12 +40,11 @@ const BatchManagement = () => {
         page,
         limit: 10
       };
-      
-      if (facultyFilter) {
+        if (facultyFilter) {
         payload.facultyId = facultyFilter;
       }
       
-      const response = await axiosInstance.get('/admin/batches', { params: payload });
+      const response = await axiosInstance.get('/admin/batch/batches', { params: payload });
       if (response.data.success) {
         setBatches(response.data.batches);
         setTotalPages(response.data.totalPages);
@@ -62,10 +60,9 @@ const BatchManagement = () => {
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
-  };
-  const handleDeleteConfirm = async () => {
+  };  const handleDeleteConfirm = async () => {
     try {
-      const response = await axiosInstance.delete(`/admin/batches/${batchToDelete}`);
+      const response = await axiosInstance.delete(`/admin/batch/batches/${batchToDelete}`);
       if (response.data.success) {
         toast.success('Batch deleted successfully');
         fetchBatches(currentPage);
@@ -92,9 +89,8 @@ const BatchManagement = () => {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6 mt-20">
-        <h1 className="text-2xl font-bold">Batch Management</h1>
-        <Link
-          to="/admin/batches/create"
+        <h1 className="text-2xl font-bold">Batch Management</h1>        <Link
+          to="/admin/batch/batches/create"
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
         >
           Create New Batch
@@ -128,8 +124,7 @@ const BatchManagement = () => {
       ) : batches.length === 0 ? (
         <div className="text-center py-10 bg-gray-50 rounded-lg">
           <p className="text-gray-500">No batches found</p>
-          <p className="mt-2">
-            <Link to="/admin/batches/create" className="text-blue-600 hover:underline">
+          <p className="mt-2">            <Link to="/admin/batch/batches/create" className="text-blue-600 hover:underline">
               Create your first batch
             </Link>
           </p>

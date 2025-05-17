@@ -33,7 +33,7 @@ const BatchDetails = () => {
   const fetchBatchDetails = async () => {
     setLoading(true);
     try {
-      const response = await axiosInstance.get(`/admin/batches/${batchId}`);
+      const response = await axiosInstance.get(`/admin/batch/batches/${batchId}`);
       if (response.data.success) {
         const batchData = response.data.batch;
         setBatch(batchData);
@@ -48,14 +48,14 @@ const BatchDetails = () => {
     } catch (error) {
       console.error('Error fetching batch details:', error);
       toast.error('Failed to load batch details');
-      navigate('/admin/batches');
+      navigate('/admin/batch/batches');
     } finally {
       setLoading(false);
     }
   };
   const fetchFaculty = async () => {
     try {
-      const response = await axiosInstance.post('/admin/get-faculty-by-admin', {
+      const response = await axiosInstance.post('/admin/faculty/get-faculty-by-admin', {
         page: 1,
         limit: 100
       });
@@ -66,10 +66,9 @@ const BatchDetails = () => {
       console.error('Error fetching faculty:', error);
     }
   };
-
   const fetchAllStudents = async () => {
     try {
-      const response = await axiosInstance.post('/admin/get-students', {
+      const response = await axiosInstance.post('/admin/faculty/get-students', {
         page: 1,
         limit: 1000
       });
@@ -122,9 +121,8 @@ const BatchDetails = () => {
     setStudentToRemove(studentId);
     setShowRemoveModal(true);
   };
-  const confirmRemoveStudent = async () => {
-    try {
-      const response = await axiosInstance.delete(`/admin/batches/${batchId}/students`, {
+  const confirmRemoveStudent = async () => {    try {
+      const response = await axiosInstance.delete(`/admin/batch/batches/${batchId}/students`, {
         data: { studentIds: [studentToRemove] }
       });
       if (response.data.success) {
@@ -143,12 +141,12 @@ const BatchDetails = () => {
     setSaving(true);
     try {
       // Update batch details
-      const updateResponse = await axiosInstance.put(`/admin/batches/${batchId}`, formData);
+      const updateResponse = await axiosInstance.put(`/admin/batch/batches/${batchId}`, formData);
       
       if (updateResponse.data.success) {
         // If there are students to add
         if (studentsToAdd.length > 0) {
-          await axiosInstance.post(`/admin/batches/${batchId}/students`, {
+          await axiosInstance.post(`/admin/batch/batches/${batchId}/students`, {
             studentIds: studentsToAdd
           });
         }
@@ -190,11 +188,10 @@ const BatchDetails = () => {
   }
 
   if (!batch) {
-    return (
-      <div className="text-center py-10">
+    return (      <div className="text-center py-10">
         <h2 className="text-2xl font-bold">Batch not found</h2>
         <button
-          onClick={() => navigate('/admin/batches')}
+          onClick={() => navigate('/admin/batch/batches')}
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Back to Batches
@@ -231,10 +228,9 @@ const BatchDetails = () => {
               className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          )}
+            </button>          )}
           <button
-            onClick={() => navigate('/admin/batches')}
+            onClick={() => navigate('/admin/batch/batches')}
             className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-sm font-medium"
           >
             Back to List

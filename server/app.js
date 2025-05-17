@@ -13,7 +13,8 @@ import user from "./routes/user.router.js";
 import cors from "cors";
 import compileRoutes from "./routes/compileRoutes.js"; // Import the compile routes
 import submissionRoutes from "./routes/submission.router.js"; // Import the submission routes
-import adminRouter from "./routes/admin.router.js";
+import adminFacultyRouter from "./routes/admin.faculty.router.js";
+import adminBatchRouter from "./routes/admin.batch.router.js";
 import facultyRouter from "./routes/faculty.router.js";
 import compiler from "./routes/compiler.js";
 
@@ -41,7 +42,8 @@ app.use("/api/v1/problems", problemRoutes); // Use problem routes
 app.use("/api/v1/user", user);
 app.use("/api/v1/compile", compileRoutes);
 app.use("/api/v1/submissions", submissionRoutes); // Use submission routes
-app.use("/api/v1/admin", adminRouter); // admin section
+app.use("/api/v1/admin/faculty", adminFacultyRouter); // admin faculty management
+app.use("/api/v1/admin/batch", adminBatchRouter); // admin batch management
 app.use("/api/v1/faculty", facultyRouter);
 app.use("/api/v1/compiler", compiler);
 
