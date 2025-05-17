@@ -302,33 +302,76 @@ const adminFacultyController = {
           message: "Internal server error." 
         });
       }
-    },
-    getStudents: async (req, res) => {
-      const { page = 1, limit = 10 } = req.body;
+    },    getStudents: async (req, res) => {
+      const { 
+        page = 1, 
+        limit = 10, 
+        search = "", 
+        sortBy = "id", 
+        sortOrder = "asc",
+        batch = "",
+        semester = "",
+        branch = "" 
+      } = req.body;
       
       try {
         const skip = (page - 1) * limit;
+        
+        // Build query filters
+        const filters = { role: "student", isApproved: true };
+        
+        // Apply search filter if provided
+        if (search) {
+          filters.$or = [
+            { username: { $regex: search, $options: "i" } },
+            { id: { $regex: search, $options: "i" } }
+          ];
+        }
+        
+        // Apply additional filters if provided
+        if (batch) filters.batch = batch;
+        if (semester) filters.semester = parseInt(semester);
+        if (branch) filters.branch = branch;
+        
+        // Determine sort direction
+        const sortDirection = sortOrder === "desc" ? -1 : 1;
+        
+        // Build sort object
+        const sortOptions = {};
+        sortOptions[sortBy] = sortDirection;
     
-        const students = await User.find({ role: "student", isApproved: true })
+        const students = await User.find(filters)
           .select("username batch branch semester id createdAt facultyId")
           .populate('facultyId', 'username email')
-          .sort({ id : 1 }) 
+          .sort(sortOptions) 
           .skip(skip)
-          .limit(limit);
+          .limit(parseInt(limit));
     
-        // Get total count of approved students
-        const totalStudents = await User.countDocuments({ role: "student", isApproved: true });
+        // Get total count of filtered students
+        const totalStudents = await User.countDocuments(filters);
     
         // Calculate total pages and return data
         const totalPages = Math.ceil(totalStudents / limit);
+        
+        // Get unique batches and semesters for filter options
+        const [uniqueBatches, uniqueSemesters, uniqueBranches] = await Promise.all([
+          User.distinct('batch', { role: "student", isApproved: true }),
+          User.distinct('semester', { role: "student", isApproved: true }),
+          User.distinct('branch', { role: "student", isApproved: true })
+        ]);
     
         res.status(200).json({
           success: true,
           message: "Students fetched successfully.",
           students,
           totalPages,
-          currentPage: page,
-          totalStudents
+          currentPage: parseInt(page),
+          totalStudents,
+          filters: {
+            batches: uniqueBatches.filter(Boolean).sort(),
+            semesters: uniqueSemesters.filter(Boolean).sort((a, b) => a - b),
+            branches: uniqueBranches.filter(Boolean).sort()
+          }
         });
       } catch (error) {
         console.error("Error in fetching students:", error);
