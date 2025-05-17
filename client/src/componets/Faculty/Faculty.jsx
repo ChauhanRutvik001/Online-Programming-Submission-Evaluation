@@ -10,7 +10,6 @@ const Faculty = () => {
   useEffect(() => {
     if (user?.role !== 'faculty') navigate('/');
   }, [user, navigate]);
-
   return (
     <>
       <div className="bg-gray-900 text-gray-100 min-h-screen overflow-hidden">
@@ -18,12 +17,19 @@ const Faculty = () => {
           <h1 className="text-2xl font-bold">Faculty Dashboard</h1>
         </div>
         
-        <div className="p-4">
+        <div className="p-4 flex flex-wrap gap-4">
           <button
-            className="bg-blue-500 hover:bg-blue-600 mr-4 text-white font-bold py-2 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-300 transition"
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-300 transition"
             onClick={() => navigate(`/students/${user._id}`)}
           >
             View Students
+          </button>
+          
+          <button
+            className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-purple-300 transition"
+            onClick={() => navigate('/faculty/batches')}
+          >
+            Manage Batches
           </button>
         </div>
       </div>

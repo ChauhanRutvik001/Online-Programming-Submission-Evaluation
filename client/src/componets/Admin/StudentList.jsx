@@ -114,13 +114,11 @@ const StudentList = () => {
         <>
           <div className="overflow-x-auto bg-gray-900 shadow-md rounded-lg p-4">
             <table className="min-w-full text-lg text-left text-gray-500">
-              <thead className="bg-gray-900 text-gray-400">
-                <tr>
+              <thead className="bg-gray-900 text-gray-400">                <tr>
                   <th className="py-3 px-6">#</th>
                   <th className="py-3 px-6">ID</th>
                   <th className="py-3 px-6">Username</th>
                   <th className="py-3 px-6">Semester</th>
-                  <th className="py-3 px-6">Branch</th>
                   <th className="py-3 px-6">Batch</th>
                   <th className="py-3 px-6">Create Date</th>
                   <th className="py-3 px-6">Action</th>
@@ -146,17 +144,13 @@ const StudentList = () => {
                     >
                       <td className="py-3 px-6">
                         {(currentPage - 1) * studentsPerPage + index + 1}
-                      </td>
-                      <td className="py-3 px-6">
+                      </td>                      <td className="py-3 px-6">
                         {student?.id?.toUpperCase()}
                       </td>
                       <td className="capitalize py-3 px-6">
                         {student?.username}
                       </td>
                       <td className="py-3 px-6">{student?.semester}</td>
-                      <td className="py-3 px-6">
-                        {student?.branch?.toUpperCase()}
-                      </td>
                       <td className="py-3 px-6">
                         {student?.batch?.toUpperCase()}
                       </td>

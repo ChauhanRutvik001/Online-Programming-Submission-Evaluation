@@ -99,12 +99,12 @@ export const login = async (req, res) => {
       });
     }
 
-    if (user.sessionId) {
-      return res.status(400).json({
-        message: "You are already logged in from another session.",
-        success: false,
-      });
-    }
+    // if (user.sessionId) {
+    //   return res.status(400).json({
+    //     message: "You are already logged in from another session.",
+    //     success: false,
+    //   });
+    // }
 
     const sessionId = uuidv4();
     user.sessionId = sessionId;

@@ -14,4 +14,10 @@ router
   .route("/remove-user/:userId")
   .delete(isAuthorized, isFaculty, facultyController.removeUser);
 
+// Batch management endpoints for faculty
+router.route("/batches")
+  .get(isAuthorized, isFaculty, facultyController.getMyBatches);
+router.route("/batches/:batchId")
+  .get(isAuthorized, isFaculty, facultyController.getBatchDetails);
+
 export default router;

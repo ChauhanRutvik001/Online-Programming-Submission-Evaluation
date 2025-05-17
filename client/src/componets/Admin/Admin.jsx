@@ -331,7 +331,7 @@ const Admin = () => {
                   </div>
                   <div className="mt-4 flex justify-between">
                     <button 
-                      onClick={() => navigate("/registerStudents")}
+                      onClick={() => navigate("/admin/batches")}
                       className="text-emerald-300 hover:text-white text-sm font-medium transition-colors duration-300 flex items-center"
                     >
                       View Details
@@ -390,8 +390,7 @@ const Admin = () => {
               </h2>
             </div>
             
-            <div className="p-6 relative z-10">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-6 relative z-10">              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                   className="group bg-gradient-to-br from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white w-full py-5 px-4 rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-blue-700/30 hover:shadow-xl flex items-center justify-center overflow-hidden relative"
                   onClick={() => navigate("/create-faculty")}
@@ -406,20 +405,6 @@ const Admin = () => {
                   </div>
                 </button>
                   
-                {/* <button
-                  className="group bg-gradient-to-br from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white w-full py-5 px-4 rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-purple-700/30 hover:shadow-xl flex items-center justify-center overflow-hidden relative"
-                  onClick={() => navigate("/registerFaculty")}
-                >
-                  <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-purple-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"></div>
-                  <div className="relative z-10 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3 text-purple-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    <span className="font-semibold tracking-wide">View Faculty</span>
-                  </div>
-                </button>
-                 */}
                 <button
                   className="group bg-gradient-to-br from-emerald-600 to-green-800 hover:from-emerald-500 hover:to-green-700 text-white w-full py-5 px-4 rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-green-700/30 hover:shadow-xl flex items-center justify-center overflow-hidden relative"
                   onClick={() => navigate("/registerStudents")}
@@ -435,18 +420,32 @@ const Admin = () => {
                 </button>
                 
                 {/* <button
-                  className="group bg-gradient-to-br from-red-600 to-rose-800 hover:from-red-500 hover:to-rose-700 text-white w-full py-5 px-4 rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-red-700/30 hover:shadow-xl flex items-center justify-center overflow-hidden relative"
-                  onClick={() => navigate("/studentinformation")}
+                  className="group bg-gradient-to-br from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white w-full py-5 px-4 rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-purple-700/30 hover:shadow-xl flex items-center justify-center overflow-hidden relative"
+                  onClick={() => navigate("/admin/batches")}
                 >
                   <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-red-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"></div>
+                  <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-purple-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"></div>
                   <div className="relative z-10 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3 text-red-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3 text-purple-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
-                    <span className="font-semibold tracking-wide">Student Information</span>
+                    <span className="font-semibold tracking-wide">Manage Batches</span>
                   </div>
                 </button> */}
+                
+                <button
+                  className="group bg-gradient-to-br from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white w-full py-5 px-4 rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-amber-700/30 hover:shadow-xl flex items-center justify-center overflow-hidden relative"
+                  onClick={() => navigate("/admin/batches/create")}
+                >
+                  <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"></div>
+                  <div className="relative z-10 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3 text-amber-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span className="font-semibold tracking-wide">Create Batch</span>
+                  </div>
+                </button>
               </div>
             </div>
           </div>

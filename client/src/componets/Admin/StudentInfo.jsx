@@ -88,7 +88,7 @@ const StudentInfo = () => {
 
 const BranchWiseCount = ({ branches }) => (
   <div className="mt-4 mb-4">
-    <h3 className="text-lg font-medium text-white">Branch-wise Count:</h3>
+    <h3 className="text-lg font-medium text-white">Batch-wise Count:</h3>
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
       {branches.map((branch, index) => (
         <div

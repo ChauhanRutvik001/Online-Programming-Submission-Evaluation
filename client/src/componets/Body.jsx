@@ -29,6 +29,11 @@ import AssignedContest from './Contest/AssignedContest';
 import UnAssignContest from './Contest/UnAssignContest';
 import Duplicate from './Duplicate';
 import ContestDashboard from './Contest/ContestDashboard';
+import BatchManagement from './Admin/BatchManagement';
+import CreateBatch from './Admin/CreateBatch';
+import BatchDetails from './Admin/BatchDetails';
+import FacultyBatchList from './Faculty/BatchList';
+import FacultyBatchDetails from './Faculty/BatchDetails';
 
 const appRouter = createBrowserRouter([
   {
@@ -58,11 +63,15 @@ const appRouter = createBrowserRouter([
       { path:"/assignProblem/:problemId", element: <AssignProblem /> },
       { path:"/assignedStudents/:problemId", element: <AssignedStudents /> },
       { path:"/studentinformation", element: <StudentInfo /> },
-      { path:"/submissions/:submissionId", element:<Details />},
-      { path:"/assignContestToStudents/:contestId", element:<UnAssignContest />},
+      { path:"/submissions/:submissionId", element:<Details />},      { path:"/assignContestToStudents/:contestId", element:<UnAssignContest />},
       { path:"/unassignContestToStudents/:contestId", element:<AssignedContest />},
       { path:"/duplicate", element:<Duplicate />},
       { path:"/contests/:id/dashboard", element:<ContestDashboard />},
+      { path:"/admin/batches", element:<BatchManagement />},
+      { path:"/admin/batches/create", element:<CreateBatch />},
+      { path:"/admin/batches/:batchId", element:<BatchDetails />},
+      { path:"/faculty/batches", element:<FacultyBatchList />},
+      { path:"/faculty/batches/:batchId", element:<FacultyBatchDetails />},
     ],
   },
 ]);

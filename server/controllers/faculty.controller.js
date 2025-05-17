@@ -2,6 +2,7 @@ import User from '../models/user.js';
 import bcrypt from 'bcrypt';
 import Code from '../models/Code.js';
 import Submission from '../models/submission.js';
+import Batch from '../models/batch.js';
 
 const facultyController = {
     getStudents: async (req, res) => {
@@ -113,6 +114,60 @@ const facultyController = {
         return res.status(500).json({
           success: false,
           message: "Internal server error.",
+        });
+      }    }
+    ,
+    // Batch related functions for faculty
+    getMyBatches: async (req, res) => {
+      try {
+        const facultyId = req.user.id;
+        
+        // Find all batches where this faculty is assigned
+        const batches = await Batch.find({ faculty: facultyId, isActive: true })
+          .populate('students', 'username id batch semester branch')
+          .sort({ createdAt: -1 });
+        
+        return res.status(200).json({
+          success: true,
+          batches,
+          count: batches.length
+        });
+      } catch (error) {
+        console.error("Error fetching faculty batches:", error);
+        return res.status(500).json({
+          success: false, 
+          message: "An error occurred while fetching batches"
+        });
+      }
+    },
+    
+    getBatchDetails: async (req, res) => {
+      try {
+        const { batchId } = req.params;
+        const facultyId = req.user.id;
+        
+        // Find the batch and ensure it belongs to this faculty
+        const batch = await Batch.findOne({ _id: batchId, faculty: facultyId })
+          .populate('students', 'username id batch semester branch email')
+          .populate('faculty', 'username email id');
+          
+        if (!batch) {
+          return res.status(404).json({
+            success: false,
+            message: "Batch not found or you don't have access to it"
+          });
+        }
+        
+        return res.status(200).json({
+          success: true,
+          batch
+        });
+      } catch (error) {
+        console.error("Error fetching batch details:", error);
+        return res.status(500).json({
+          success: false,
+          message: "An error occurred while fetching batch details",
+          error: error.message
         });
       }
     }
