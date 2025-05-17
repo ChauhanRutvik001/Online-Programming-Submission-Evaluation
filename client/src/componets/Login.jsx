@@ -2,37 +2,22 @@ import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchProfilePicThunk, setImageUrl, setLoading, setUser } from "../redux/userSlice";
+import { fetchProfilePicThunk, setLoading, setUser } from "../redux/userSlice";
 import axiosInstance from "../utils/axiosInstance";
-import { SEM, BRANCH } from "../../../server/utils/constants";
 import PasswordChange from "./PassWordChange";
-import { ClipLoader } from "react-spinners";
 
 const Login = () => {
   const user = useSelector((store) => store.app.user);
-  const [isLogin, setIsLogin] = useState(true);
   const authStatus = useSelector((store) => store.app.authStatus);
-  const [fullName, setFullName] = useState("");
-  const [username, setUsername] = useState("");
   const [idOrEmail, setIdOrEmail] = useState("");
-  const [mobileNo, setMobileNo] = useState("");
-  const [branch, setBranch] = useState("");
-  const [sem, setSem] = useState("");
-  const [batch, setBatch] = useState("");
-  const [subject, setSubject] = useState("");
-  const [subjects, setSubjects] = useState([]);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [popUp, setPopUp] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const isLoading = useSelector((store) => store.app.isLoading);
-  const [userType, setUserType] = useState("");
-  const [isLoad, setIsLoad] = useState(false);
-
-  const toggleLogin = () => {
-    setIsLogin(!isLogin);
-  };
 
   useEffect(() => {
     if (authStatus) {
@@ -41,86 +26,6 @@ const Login = () => {
       navigate("/");
     }
   }, [authStatus]);
-
-  useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        if (userType === "student") {
-          setIsLoad(true);
-          const res = await axiosInstance.get("auth/fetch-subjects");
-          if (res.data.success) {
-            // console.log(res.data.subjects);
-            setSubjects(res.data.subjects);
-          }
-          setIsLoad(false);
-        }
-      } catch (error) {
-        setIsLoad(false);
-        console.error("Failed to fetch subjects:", error);
-      }
-    };
-
-    fetchSubjects();
-  }, [userType]);
-
-  const validateRegistration = () => {
-    if (!username || !idOrEmail || !userType || !subject) {
-      toast.error("Username, ID/Email, User Type, and Subject are required.");
-      return false;
-    }
-    if (userType === "student") {
-      if (!mobileNo || !branch || !sem || !batch) {
-        toast.error("All fields are required for student registration.");
-        return false;
-      }
-      if (mobileNo.length !== 10 || !/^\d+$/.test(mobileNo)) {
-        toast.error("Mobile number must be 10 digits.");
-        return false;
-      }
-    } else if (userType === "faculty") {
-      if (!/\S+@\S+\.\S+/.test(idOrEmail)) {
-        toast.error("Please enter a valid email for faculty.");
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const handleRegistration = async (e) => {
-    e.preventDefault();
-    if (!validateRegistration()) return;
-
-    const selectedSubject = subjects.find((subj) => subj.id === subject);
-    const newUser = {
-      username,
-      id: userType === "student" ? idOrEmail.toLowerCase() : undefined, // Convert ID to lowercase
-      facultyId: userType === "student" ? selectedSubject.id : undefined,
-      email: userType === "faculty" ? idOrEmail.toLowerCase() : undefined, // Convert email to lowercase
-      mobileNo: userType === "student" ? mobileNo : undefined,
-      branch: userType === "student" ? branch.toLowerCase() : undefined, // Convert branch to lowercase
-      semester: userType === "student" ? sem : undefined,
-      batch: userType === "student" ? batch.toLowerCase() : undefined,
-      subject: userType === "student" ? selectedSubject.subject : subject,
-      role: userType,
-    };
-
-    // console.log(newUser);
-
-    try {
-      dispatch(setLoading(true));
-
-      const res = await axiosInstance.post("auth/register", newUser);
-
-      if (res.data.success) {
-        toast.success(res.data.message);
-        setIsLogin(true);
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Registration failed.");
-    } finally {
-      dispatch(setLoading(false));
-    }
-  };
 
   const validateLogin = () => {
     if (!idOrEmail || !password) {
@@ -135,12 +40,12 @@ const Login = () => {
     if (!validateLogin()) return;
 
     dispatch(setLoading(true));
+    setAssignLoading(true);
     const user = {
       [idOrEmail.includes("@") ? "email" : "id"]: idOrEmail.toLowerCase(),
       password,
     };
 
-    // console.log("This is user: ", user);
     try {
       const url = `auth/login`;
       const res = await axiosInstance.post(url, user);
@@ -169,214 +74,151 @@ const Login = () => {
       toast.error(errorMessage);
     } finally {
       dispatch(setLoading(false));
-      resetForm();
+      setAssignLoading(false);
+
+      if (!isFirstTime) {
+        resetForm();
+      }
     }
   };
 
   const resetForm = () => {
-    setFullName("");
-    setUsername("");
     setIdOrEmail("");
     setPassword("");
   };
 
   return (
-    <>
-      <div style={{ backgroundColor: "black" }}>
-        <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-r overflow-hidden py-12 px-4 sm:px-6 lg:px-8">
-          {isFirstTime ? (
-            <PasswordChange id={idOrEmail} />
-          ) : (
-            <form
-              onSubmit={isLogin ? handleLogin : handleRegistration}
-              className="flex flex-col w-full max-w-lg p-8 space-y-6 bg-gray-900 bg-opacity-90 rounded-lg shadow-lg"
-            >
-              <h1 className="text-4xl text-white font-bold text-center">
-                {isLogin ? "Login" : "Signup"}
-              </h1>
-              {!isLogin && (
-                <>
-                  {/* username */}
-                  <input
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    type="text"
-                    placeholder="Username"
-                    className="p-4 rounded-md bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none w-full"
+    <div className="flex min-h-screen overflow-hidden">
+      {/* Left Section */}
+      <div className="hidden lg:block w-1/3 h-screen">
+        <img
+          src="/leftside.png"
+          alt="Logo"
+          className="h-full w-full object-fit"
+        />
+      </div>
+
+      {/* Right Section */}
+      <div
+        className="w-full lg:w-2/3 h-screen bg-cover bg-center relative"
+        style={{ backgroundImage: `url('/rightside.jpg')` }}
+      >
+        <div className="inset-0 absolute flex items-center justify-center bg-gray-900 bg-opacity-50 px-4 sm:px-6">
+          <div className="w-full max-w-2xl sm:max-w-lg bg-opacity-90">
+            {isFirstTime ? (
+              <PasswordChange id={idOrEmail} />
+            ) : (
+              <form
+                onSubmit={handleLogin}
+                className="w-full bg-white p-6 sm:p-8 rounded-lg shadow-md"
+              >
+                <div className="mb-6 text-center">
+                  <img
+                    src="/logo2.jpg"
+                    alt="CHARUSAT"
+                    className="mx-auto h-12 sm:h-16"
                   />
-
-                  {/* idOrEmail and userType */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      value={idOrEmail}
-                      onChange={(e) => setIdOrEmail(e.target.value)}
-                      type={userType === "faculty" ? "email" : "text"}
-                      placeholder={
-                        userType === "faculty" ? "Faculty Email" : "Student ID"
-                      }
-                      className="p-4 rounded-md bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-
-                    <select
-                      id="userType"
-                      value={userType}
-                      onChange={(e) => {
-                        setUserType(e.target.value);
-                        setSubject("");
-                      }}
-                      className="p-3 w-full cursor-pointer rounded-md bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    >
-                      <option value="" disabled>
-                        -- Select User Type --
-                      </option>
-                      <option value="student">Student</option>
-                      <option value="faculty">Faculty</option>
-                    </select>
-                  </div>
-
-                  {/* For Students: branch, semester, batch, mobileNo */}
-                  {userType === "student" && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <select
-                          value={branch}
-                          onChange={(e) => setBranch(e.target.value)}
-                          className="p-4 cursor-pointer rounded-md bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        >
-                          <option value="">Select Branch</option>
-                          {Object.values(BRANCH).map((branchOption, index) => (
-                            <option key={index} value={branchOption}>
-                              {branchOption}
-                            </option>
-                          ))}
-                        </select>
-
-                        <select
-                          value={sem}
-                          onChange={(e) => setSem(e.target.value)}
-                          className="p-4 cursor-pointer rounded-md bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        >
-                          <option value="">Select Semester</option>
-                          {Object.values(SEM).map((semOption, index) => (
-                            <option key={index} value={semOption}>
-                              Semester {semOption}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <select
-                          value={batch}
-                          onChange={(e) => setBatch(e.target.value)}
-                          className="p-4 rounded-md bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        >
-                          <option value="" disabled>
-                            Select Batch
-                          </option>
-                          <option value="a1">A1</option>
-                          <option value="b1">B1</option>
-                          <option value="c1">C1</option>
-                          <option value="d1">D1</option>
-                          <option value="a2">A2</option>
-                          <option value="b2">B2</option>
-                          <option value="c2">C2</option>
-                          <option value="d2">D2</option>
-                        </select>
-
-                        <input
-                          value={mobileNo}
-                          onChange={(e) => setMobileNo(e.target.value)}
-                          type="text"
-                          placeholder="Mobile No"
-                          className="p-4 rounded-md bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Subject */}
-                  <div className="mt-4">
-                    {userType === "student" && (
-                      <select
-                        value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
-                        className="p-4 w-full cursor-pointer rounded-md bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      >
-                        <option value="" disabled>
-                          -- Select Subject --
-                        </option>
-                        {subjects.map((subj, index) => (
-                          <option key={index} value={subj.id}>
-                            {subj.subject} ({subj.teacher})
-                          </option>
-                        ))}
-                      </select>
-                    )}
-
-                    {userType === "faculty" && (
-                      <input
-                        value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
-                        type="text"
-                        placeholder="Enter Subject"
-                        className="p-4 w-full rounded-md bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      />
-                    )}
-                  </div>
-                </>
-              )}
-              {isLogin && (
-                <>
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-800">
+                    Gateway to Your Career Opportunities
+                  </h2>
+                </div>
+                <div className="mb-4">
+                  <label
+                    htmlFor="id"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Username
+                  </label>
                   <input
+                    type="text"
+                    id="id"
                     value={idOrEmail}
                     onChange={(e) => setIdOrEmail(e.target.value)}
-                    type="name"
-                    placeholder="Id"
-                    className="p-4 rounded-md bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
+                    required
                   />
-                  <div className="relative w-full">
+                </div>
+                <div className="mb-4 relative">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Password
+                  </label>
+                  <div className="relative">
                     <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      className="p-4 w-full rounded-md bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
+                      required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500 focus:outline-none"
+                      className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
                     >
-                      {showPassword ? (
-                        <span>🔓</span>
-                      ) : (
-                        <span>🔒</span> //
-                      )}
+                      {showPassword ? "👁️" : "🙅‍♂️"}
                     </button>
                   </div>
-                </>
-              )}
-              <button
-                type="submit"
-                className="w-full py-4 bg-blue-600 text-white font-bold rounded-md transition-transform transform hover:scale-105 focus:scale-95"
-              >
-                {isLoading ? "Loading..." : isLogin ? "Login" : "Signup"}
-              </button>
-              <p className="text-white text-center">
-                {isLogin ? "New to Coding App?" : "Already have an account?"}
-                <span
-                  onClick={toggleLogin}
-                  className="ml-2 text-blue-500 cursor-pointer hover:underline"
+                </div>
+                <div className="flex justify-between items-center mb-4">
+                  <p
+                    onClick={() =>
+                      setPopUp("We can't change your password at the moment.")
+                    }
+                    className="text-indigo-600 text-sm cursor-pointer hover:underline"
+                  >
+                    Forgot your password?
+                  </p>
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
                 >
-                  {isLogin ? "Signup" : "Login"}
-                </span>
-              </p>
-            </form>
-          )}
+                  Login
+                </button>
+
+                {popUp && (
+                  <p className="text-center mt-4 text-red-600 text-sm">
+                    {popUp}
+                  </p>
+                )}
+              </form>
+            )}
+          </div>
         </div>
       </div>
-    </>
+
+      {assignLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="flex flex-col items-center">
+            <svg
+              className="animate-spin h-12 w-12 text-blue-500 mb-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8H4z"
+              ></path>
+            </svg>
+            <p className="text-white text-lg font-semibold">Login...</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

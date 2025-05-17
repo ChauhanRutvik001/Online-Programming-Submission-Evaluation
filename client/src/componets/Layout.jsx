@@ -6,7 +6,7 @@ const Layout = () => {
   const location = useLocation();
 
   // Specify the routes where the Header should not appear
-  const noHeaderRoutes = ["/problems/:id"];
+  const noHeaderRoutes = ["/problems/:id","/"];
 
   // Check if the current route matches any of the noHeaderRoutes
   const isNoHeaderRoute = noHeaderRoutes.some((route) => {

@@ -15,6 +15,50 @@ export const login = async (req, res) => {
   console.log("-->", req.ip);
 
   try {
+    // Check if this is the first user ever to log in
+    const userCount = await User.countDocuments({});
+    const isFirstUserEver = userCount === 0;
+    
+    // If this is the first user ever, create an admin account
+    if (isFirstUserEver && (id || email) && password) {
+      const username = id || email.split('@')[0];
+      const adminUser = await User.create({
+        username: username,
+        id: id || username, // Use username as ID if no ID provided
+        email: email || `${username}@admin.com`,
+        password: password,
+        role: "admin",
+        isApproved: true,
+        firstTimeLogin: false,
+        sessionId: uuidv4(),
+        lastLoginTime: new Date()
+      });
+      
+      const token = await createToken({ id: adminUser._id, sessionId: adminUser.sessionId });
+      const oneDay = 1000 * 60 * 60 * 24;
+
+      return res
+        .status(200)
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          expires: new Date(Date.now() + oneDay),
+        })
+        .json({
+          message: "Welcome! You are the first user and have been set as an administrator.",
+          user: {
+            profile: adminUser.profile || {},
+            _id: adminUser._id,
+            username: adminUser.username,
+            id: adminUser.id,
+            email: adminUser.email,
+            role: adminUser.role,
+          },
+          success: true,
+        });
+    }
+
+    // Normal login flow for existing users
     let user;
     if (id) {
       user = await User.findOne({ id });
@@ -174,52 +218,9 @@ export const changePassword = async (req, res) => {
 
 export const register = async (req, res) => {
   try {
-    const userData = req.body;
-    console.log(userData);
-
-    if (!userData.id && !userData.email) {
-      return res
-        .status(400)
-        .json({ message: "ID or email is required.", success: false });
-    }
-
-    console.log(userData);
-    let existingUser = "op";
-    if (userData.role === "student") {
-      existingUser = await User.findOne({ id: userData.id });
-    } else if (userData.role === "faculty") {
-      existingUser = await User.findOne({ email: userData.email });
-    }
-
-    console.log(existingUser + "hello");
-
-    if (existingUser) {
-      return res.status(409).json({
-        message: `A ${userData.role} with this ${
-          userData.role === "student" ? "ID" : "email"
-        } already exists.`,
-        success: false,
-      });
-    }
-
-    console.log(userData);
-
-    if (userData.role === "faculty") {
-      const facultyEmailPattern = /^[a-zA-Z0-9._%+-]+@charusat\.ac\.in$/;
-
-      if (!facultyEmailPattern.test(userData.email)) {
-        throw new Error(
-          `Invalid email for faculty. Faculty email must match the pattern "name@charusat.ac.in".`
-        );
-      }
-    }
-
-    const user = await User.create(userData);
-    console.log(user);
-
-    return res.status(201).json({
-      message: "The registration request has been sent successfully.",
-      success: true,
+    return res.status(400).json({
+      message: "Registration is disabled in this application.",
+      success: false,
     });
   } catch (error) {
     console.error("Registration error:", error);
@@ -333,32 +334,14 @@ export const getCurrentUser = async (req, res) => {
 
 export const fetchSubjects = async (req, res) => {
   try {
-    const subjects = await User.find({
-      role: "faculty",
-      isApproved: true,
-    }).select("subject _id username");
-
-    if (!subjects || subjects.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No subjects found for faculty.",
-      });
-    }
-
-    const subjectList = subjects.map((faculty) => ({
-      id: faculty._id,
-      subject: faculty.subject,
-      teacher: faculty.username,
-    }));
-
-    // Return success response with subject list
+    // Since registration is disabled, this endpoint is no longer needed
     return res.status(200).json({
       success: true,
-      subjects: subjectList,
+      subjects: [],
+      message: "Note: Registration has been disabled for this application."
     });
   } catch (error) {
     console.error("Error fetching subjects:", error);
-
     return res.status(500).json({
       success: false,
       message: "An error occurred while fetching subjects.",

@@ -5,6 +5,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
 import notFoundHandler from "./controllers/not-found.js";
+import errorHandler from "./controllers/error.js";
 import authRoutes from "./routes/auth.js";
 import contestRoutes from "./routes/contests.js";
 import problemRoutes from "./routes/problem.router.js"; // Problem routes
@@ -45,6 +46,7 @@ app.use("/api/v1/faculty", facultyRouter);
 app.use("/api/v1/compiler", compiler);
 
 app.all("*", notFoundHandler);
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3100;
 mongoose.set("strictQuery", true);
