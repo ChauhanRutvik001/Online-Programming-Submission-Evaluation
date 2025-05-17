@@ -16,9 +16,9 @@ import AdminPage from './Admin/AdminPage';
 import Dashboard from './Problem/Dashboard';
 import History from './History';
 import FacultyPage from './Faculty/FacultyPage';
-import StudentRegister from './Faculty/StudentRegister';
-import FacultyRegister from './Faculty/FacultyRegister';
 import AdminRegister from './Admin/AdminRegister';
+import CreateFaculty from './Admin/CreateFaculty';
+import { default as AdminStudentRegister } from './Admin/StudentRegister';
 import StudentList from './Admin/StudentList';
 import AssignProblem from './Problem/AssignProblem';
 import AssignedStudents from './Problem/AssignedStudents';
@@ -48,14 +48,12 @@ const appRouter = createBrowserRouter([
       { path: "/faculty-section", element: <FacultyPage /> },
       { path: "/problem-form", element: <ProblemForm /> },
       { path: "/problem-form/:id", element: <ProblemForm /> },
-      { path: "/problems/:id", element: <ProblemShow /> },
-      { path: "/profile", element: <Profile /> },
+      { path: "/problems/:id", element: <ProblemShow /> },      { path: "/profile", element: <Profile /> },
       { path: "/dashboard/:problemId", element: <Dashboard /> },
       { path: "/history", element: <History /> },
-      { path: "*", element: <NotFoundError /> },
-      { path: "/add-student-using-file", element: <StudentRegister /> },
-      { path: "/registerStudent", element: <FacultyRegister /> },
-      { path: "/registerFaculty", element: <AdminRegister /> },
+      { path: "*", element: <NotFoundError /> },      { path: "/registerFaculty", element: <AdminRegister /> },
+      { path: "/create-faculty", element: <CreateFaculty /> },
+      { path: "/registerStudents", element: <AdminStudentRegister /> },
       { path:"/students/:facultyId", element: <StudentList /> },
       { path:"/assignProblem/:problemId", element: <AssignProblem /> },
       { path:"/assignedStudents/:problemId", element: <AssignedStudents /> },

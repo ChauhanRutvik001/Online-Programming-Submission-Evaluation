@@ -5,7 +5,6 @@ function FacultyPage() {
     return (
         <>
             <section>
-
                 <Faculty />
             </section>
         </>

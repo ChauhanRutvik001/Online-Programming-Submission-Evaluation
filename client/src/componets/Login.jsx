@@ -112,14 +112,13 @@ const Login = () => {
                 onSubmit={handleLogin}
                 className="w-full bg-white p-6 sm:p-8 rounded-lg shadow-md"
               >
-                <div className="mb-6 text-center">
-                  <img
+                <div className="mb-6 text-center">                  <img
                     src="/logo2.jpg"
                     alt="CHARUSAT"
                     className="mx-auto h-12 sm:h-16"
                   />
                   <h2 className="text-lg sm:text-xl font-semibold text-gray-800">
-                    Gateway to Your Career Opportunities
+                    Online Programming Submission & Evaluation
                   </h2>
                 </div>
                 <div className="mb-4">
