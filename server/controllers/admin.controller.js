@@ -6,6 +6,25 @@ import Contest from '../models/contest.js';
 import Batch from '../models/batch.js';
 
 const adminController = {
+    getusers:async (req, res) => {
+      try {
+        const users = await User.find({})
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select("username email id role createdAt branch")
+        .lean();
+        res.status(200).json({
+          success: true,
+          message: "Users fetched successfully.",
+          users
+        });
+
+      }
+      catch (error) {
+        console.error("Error in fetching users:", error);
+        res.status(500).json({ success: false, message: "Internal server error." });
+      }
+    },
     getFaculty: async (req, res) => {
       const { page = 1, limit = 10 } = req.body;
     
@@ -874,5 +893,7 @@ const adminController = {
       }
     },  
 };
+
+
 
 export default adminController;

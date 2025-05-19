@@ -1,6 +1,7 @@
 import express from "express";
 import { isAuthorized, isAdmin } from '../middlewares/auth.js';
 import adminBatchController from '../controllers/admin.batch.controller.js';
+import adminController from '../controllers/admin.controller.js';
 
 const router = express.Router();
 
@@ -18,5 +19,7 @@ router.route("/faculty/:facultyId/batches").get(isAdmin, adminBatchController.ge
 
 // Dashboard endpoints
 router.route("/dashboard-stats").get(isAdmin, adminBatchController.getDashboardStats);
+router.route("/dashboard-users").get(isAdmin, adminController.getusers);
+
 
 export default router;
