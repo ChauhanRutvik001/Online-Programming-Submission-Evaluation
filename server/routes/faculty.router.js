@@ -17,6 +17,8 @@ router
 // Batch management endpoints for faculty
 router.route("/batches")
   .get(isAuthorized, isFaculty, facultyController.getMyBatches);
+router.route("/my-batches")
+  .get(isAuthorized, isFaculty, facultyController.getMyBatches);
 router.route("/batches/:batchId")
   .get(isAuthorized, isFaculty, facultyController.getBatchDetails);
 

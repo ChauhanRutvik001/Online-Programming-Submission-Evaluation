@@ -86,9 +86,8 @@ const MakeProblem = () => {
       },
     });
   };
-
   const assignProblem = (problemId) => {
-    navigate(`/assignProblem/${problemId}`);
+    navigate(`/batch-assign/${problemId}`);
   };
 
   const cancelDelete = () => {
@@ -157,9 +156,9 @@ const MakeProblem = () => {
       : title || "Untitled";
   };
 
-  useEffect(() => {
-    if (user?.role !== "admin" && user?.role !== "faculty") navigate("/");
-  }, [user, navigate]);
+  // useEffect(() => {
+  //   if (user?.role !== "admin" && user?.role !== "faculty") navigate("/");
+  // }, [user, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-900 text-white">

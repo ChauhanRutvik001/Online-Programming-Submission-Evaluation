@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import toast from "react-hot-toast";
+import Sidebar from "./Sidebar";
 import {
   FaUserPlus,
   FaLayerGroup,
@@ -61,15 +62,6 @@ const gridBgStyle = `
   animation: shimmer 1.5s infinite;
 }
 `;
-
-// Sidebar links
-const sidebarLinks = [
-  { name: "Dashboard", icon: <FaHome />, to: "/pending-requests" },
-  { name: "Manage Users", icon: <FaUsers />, to: "/admin/users" },
-  { name: "Student Registration", icon: <FaUserPlus />, to: "/registerStudents" },
-  { name: "Teacher Registration", icon: <FaChalkboardTeacher />, to: "/create-faculty" },
-  { name: "Batch Creation", icon: <FaLayerGroup />, to: "/admin/batch/batches/create" },
-];
 
 const Admin = () => {
   const user = useSelector((store) => store?.app?.user);
@@ -249,31 +241,15 @@ const Admin = () => {
       <style>{gridBgStyle}</style>
       <div className="min-h-screen bg-gray-900 text-white flex">
         {/* Sidebar */}
-        <aside className="hidden md:flex flex-col w-60 bg-gray-800 border-r border-gray-700 shadow-lg py-8 px-4">
-          <div className="mb-8 mt-14">
-            <ul className="space-y-2">
-              {sidebarLinks.map((link) => (
-                <li key={link.name}>
-                  <button
-                    onClick={() => navigate(link.to)}
-                    className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-lg hover:bg-gray-700 text-blue-100 font-medium transition"
-                  >
-                    {link.icon}
-                    {link.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
+       <Sidebar />
         {/* Main Content */}
-        <div className="flex-1">
+        <div className="flex-1 md:ml-60 bg-gray-900 mt-8">
           {/* Header Section */}
           <div className="from-gray-900 mb-8 relative overflow-hidden">
             <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]"></div>
             <div className="absolute inset-0"></div>
             <div className="container mx-auto px-4 relative z-10">
-              <div className="mt-20"></div>
+              <div className="mt-16"></div>
               <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
                   Admin Dashboard

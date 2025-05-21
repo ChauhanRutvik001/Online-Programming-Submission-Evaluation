@@ -10,6 +10,7 @@ import {
   FaChalkboardTeacher,
   FaHome,
 } from "react-icons/fa";
+import Sidebar from './Sidebar';
 
 // Sidebar links (match your Admin.jsx)
 const sidebarLinks = [
@@ -283,81 +284,15 @@ const CreateBatch = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white">
       {/* Navbar */}
-      <nav className="w-full bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-800 shadow-lg px-4 py-4 flex items-center justify-between z-40">
-       
-        {/* Hamburger for small screens */}
-        <div className="md:hidden">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-full bg-gray-800 text-white shadow-lg focus:outline-none"
-            aria-label="Open sidebar"
-          >
-            <svg width="24" height="24" fill="none">
-              <rect y="4" width="24" height="2" rx="1" fill="currentColor"/>
-              <rect y="11" width="24" height="2" rx="1" fill="currentColor"/>
-              <rect y="18" width="24" height="2" rx="1" fill="currentColor"/>
-            </svg>
-          </button>
-        </div>
+      <nav className="w-full bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-800  px-4  flex items-center justify-between z-40">
       </nav>
       <div className="flex">
-        {/* Sidebar for large screens */}
-        <aside className="hidden md:flex flex-col w-60 bg-gray-800/90 border-r border-gray-700 shadow-lg py-8 px-4 min-h-screen">
-          <div className="mb-8 mt-6">
-            <ul className="space-y-2">
-              {sidebarLinks.map((link) => (
-                <li key={link.name}>
-                  <button
-                    onClick={() => navigate(link.to)}
-                    className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-lg hover:bg-gray-700 text-blue-100 font-medium transition"
-                  >
-                    {link.icon}
-                    {link.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-        {/* Sidebar Drawer for small screens */}
-        {sidebarOpen && (
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setSidebarOpen(false)}>
-            <div
-              className="absolute top-0 left-0 h-full w-60 bg-gray-900/95 border-r border-gray-700 shadow-2xl py-8 px-4 backdrop-blur-md"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="mb-8 flex justify-between items-center">
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="text-gray-400 hover:text-white text-2xl"
-                  aria-label="Close sidebar"
-                >
-                  &times;
-                </button>
-              </div>
-              <ul className="space-y-2">
-                {sidebarLinks.map((link) => (
-                  <li key={link.name}>
-                    <button
-                      onClick={() => {
-                        navigate(link.to);
-                        setSidebarOpen(false);
-                      }}
-                      className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-lg hover:bg-gray-700/80 text-blue-100 font-medium transition"
-                    >
-                      {link.icon}
-                      {link.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
+        {/* Sidebar */}
+        <Sidebar/>
         {/* Main Content */}
-        <main className="flex-1 flex flex-col items-center px-2 md:px-8 py-8">
+        <main className="flex-1 md:ml-60 flex flex-col items-center px-2 md:px-8 py-8">
           {/* Heading after sidebar */}
-          <div className="w-full max-w-5xl flex items-center justify-between mb-9 mt-6">
+          <div className="w-full max-w-5xl flex items-center justify-between mb-9 mt-16">
             <h1 className="text-2xl font-bold text-blue-200 flex items-center gap-2">
               <FaLayerGroup className="inline-block text-blue-400" /> Create Batch
             </h1>

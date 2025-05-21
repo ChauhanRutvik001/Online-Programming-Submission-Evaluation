@@ -1,22 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
-import {
-  FaUserPlus,
-  FaLayerGroup,
-  FaUserTie,
-  FaUsers,
-  FaChalkboardTeacher,
-  FaHome,
-} from "react-icons/fa";
-
-const sidebarLinks = [
-  { name: "Dashboard", icon: <FaHome />, to: "/pending-requests" },
-  { name: "Manage Users", icon: <FaUsers />, to: "/admin/users" },
-  { name: "Student Registration", icon: <FaUserPlus />, to: "/registerStudents" },
-  { name: "Teacher Registration", icon: <FaChalkboardTeacher />, to: "/create-faculty" },
-  { name: "Batch Creation", icon: <FaLayerGroup />, to: "/admin/batch/batches/create" },
-];
+import Sidebar from "./Sidebar";
 
 const StudentInfo = () => {
   const navigate = useNavigate();
@@ -26,7 +11,6 @@ const StudentInfo = () => {
   const [branchWiseCount, setBranchWiseCount] = useState([]);
   const [semesterWiseCount, setSemesterWiseCount] = useState({});
   const [error, setError] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -43,104 +27,16 @@ const StudentInfo = () => {
         setLoading(false);
       }
     };
-
     fetchUsers();
   }, []);
 
-  const [selectedStudents, setSelectedStudents] = useState([]);
-
-  const handleSelectStudent = (id) => {
-    setSelectedStudents((prev) =>
-      prev.includes(id)
-        ? prev.filter((studentId) => studentId !== id)
-        : [...prev, id]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedStudents.length === users.length) {
-      setSelectedStudents([]);
-    } else {
-      setSelectedStudents(users.map((user) => user.id));
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white">
-      {/* Navbar */}
-      <nav className="w-full bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-800 shadow-lg px-4 py-4 flex items-center justify-between z-40">
-        <div className="md:hidden">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-full bg-gray-800 text-white shadow-lg focus:outline-none"
-            aria-label="Open sidebar"
-          >
-            <svg width="24" height="24" fill="none">
-              <rect y="4" width="24" height="2" rx="1" fill="currentColor"/>
-              <rect y="11" width="24" height="2" rx="1" fill="currentColor"/>
-              <rect y="18" width="24" height="2" rx="1" fill="currentColor"/>
-            </svg>
-          </button>
-        </div>
-      </nav>
+      <nav className="w-full bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 px-4 flex items-center justify-between z-40"></nav>
       <div className="flex">
-        {/* Sidebar for large screens */}
-        <aside className="hidden md:flex flex-col w-60 bg-gray-800/90 border-r border-gray-700 shadow-lg py-8 px-4 min-h-screen">
-          <div className="mb-8 mt-6">
-            <ul className="space-y-2">
-              {sidebarLinks.map((link) => (
-                <li key={link.name}>
-                  <button
-                    onClick={() => navigate(link.to)}
-                    className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-lg hover:bg-gray-700 text-blue-100 font-medium transition"
-                  >
-                    {link.icon}
-                    {link.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-        {/* Sidebar Drawer for small screens */}
-        {sidebarOpen && (
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setSidebarOpen(false)}>
-            <div
-              className="absolute top-0 left-0 h-full w-60 bg-gray-900/95 border-r border-gray-700 shadow-2xl py-8 px-4 backdrop-blur-md"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="mb-8 flex justify-between items-center">
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="text-gray-400 hover:text-white text-2xl"
-                  aria-label="Close sidebar"
-                >
-                  &times;
-                </button>
-              </div>
-              <ul className="space-y-2">
-                {sidebarLinks.map((link) => (
-                  <li key={link.name}>
-                    <button
-                      onClick={() => {
-                        navigate(link.to);
-                        setSidebarOpen(false);
-                      }}
-                      className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-lg hover:bg-gray-700/80 text-blue-100 font-medium transition"
-                    >
-                      {link.icon}
-                      {link.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col items-center px-2 md:px-8 py-8 mt-6">
+        <Sidebar />
+        <main className="flex-1 md:ml-60 flex flex-col items-center px-2 md:px-8 py-8 mt-16">
           <div className="w-full max-w-5xl">
-            {/* Added prominent heading */}
             <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold text-blue-200">Student Info</h1>
@@ -171,7 +67,10 @@ const StudentInfo = () => {
                     Total Students: <span className="text-yellow-400 font-bold">{totalStudents}</span>
                   </p>
                   <BranchWiseCount branches={branchWiseCount} />
-                  <SemesterWiseCount semesters={semesterWiseCount} />
+                  <SemesterWiseCount
+                    semesters={semesterWiseCount}
+                    onSemesterClick={(semester) => navigate(`/students/semester/${semester}`)}
+                  />
                   {error && (
                     <div className="px-4 py-2 mb-4 bg-red-700 text-white rounded">
                       {error}
@@ -206,14 +105,15 @@ const BranchWiseCount = ({ branches }) => (
   </div>
 );
 
-const SemesterWiseCount = ({ semesters }) => (
+const SemesterWiseCount = ({ semesters, onSemesterClick }) => (
   <div className="pb-4">
     <h3 className="text-lg font-medium text-white">Semester-wise Count:</h3>
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
       {Object.entries(semesters).map(([semester, branches]) => (
         <div
           key={semester}
-          className="border border-gray-700 rounded-lg bg-gray-800 p-4"
+          className="border border-gray-700 rounded-lg bg-gray-800 p-4 cursor-pointer hover:bg-gray-700"
+          onClick={() => onSemesterClick(semester)}
         >
           <h4 className="text-md font-semibold text-blue-400 mb-2">
             Semester: {semester}

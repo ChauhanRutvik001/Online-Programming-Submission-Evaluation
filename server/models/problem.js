@@ -68,7 +68,14 @@ const problemSchema = new Schema(
     tags: [{ type: String, default: [] }], // Tags for the problem
     assignedStudents: [
       { type: Schema.Types.ObjectId, ref: "User", default: [] },
-    ], // Students assigned to the problem
+    ], // Students assigned to the problem (legacy - to be phased out)
+    assignedBatches: [
+      { type: Schema.Types.ObjectId, ref: "Batch", default: [] },
+    ], // Batches assigned to the problem
+    dueDate: {
+      type: Date,
+      required: false,
+    },
   },
   {
     timestamps: true,

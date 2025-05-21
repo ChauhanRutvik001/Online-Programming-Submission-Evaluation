@@ -6,11 +6,15 @@ import {
   updateProblem,
   deleteProblem,
   assignProblemToStudents,
+  assignProblemToBatches,
   getProblemWithStudents,
   getStudents,
   getProblemWithUnassignedStudents,
   unassignStudents,
-  getProblemByIdForUpdate
+  unassignBatches,
+  getProblemByIdForUpdate,
+  getProblemBatches,
+  getProblemsByBatch
 } from '../controllers/problem.controller.js';
 import { isAdminOrFaculty, isAuthorized } from '../middlewares/auth.js';
 
@@ -29,6 +33,10 @@ router.post('/:id/assign', isAdminOrFaculty, assignProblemToStudents); //assign 
 router.get('/:id/students', isAdminOrFaculty, getProblemWithStudents); //get students assigned to a problem
 router.get('/:id/unassignStudent', isAdminOrFaculty, getProblemWithUnassignedStudents); //get students unassigned to a problem
 router.post('/:id/unassign-students', isAdminOrFaculty, unassignStudents); //unassign students from a problem
+router.post('/:id/assignBatches', isAdminOrFaculty, assignProblemToBatches); //assign problem to batches
+router.post('/:id/unassign-batches', isAdminOrFaculty, unassignBatches); //unassign batches from a problem
+router.get('/:id/batches', isAdminOrFaculty, getProblemBatches); //get batches assigned to a problem
+router.get('/batch/:batchId', getProblemsByBatch); //get problems by batch for students
 
 
 // Public routes

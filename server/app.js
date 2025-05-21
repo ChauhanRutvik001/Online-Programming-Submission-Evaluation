@@ -17,6 +17,7 @@ import adminFacultyRouter from "./routes/admin.faculty.router.js";
 import adminBatchRouter from "./routes/admin.batch.router.js";
 import facultyRouter from "./routes/faculty.router.js";
 import compiler from "./routes/compiler.js";
+import adminRouter from "./routes/admin.router.js"; // Import the admin router
 
 
 const app = express();
@@ -46,6 +47,7 @@ app.use("/api/v1/admin/faculty", adminFacultyRouter); // admin faculty managemen
 app.use("/api/v1/admin/batch", adminBatchRouter); // admin batch management
 app.use("/api/v1/faculty", facultyRouter);
 app.use("/api/v1/compiler", compiler);
+app.use("/api/v1/admin", adminRouter); // admin dashboard
 
 app.all("*", notFoundHandler);
 app.use(errorHandler);

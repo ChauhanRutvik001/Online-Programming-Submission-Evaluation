@@ -143,16 +143,11 @@ const Header = () => {
     { path: "/browse", label: "Home", icon: <Home size={18} /> },
     { path: "/profile", label: "Profile", icon: <User size={18} /> },
     { path: "/history", label: "History", icon: <History size={18} /> },
+    { path: "/make-problem", label: "Problem", icon: <Code2 size={18} /> },
     { path: "/support", label: "Support", icon: <HelpCircle size={18} /> },
   ];
 
-  if (user?.role !== "student") {
-    navLinks.push({
-      path: "/make-problem",
-      label: "Problem",
-      icon: <Code2 size={18} />,
-    });
-  }
+
 
   if (user?.role === "admin") {
     navLinks.push({

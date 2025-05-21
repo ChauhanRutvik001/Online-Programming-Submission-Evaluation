@@ -21,7 +21,6 @@ import CreateFaculty from './Admin/CreateFaculty';
 import { default as AdminStudentRegister } from './Admin/StudentRegister';
 import StudentList from './Admin/StudentList';
 import AssignProblem from './Problem/AssignProblem';
-import AssignedStudents from './Problem/AssignedStudents';
 import StudentInfo from './Admin/StudentInfo';
 import Details from './Problem/Details';
 import Support from './Support';
@@ -34,7 +33,9 @@ import CreateBatch from './Admin/CreateBatch';
 import BatchDetails from './Admin/BatchDetails';
 import FacultyBatchList from './Faculty/BatchList';
 import FacultyBatchDetails from './Faculty/BatchDetails';
-
+import ManageUser from './Admin/ManageUser';
+import SemesterStudentList from './Admin/SemesterStudentList';
+import BatchAssignedStudents from './Problem/BatchAssignedStudents'
 const appRouter = createBrowserRouter([
   {
     path: "/",
@@ -61,7 +62,6 @@ const appRouter = createBrowserRouter([
       { path: "/registerStudents", element: <AdminStudentRegister /> },
       { path:"/students/:facultyId", element: <StudentList /> },
       { path:"/assignProblem/:problemId", element: <AssignProblem /> },
-      { path:"/assignedStudents/:problemId", element: <AssignedStudents /> },
       { path:"/studentinformation", element: <StudentInfo /> },
       { path:"/submissions/:submissionId", element:<Details />},      { path:"/assignContestToStudents/:contestId", element:<UnAssignContest />},
       { path:"/unassignContestToStudents/:contestId", element:<AssignedContest />},
@@ -71,6 +71,9 @@ const appRouter = createBrowserRouter([
       { path:"/admin/batch/batches/:batchId", element:<BatchDetails />},
       { path:"/faculty/batches", element:<FacultyBatchList />},
       { path:"/faculty/batches/:batchId", element:<FacultyBatchDetails />},
+      {path:"/admin/users", element:<ManageUser />},
+      {path:"/students/semester/:semesterId", element:<SemesterStudentList />},
+      { path:"/batch-assign/:problemId", element: <BatchAssignedStudents /> },
     ],
   },
 ]);
