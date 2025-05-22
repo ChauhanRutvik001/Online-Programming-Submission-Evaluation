@@ -33,6 +33,8 @@ import CreateBatch from './Admin/CreateBatch';
 import BatchDetails from './Admin/BatchDetails';
 import FacultyBatchList from './Faculty/BatchList';
 import FacultyBatchDetails from './Faculty/BatchDetails';
+import StudentBatchList from './Student/BatchList';
+import StudentBatchDetails from './Student/BatchDetails';
 import ManageUser from './Admin/ManageUser';
 import SemesterStudentList from './Admin/SemesterStudentList';
 import BatchAssignedStudents from './Problem/BatchAssignedStudents'
@@ -68,9 +70,10 @@ const appRouter = createBrowserRouter([
       { path:"/duplicate", element:<Duplicate />},      { path:"/contests/:id/dashboard", element:<ContestDashboard />},
       { path:"/admin/batch/batches", element:<BatchManagement />},
       { path:"/admin/batch/batches/create", element:<CreateBatch />},
-      { path:"/admin/batch/batches/:batchId", element:<BatchDetails />},
-      { path:"/faculty/batches", element:<FacultyBatchList />},
+      { path:"/admin/batch/batches/:batchId", element:<BatchDetails />},      { path:"/faculty/batches", element:<FacultyBatchList />},
       { path:"/faculty/batches/:batchId", element:<FacultyBatchDetails />},
+      { path:"/student/batches", element:<StudentBatchList />},
+      { path:"/student/batch/:batchId", element:<StudentBatchDetails />},
       {path:"/admin/users", element:<ManageUser />},
       {path:"/students/semester/:semesterId", element:<SemesterStudentList />},
       { path:"/batch-assign/:problemId", element: <BatchAssignedStudents /> },

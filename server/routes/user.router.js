@@ -6,6 +6,7 @@ import {
   removeProfilePic,
 } from "../controllers/user.controller.js";
 import { isAuthorized } from "../middlewares/auth.js";
+import studentBatchController from "../controllers/student.batch.controller.js";
 
 import { upload } from "../utils/multer.utils.js"
 
@@ -19,5 +20,9 @@ router.post('/upload-avatar', isAuthorized, upload.single('avatar'), uploadProfi
 router.get('/profile/upload-avatar', isAuthorized, getProfilePic);
 
 router.delete('/profile/remove-profile-pic', isAuthorized, removeProfilePic);
+
+// Student batch routes
+router.get('/my-batches', isAuthorized, studentBatchController.getMyBatches);
+router.get('/batches/:batchId', isAuthorized, studentBatchController.getBatchDetails);
 
 export default router;

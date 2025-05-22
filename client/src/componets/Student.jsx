@@ -50,10 +50,9 @@ const Student = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <Header />
       
-      <main className="container mx-auto px-4 py-8 mt-16">
-        <h1 className="text-3xl font-bold mb-8 text-blue-400">Student Dashboard</h1>
+      <main className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8 text-blue-400 mt-16">Student Dashboard</h1>
         
         {loading ? (
           <div className="flex justify-center items-center py-20">
@@ -138,13 +137,12 @@ const Student = () => {
                 
                 {batches.length === 0 ? (
                   <p className="text-gray-400 text-center py-4">You're not enrolled in any batches.</p>
-                ) : (
-                  <div className="space-y-3">
+                ) : (                  <div className="space-y-3">
                     {batches.map(batch => (
                       <div 
                         key={batch._id} 
                         className="p-3 bg-gray-750 rounded-lg border border-gray-700 hover:border-blue-700 cursor-pointer transition"
-                        onClick={() => navigate(`/batch/${batch._id}/problems`)}
+                        onClick={() => navigate(`/student/batch/${batch._id}`)}
                       >
                         <h3 className="font-medium flex items-center gap-2">
                           <School size={16} className="text-blue-400" />
@@ -155,6 +153,15 @@ const Student = () => {
                         )}
                       </div>
                     ))}
+
+                    <div className="text-center mt-4">
+                      <button 
+                        className="px-4 py-2 text-sm text-blue-400 hover:text-blue-300 transition"
+                        onClick={() => navigate('/student/batches')}
+                      >
+                        View All Batches
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

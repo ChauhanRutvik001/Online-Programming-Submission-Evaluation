@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import { toast } from 'react-toastify';
+import { ChevronLeft, Users, Book, Calendar, School, Search, User, Tag, FileText, CheckCircle, XCircle, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 const BatchDetails = () => {
   const { batchId } = useParams();
@@ -9,10 +10,17 @@ const BatchDetails = () => {
   const [batch, setBatch] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const studentsPerPage = 20;
   useEffect(() => {
     fetchBatchDetails();
   }, [batchId]);
+  
+  // Reset to first page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+  
   const fetchBatchDetails = async () => {
     setLoading(true);
     try {
@@ -20,6 +28,7 @@ const BatchDetails = () => {
       if (response.data.success) {
         setBatch(response.data.batch);
       }
+      console.log(response.data);
     } catch (error) {
       console.error('Error fetching batch details:', error);
       toast.error('Failed to load batch details');
@@ -28,176 +37,300 @@ const BatchDetails = () => {
       setLoading(false);
     }
   };
+    // Filter, sort, and paginate students
   const filteredStudents = batch?.students?.filter(student => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
       student.username.toLowerCase().includes(term) ||
       student.id.toLowerCase().includes(term) ||
-      (student.batch && student.batch.toLowerCase().includes(term))
+      (student.batch && student.batch.toLowerCase().includes(term)) ||
+      (student.semester && student.semester.toLowerCase().includes(term)) ||
+      (student.branch && student.branch.toLowerCase().includes(term))
     );
   });
+  
+  // Sort students by ID
+  const sortedStudents = filteredStudents?.sort((a, b) => {
+    return a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' });
+  });
+  
+  // Paginate students
+  const indexOfLastStudent = currentPage * studentsPerPage;
+  const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
+  const currentStudents = sortedStudents?.slice(indexOfFirstStudent, indexOfLastStudent);
+  const totalPages = Math.ceil((filteredStudents?.length || 0) / studentsPerPage);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="spinner"></div>
-        <p className="ml-3">Loading batch details...</p>
+      <div className="min-h-screen bg-gray-900 text-white">
+        <div className="flex justify-center items-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <p className="ml-3">Loading batch details...</p>
+        </div>
       </div>
     );
   }
 
   if (!batch) {
     return (
-      <div className="text-center py-10">
-        <h2 className="text-2xl font-bold">Batch not found</h2>
-        <button
-          onClick={() => navigate('/faculty/batches')}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Back to Batches
-        </button>
+      <div className="min-h-screen bg-gray-900 text-white">
+        <div className="container mx-auto px-4 py-20">
+          <div className="bg-gray-800 rounded-lg shadow-lg p-10 text-center">
+            <School size={48} className="mx-auto text-gray-600 mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-4">Batch not found</h2>
+            <p className="text-gray-400 mb-6">
+              The batch you're looking for doesn't exist or you don't have access to it.
+            </p>
+            <button
+              onClick={() => navigate('/faculty/batches')}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+            >
+              Back to Batches
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">{batch.name}</h1>
-          <p className="text-gray-600">
-            Created: {new Date(batch.createdAt).toLocaleDateString()}
-          </p>
+    <div className="min-h-screen bg-gray-900 text-white">
+      
+      <main className="container mx-auto px-4 py-8">
+        {/* Back button */}
+        <div className="mb-6 mt-12">
+          <button 
+            onClick={() => navigate('/faculty/batches')}
+            className="flex items-center text-blue-400 hover:text-blue-300 transition"
+          >
+            <ChevronLeft size={20} />
+            <span>Back to Batches</span>
+          </button>
         </div>
-        <button
-          onClick={() => navigate('/faculty/batches')}
-          className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded"
-        >
-          Back to Batches
-        </button>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Batch Info Card */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4 border-b pb-2">Batch Information</h2>
+        {/* Batch Header */}
+        {/* <div className="bg-gradient-to-r from-blue-800 to-indigo-900 rounded-xl p-6 shadow-lg mb-6">
+          <h1 className="text-2xl font-bold mb-2">{batch.name}</h1>
+          {batch.description && <p className="text-blue-100 mb-3">{batch.description}</p>}
           
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Description</h3>
-              <p className="mt-1">{batch.description || 'No description provided'}</p>
-            </div>
-              <div>
-              <h3 className="text-sm font-medium text-gray-500">Subject</h3>
-              <p className="mt-1">{batch.subject || 'Not specified'}</p>
+          <div className="flex flex-wrap gap-4 text-sm">
+            {batch.subject && (
+              <div className="flex items-center gap-1">
+                <Book size={16} className="text-blue-300" />
+                <span>{batch.subject}</span>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-1">
+              <Calendar size={16} className="text-blue-300" />
+              <span>Created: {formatDate(batch.createdAt)}</span>
             </div>
             
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Total Students</h3>
-              <p className="mt-1">{batch.students ? batch.students.length : 0}</p>
+            <div className="flex items-center gap-1">
+              <Users size={16} className="text-blue-300" />
+              <span>{batch.students?.length || 0} Students</span>
             </div>
             
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Status</h3>
-              <span
-                className={`mt-1 inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                  batch.isActive
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}
-              >
+            <div className="flex items-center gap-1">
+              <span className={`px-2 py-0.5 rounded-full text-xs ${
+                batch.isActive
+                  ? 'bg-green-900/30 text-green-400'
+                  : 'bg-red-900/30 text-red-400'
+              }`}>
                 {batch.isActive ? 'Active' : 'Inactive'}
               </span>
             </div>
           </div>
-        </div>
+        </div> */}
 
-        {/* Students List */}
-        <div className="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
-              Students <span className="text-gray-500">({batch.students?.length || 0})</span>
-            </h2>
+        <div className="">
+          {/* Batch Info Card */}
+          <div className="bg-gray-800 rounded-lg shadow-lg p-6 mb-5">
+            <div className="flex items-center gap-2 mb-4 border-b border-gray-700 pb-3">
+              <FileText className="text-blue-400" size={20} />
+              <h2 className="text-xl font-semibold">Batch Information</h2>
+            </div>
             
-            <div className="relative">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search students..."
-                className="w-64 pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-              <svg
-                className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                  clipRule="evenodd"
-                />
-              </svg>
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-sm font-medium text-gray-400 mb-1 flex items-center">
+                  <Tag size={14} className="mr-2 text-blue-400" />
+                  Subject
+                </h3>
+                <p className="text-white">{batch.subject || 'Not specified'}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium text-gray-400 mb-1 flex items-center">
+                  <User size={14} className="mr-2 text-blue-400" />
+                  Faculty
+                </h3>
+                <p className="text-white">{batch.faculty?.username || 'Not assigned'}</p>
+                {batch.faculty?.email && (
+                  <p className="text-sm text-gray-500">{batch.faculty.email}</p>
+                )}
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium text-gray-400 mb-1 flex items-center">
+                  <Users size={14} className="mr-2 text-blue-400" />
+                  Total Students
+                </h3>
+                <p className="text-white">{batch.students?.length || 0}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium text-gray-400 mb-1 flex items-center">
+                  {batch.isActive ? (
+                    <CheckCircle size={14} className="mr-2 text-green-400" />
+                  ) : (
+                    <XCircle size={14} className="mr-2 text-red-400" />
+                  )}
+                  Status
+                </h3>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  batch.isActive
+                    ? 'bg-green-900/30 text-green-400'
+                    : 'bg-red-900/30 text-red-400'
+                }`}>
+                  {batch.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
             </div>
           </div>
 
-          {filteredStudents && filteredStudents.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Batch
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Semester
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Branch
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredStudents.map((student) => (
-                    <tr key={student._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{student.username}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{student.id}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{student.batch}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{student.semester}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{student.branch}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-10 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">
-                {searchTerm ? 'No students match your search' : 'No students in this batch'}
-              </p>
-            </div>
-          )}
+          {/* Students List */}
+          <div className="bg-gray-800 rounded-lg shadow-lg p-6 lg:col-span-2">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-gray-700 pb-3">
+              <div className="flex items-center gap-2 mb-3 sm:mb-0">
+                <Users className="text-blue-400" size={20} />
+                <h2 className="text-xl font-semibold">
+                  Students <span className="text-blue-400">({batch.students?.length || 0})</span>
+                </h2>
+              </div>
+              
+              <div className="relative w-full sm:w-64">
+                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search students..."
+                  className="w-full pl-10 pr-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+            </div>            {filteredStudents && filteredStudents.length > 0 ? (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-700">
+                    <thead>
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                          Name
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                          ID
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                          Batch
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                          Semester
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                          Branch
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700">
+                      {currentStudents.map((student) => (
+                        <tr key={student._id} className="hover:bg-gray-750">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-white">{student.username}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-300">{student.id}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-300">{student.batch || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-300">{student.semester || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-300">{student.branch || '-'}</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Pagination Controls */}
+                <div className="mt-6 flex justify-between items-center">
+                  <div className="text-sm text-gray-400">
+                    Showing {indexOfFirstStudent + 1}-{Math.min(indexOfLastStudent, filteredStudents.length)} of {filteredStudents.length} students
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                      className={`p-2 rounded ${currentPage === 1 ? 'text-gray-500 cursor-not-allowed' : 'text-blue-400 hover:bg-gray-700'}`}
+                    >
+                      <ChevronsLeft size={16} />
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className={`p-2 rounded ${currentPage === 1 ? 'text-gray-500 cursor-not-allowed' : 'text-blue-400 hover:bg-gray-700'}`}
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    
+                    <div className="flex items-center bg-gray-700 px-3 py-1 rounded">
+                      <span>Page {currentPage} of {totalPages || 1}</span>
+                    </div>
+                    
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages || totalPages === 0}
+                      className={`p-2 rounded ${currentPage === totalPages || totalPages === 0 ? 'text-gray-500 cursor-not-allowed' : 'text-blue-400 hover:bg-gray-700'}`}
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages || totalPages === 0}
+                      className={`p-2 rounded ${currentPage === totalPages || totalPages === 0 ? 'text-gray-500 cursor-not-allowed' : 'text-blue-400 hover:bg-gray-700'}`}
+                    >
+                      <ChevronsRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-16 bg-gray-750 rounded-lg">
+                <Users size={48} className="mx-auto text-gray-600 mb-4" />
+                <p className="text-gray-400">
+                  {searchTerm ? 'No students match your search' : 'No students in this batch'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

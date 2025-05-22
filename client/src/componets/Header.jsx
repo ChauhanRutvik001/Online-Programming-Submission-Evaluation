@@ -13,6 +13,7 @@ import {
   X,
   Home,
   User,
+  Users,
   History,
   HelpCircle,
   Code2,
@@ -138,7 +139,6 @@ const Header = () => {
   const isActive = (path) => location.pathname === path;
   const makeContestButtonText =
     user?.role === "student" ? "Contest" : "Make Contest";
-
   const navLinks = [
     { path: "/browse", label: "Home", icon: <Home size={18} /> },
     { path: "/profile", label: "Profile", icon: <User size={18} /> },
@@ -161,6 +161,18 @@ const Header = () => {
       path: "/faculty-section",
       label: "Requests",
       icon: <ClipboardList size={18} />,
+    });
+    navLinks.push({
+      path: "/faculty/batches",
+      label: "Batches",
+      icon: <Users size={18} />,
+    });
+  }
+  if (user?.role === "student") {
+    navLinks.push({
+      path: "/student",
+      label: "Batches",
+      icon: <Users size={18} />,
     });
   }
 
