@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { fetchHistory, setCurrentPage } from "../../redux/slices/historySlice";
 import { fetchSubmissions } from "../../redux/slices/submissionSlice";
 
-const CodeEditor = ({ language, setLanguage, problem, onSubmission }) => {
+const CodeEditor = ({ language, setLanguage, problem, onSubmission, isPastDue }) => {
   const user = useSelector((state) => state.app.user);
   const [assignLoading, setAssignLoading] = useState(false); // For button-specific loading
   const userId = user._id;
@@ -303,9 +303,7 @@ int main() {
         handleEditorChange={handleEditorChange}
         theme={theme} // Pass the theme to CodeEditorArea
         handleThemeChange={handleThemeChange} // Pass the theme change handler
-      />
-
-      <TestCaseResults
+      />      <TestCaseResults
         results={results}
         activeTestCaseIndex={activeTestCaseIndex}
         setActiveTestCaseIndex={setActiveTestCaseIndex}
@@ -316,6 +314,7 @@ int main() {
         handleSubmit={handleSubmit}
         handleSaveCode={handleSaveCode}
         error={error}
+        isPastDue={isPastDue}
       />
 
       {assignLoading && (

@@ -8,9 +8,8 @@ const BatchAssignedStudents = () => {
   const navigate = useNavigate();
   const [batches, setBatches] = useState([]);
   const [selectedBatchIds, setSelectedBatchIds] = useState([]);
-  const [studentsInSelectedBatches, setStudentsInSelectedBatches] = useState([]);
-  const [assignedStudents, setAssignedStudents] = useState([]);
-  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [assignedBatchIds, setAssignedBatchIds] = useState([]);
+  const [dueDate, setDueDate] = useState("");
   const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -33,40 +32,30 @@ const BatchAssignedStudents = () => {
       }
     };
 
-    // Fetch assigned students for this problem
-    const fetchAssignedStudents = async () => {
+    // Fetch assigned batches for this problem
+    const fetchProblemData = async () => {
       try {
-        const response = await axiosInstance.get(`/problems/${problemId}/students`);
-        setAssignedStudents(response.data.assignedStudents || []);
+        // First get the problem to get its due date
+        const problemResponse = await axiosInstance.get(`/problems/${problemId}`);
+        if (problemResponse.data.dueDate) {
+          setDueDate(new Date(problemResponse.data.dueDate).toISOString().substring(0, 16));
+        }
+        
+        // Then get the assigned batches
+        const batchesResponse = await axiosInstance.get(`/problems/${problemId}/batches`);
+        if (batchesResponse.data.success) {
+          const assignedBatches = batchesResponse.data.batches || [];
+          setAssignedBatchIds(assignedBatches.map(batch => batch._id));
+          setSelectedBatchIds(assignedBatches.map(batch => batch._id));
+        }
       } catch (err) {
-        setError("Failed to load assigned students: " + err.message);
+        setError("Failed to load problem data: " + err.message);
       }
     };
 
     fetchBatches();
-    fetchAssignedStudents();
+    fetchProblemData();
   }, [problemId]);
-  // When selected batches change, update the list of students in those batches
-  useEffect(() => {
-    if (selectedBatchIds.length > 0) {
-      // Extract all students from selected batches and create a flat array
-      const students = batches
-        .filter(batch => selectedBatchIds.includes(batch._id))
-        .flatMap(batch => batch.students || []);
-      
-      setStudentsInSelectedBatches(students);
-      
-      // Pre-select students who are already assigned to the problem
-      const preSelectedStudentIds = students
-        .filter(student => assignedStudents.some(assignedStudent => assignedStudent._id === student._id))
-        .map(student => student._id);
-      
-      setSelectedStudents(preSelectedStudentIds);
-    } else {
-      setStudentsInSelectedBatches([]);
-      setSelectedStudents([]);
-    }
-  }, [selectedBatchIds, batches, assignedStudents]);
 
   // Handle batch selection
   const handleBatchSelect = (batchId) => {
@@ -76,51 +65,23 @@ const BatchAssignedStudents = () => {
       setSelectedBatchIds([...selectedBatchIds, batchId]);
     }
   };
-
-  // Handle student selection
-  const handleStudentSelect = (studentId) => {
-    if (selectedStudents.includes(studentId)) {
-      setSelectedStudents(selectedStudents.filter(id => id !== studentId));
-    } else {
-      setSelectedStudents([...selectedStudents, studentId]);
-    }
-  };
-
-  // Select all students in the selected batches
-  const handleSelectAllStudents = () => {
-    if (selectedStudents.length === studentsInSelectedBatches.length) {
-      setSelectedStudents([]);
-    } else {
-      setSelectedStudents(studentsInSelectedBatches.map(student => student._id));
-    }
-  };
-  // Toggle assignment status for a student
-  const handleToggleStudentAssignment = (studentId, isCurrentlyAssigned) => {
-    // Add or remove the student from our selected students list based on click
-    if (selectedStudents.includes(studentId)) {
-      setSelectedStudents(selectedStudents.filter(id => id !== studentId));
-    } else {
-      setSelectedStudents([...selectedStudents, studentId]);
-    }
+  
+  // Handle date change
+  const handleDateChange = (e) => {
+    setDueDate(e.target.value);
   };
   
   // Save all assignment changes
   const handleSaveChanges = async () => {
-    // Find students that need to be assigned (selected but not currently assigned)
-    const studentsToAssign = selectedStudents.filter(
-      studentId => !assignedStudents.some(assigned => assigned._id === studentId)
+    const batchesToAssign = selectedBatchIds.filter(
+      id => !assignedBatchIds.includes(id)
     );
     
-    // Find students that need to be unassigned (not selected but currently assigned)
-    const currentlyAssignedIds = assignedStudents.map(student => student._id);
-    const studentsInBatchesIds = studentsInSelectedBatches.map(student => student._id);
-    
-    // Only consider unassigning students that are in the current batches view
-    const studentsToUnassign = currentlyAssignedIds.filter(
-      id => studentsInBatchesIds.includes(id) && !selectedStudents.includes(id)
+    const batchesToUnassign = assignedBatchIds.filter(
+      id => !selectedBatchIds.includes(id)
     );
     
-    if (studentsToAssign.length === 0 && studentsToUnassign.length === 0) {
+    if (batchesToAssign.length === 0 && batchesToUnassign.length === 0 && dueDate === "") {
       toast.info("No changes to save");
       return;
     }
@@ -128,41 +89,39 @@ const BatchAssignedStudents = () => {
     setProcessing(true);
     
     try {
-      // Process assignments if needed
-      if (studentsToAssign.length > 0) {
-        const assignRes = await axiosInstance.post(`/problems/${problemId}/assign`, {
-          studentIds: studentsToAssign,
+      // Process batch assignments if needed
+      if (batchesToAssign.length > 0) {
+        await axiosInstance.post(`/problems/${problemId}/assignBatches`, {
+          batchIds: batchesToAssign,
+          dueDate: dueDate || null
         });
         
-        // Update local state with newly assigned students
-        const updatedAssignedStudents = [...assignedStudents];
-        studentsToAssign.forEach(studentId => {
-          const student = studentsInSelectedBatches.find(s => s._id === studentId);
-          if (student && !updatedAssignedStudents.some(assigned => assigned._id === studentId)) {
-            updatedAssignedStudents.push(student);
-          }
-        });
-        
-        setAssignedStudents(updatedAssignedStudents);
+        // Update assigned batches
+        setAssignedBatchIds([...assignedBatchIds, ...batchesToAssign]);
       }
       
-      // Process unassignments if needed
-      if (studentsToUnassign.length > 0) {
-        const unassignRes = await axiosInstance.post(`/problems/${problemId}/unassign-students`, {
-          studentIds: studentsToUnassign,
+      // Process batch unassignments if needed
+      if (batchesToUnassign.length > 0) {
+        await axiosInstance.post(`/problems/${problemId}/unassign-batches`, {
+          batchIds: batchesToUnassign
         });
         
-        // Update local state by removing unassigned students
-        setAssignedStudents(
-          assignedStudents.filter(student => !studentsToUnassign.includes(student._id))
-        );
+        // Update assigned batches
+        setAssignedBatchIds(assignedBatchIds.filter(id => !batchesToUnassign.includes(id)));
+      }
+        // Update due date if it's changed
+      if (dueDate) {
+        await axiosInstance.put(`/problems/${problemId}`, {
+          dueDate: dueDate
+        });
       }
       
       toast.success("Assignment changes saved successfully!");
-      setError(null);
-    } catch (error) {
-      toast.error("Failed to save assignment changes. Please try again.");
-      setError("Failed to save changes: " + error.message);
+      setError(null);    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || "Unknown error";
+      console.error("Assignment error:", error);
+      toast.error(`Failed to save assignment changes: ${errorMsg}`);
+      setError(`Failed to save changes: ${errorMsg}`);
     } finally {
       setProcessing(false);
     }
@@ -178,13 +137,16 @@ const BatchAssignedStudents = () => {
       </div>
     );
   }
+  
   return (
     <div className="relative min-h-screen bg-gray-900 text-white p-6">
       <h1 className="text-2xl font-bold mb-6 pt-20 text-center">
         Batch-Based Problem Assignment
       </h1>
 
-      {error && <p className="text-red-500 mb-4 text-center">{error}</p>}      {/* Loading overlay for processing actions */}
+      {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+      
+      {/* Loading overlay for processing actions */}
       {processing && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
           <div className="flex flex-col items-center">
@@ -209,7 +171,7 @@ const BatchAssignedStudents = () => {
               ></path>
             </svg>
             <p className="text-white text-lg font-semibold">
-              Processing students...
+              Processing changes...
             </p>
           </div>
         </div>
@@ -225,9 +187,29 @@ const BatchAssignedStudents = () => {
         </button>
       </div>
 
+      {/* Due Date Section */}
+      <div className="mb-8 bg-gray-800 rounded-lg p-4">
+        <h2 className="text-xl font-semibold mb-4 text-blue-400">1. Set Due Date (Optional)</h2>
+        <div className="flex items-center">
+          <input
+            type="datetime-local"
+            value={dueDate}
+            onChange={handleDateChange}
+            className="bg-gray-700 text-white px-4 py-2 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <p className="ml-4 text-gray-400">
+            {dueDate ? (
+              <>Due on: {new Date(dueDate).toLocaleString()}</>
+            ) : (
+              <>No due date set. Students can submit anytime.</>
+            )}
+          </p>
+        </div>
+      </div>
+
       {/* Batch selection section */}
       <div className="mb-8 bg-gray-800 rounded-lg p-4">
-        <h2 className="text-xl font-semibold mb-4 text-blue-400">1. Select Batches</h2>
+        <h2 className="text-xl font-semibold mb-4 text-blue-400">2. Select Batches to Assign</h2>
         
         {batches.length === 0 ? (
           <p className="text-gray-400">No batches found. Create batches to assign problems to students.</p>
@@ -257,122 +239,22 @@ const BatchAssignedStudents = () => {
         )}
       </div>
 
-      {/* Students selection section - only show if batches are selected */}
-      {selectedBatchIds.length > 0 && (
-        <div className="mb-8 bg-gray-800 rounded-lg p-4">
-          <h2 className="text-xl font-semibold mb-4 text-blue-400">
-            2. Select Students from Batches ({studentsInSelectedBatches.length} students)
-          </h2>
-          
-          <div className="mb-4">
-            <button
-              className="py-2 px-4 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 transition"
-              onClick={handleSelectAllStudents}
-            >
-              {selectedStudents.length === studentsInSelectedBatches.length
-                ? "Deselect All"
-                : "Select All Students"}
-            </button>
-          </div>
+      {/* Action buttons */}
+      <div className="flex flex-wrap gap-4 justify-center">
+        <button
+          onClick={handleSaveChanges}
+          className="py-3 px-8 bg-blue-600 text-white text-lg font-semibold rounded-lg shadow-md hover:bg-blue-700 active:scale-95 transition transform duration-200 flex items-center gap-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          Save Assignment Changes
+        </button>
+      </div>
 
-          <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-900/50">
-            <table className="w-full border-collapse text-left text-gray-300">
-              <thead>
-                <tr className="border-b border-gray-800 bg-gray-900/80">
-                  <th className="py-3 px-4 text-center">Select</th>
-                  <th className="py-3 px-4 text-left">ID</th>
-                  <th className="py-3 px-4 text-left">Username</th>
-                  <th className="py-3 px-4 text-center">Branch</th>
-                  <th className="py-3 px-4 text-center">Semester</th>
-                  <th className="py-3 px-4 text-center">Batch</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                </tr>
-              </thead>              <tbody className="divide-y divide-gray-800">
-                {studentsInSelectedBatches.length > 0 ? (
-                  studentsInSelectedBatches.map((student, index) => {
-                    const isAssigned = assignedStudents.some(
-                      assigned => assigned._id === student._id
-                    );
-                    const isSelected = selectedStudents.includes(student._id);
-                    
-                    return (
-                      <tr
-                        key={student._id}
-                        className={`transition-colors ${
-                          index % 2 === 0 ? "bg-gray-900/30" : "bg-gray-900/10"
-                        } hover:bg-gray-900/60 ${isSelected ? "bg-blue-900/10" : ""}`}
-                        onClick={() => handleToggleStudentAssignment(student._id, isAssigned)}
-                      >
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex justify-center">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => {}} // Handled by row click
-                              className="h-5 w-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 font-medium text-gray-100">
-                          {student.id?.toUpperCase()}
-                        </td>
-                        <td className="py-3 px-4 text-gray-100">
-                          {student.username}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-flex rounded-full bg-gray-800 px-2 py-1 text-xs font-medium text-gray-100">
-                            {student.branch?.toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center font-medium text-gray-100">
-                          {student.semester}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-flex rounded-full bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-400">
-                            {student.batch?.toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          {isAssigned ? (
-                            <span className={`inline-flex rounded-full ${isSelected ? "bg-green-500/40" : "bg-green-500/20"} px-2 py-1 text-xs font-medium text-green-400`}>
-                              Assigned
-                            </span>
-                          ) : (
-                            <span className={`inline-flex rounded-full ${isSelected ? "bg-green-500/40" : "bg-gray-500/20"} px-2 py-1 text-xs font-medium ${isSelected ? "text-green-400" : "text-gray-400"}`}>
-                              {isSelected ? "Will be assigned" : "Not Assigned"}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan="7" className="py-6 text-center text-gray-400">
-                      No students found in the selected batches
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}      {/* Action buttons */}
-      {studentsInSelectedBatches.length > 0 && (
-        <div className="flex flex-wrap gap-4 justify-center">
-          <button
-            onClick={handleSaveChanges}
-            className="py-3 px-8 bg-blue-600 text-white text-lg font-semibold rounded-lg shadow-md hover:bg-blue-700 active:scale-95 transition transform duration-200 flex items-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-              <polyline points="17 21 17 13 7 13 7 21"></polyline>
-              <polyline points="7 3 7 8 15 8"></polyline>
-            </svg>
-            Save Assignment Changes
-          </button>
-        </div>
-      )}      {/* Summary information */}
+      {/* Summary information */}
       <div className="mt-8 p-4 bg-gray-800/50 rounded-lg">
         <h3 className="text-lg font-medium mb-2">Assignment Summary</h3>
         <div className="flex flex-wrap gap-4">
@@ -385,29 +267,19 @@ const BatchAssignedStudents = () => {
             <p className="text-xl font-semibold text-blue-400">{selectedBatchIds.length}</p>
           </div>
           <div className="px-4 py-2 bg-gray-700/50 rounded-lg">
-            <p className="text-sm text-gray-400">Students in Selected Batches</p>
-            <p className="text-xl font-semibold text-blue-400">{studentsInSelectedBatches.length}</p>
-          </div>
-          <div className="px-4 py-2 bg-gray-700/50 rounded-lg">
-            <p className="text-sm text-gray-400">Currently Assigned</p>
-            <p className="text-xl font-semibold text-green-400">
-              {assignedStudents.filter(s => 
-                studentsInSelectedBatches.some(bs => bs._id === s._id)
-              ).length} / {studentsInSelectedBatches.length}
+            <p className="text-sm text-gray-400">Total Students in Selected Batches</p>
+            <p className="text-xl font-semibold text-blue-400">
+              {batches
+                .filter(batch => selectedBatchIds.includes(batch._id))
+                .reduce((total, batch) => total + (batch.students?.length || 0), 0)}
             </p>
-          </div>
-          <div className="px-4 py-2 bg-gray-700/50 rounded-lg">
-            <p className="text-sm text-gray-400">Selected for Assignment</p>
-            <p className="text-xl font-semibold text-blue-400">{selectedStudents.length}</p>
           </div>
           <div className="px-4 py-2 bg-gray-700/50 rounded-lg">
             <p className="text-sm text-gray-400">Changes to Save</p>
             <p className="text-xl font-semibold text-amber-400">
-              {selectedStudents.filter(id => !assignedStudents.some(s => s._id === id)).length +
-               assignedStudents.filter(s => 
-                 studentsInSelectedBatches.some(bs => bs._id === s._id) && 
-                 !selectedStudents.includes(s._id)
-               ).length}
+              {selectedBatchIds.filter(id => !assignedBatchIds.includes(id)).length + 
+               assignedBatchIds.filter(id => !selectedBatchIds.includes(id)).length +
+               (dueDate ? 1 : 0)}
             </p>
           </div>
         </div>

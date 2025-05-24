@@ -24,5 +24,6 @@ router.delete('/profile/remove-profile-pic', isAuthorized, removeProfilePic);
 // Student batch routes
 router.get('/my-batches', isAuthorized, studentBatchController.getMyBatches);
 router.get('/batches/:batchId', isAuthorized, studentBatchController.getBatchDetails);
+router.get('/batches/:batchId/problems', isAuthorized, studentBatchController.getBatchProblems);
 
 export default router;

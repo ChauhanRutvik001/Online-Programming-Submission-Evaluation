@@ -121,16 +121,39 @@ const facultyController = {
     getMyBatches: async (req, res) => {
       try {
         const facultyId = req.user.id;
-        
-        // Find all batches where this faculty is assigned
-        const batches = await Batch.find({ faculty: facultyId, isActive: true })
+        const {
+          page = 1,
+          limit = 10,
+          search = '',
+          sortBy = 'createdAt',
+          sortOrder = 'desc',
+        } = req.query;
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        // Build query
+        const query = { faculty: facultyId, isActive: true };
+        if (search) {
+          query.$or = [
+            { name: { $regex: search, $options: 'i' } },
+            { subject: { $regex: search, $options: 'i' } },
+          ];
+        }
+        // Build sort
+        const sortOptions = {};
+        sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+        // Query batches
+        const batches = await Batch.find(query)
           .populate('students', 'username id batch semester branch')
-          .sort({ createdAt: -1 });
-        
+          .sort(sortOptions)
+          .skip(skip)
+          .limit(parseInt(limit));
+        const totalBatches = await Batch.countDocuments(query);
+        const totalPages = Math.ceil(totalBatches / limit);
         return res.status(200).json({
           success: true,
           batches,
-          count: batches.length
+          totalBatches,
+          totalPages,
+          currentPage: parseInt(page),
         });
       } catch (error) {
         console.error("Error fetching faculty batches:", error);
@@ -140,8 +163,7 @@ const facultyController = {
         });
       }
     },
-    
-    getBatchDetails: async (req, res) => {
+      getBatchDetails: async (req, res) => {
       try {
         const { batchId } = req.params;
         const facultyId = req.user.id;
@@ -149,7 +171,15 @@ const facultyController = {
         // Find the batch and ensure it belongs to this faculty
         const batch = await Batch.findOne({ _id: batchId, faculty: facultyId })
           .populate('students', 'username id batch semester branch email')
-          .populate('faculty', 'username email id');
+          .populate('faculty', 'username email id')
+          .populate({
+            path: 'assignedProblems',
+            select: 'title difficulty createdAt dueDate', 
+            populate: {
+              path: 'createdBy',
+              select: 'username'
+            }
+          });
           
         if (!batch) {
           return res.status(404).json({

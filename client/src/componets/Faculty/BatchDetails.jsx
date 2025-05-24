@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import { toast } from 'react-toastify';
-import { ChevronLeft, Users, Book, Calendar, School, Search, User, Tag, FileText, CheckCircle, XCircle, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { 
+  ChevronLeft, Users, Book, Calendar, School, Search, User, Tag, FileText, 
+  CheckCircle, XCircle, ChevronRight, ChevronsLeft, ChevronsRight, Code, AlertCircle 
+} from 'lucide-react';
 
 const BatchDetails = () => {
   const { batchId } = useParams();
@@ -11,7 +14,10 @@ const BatchDetails = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showStudents, setShowStudents] = useState(false);
   const studentsPerPage = 20;
+  const problemsPerPage = 10;
+  
   useEffect(() => {
     fetchBatchDetails();
   }, [batchId]);
@@ -37,7 +43,8 @@ const BatchDetails = () => {
       setLoading(false);
     }
   };
-    // Filter, sort, and paginate students
+  
+  // Filter, sort, and paginate students
   const filteredStudents = batch?.students?.filter(student => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -61,6 +68,7 @@ const BatchDetails = () => {
   const currentStudents = sortedStudents?.slice(indexOfFirstStudent, indexOfLastStudent);
   const totalPages = Math.ceil((filteredStudents?.length || 0) / studentsPerPage);
 
+  // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -70,6 +78,44 @@ const BatchDetails = () => {
       day: 'numeric'
     });
   };
+  
+  // Check if problem is past due
+  const isPastDue = (dueDate) => {
+    if (!dueDate) return false;
+    return new Date() > new Date(dueDate);
+  };
+
+  // Filter problems by search term
+  const filteredProblems = batch?.assignedProblems?.filter(problem => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      problem.title.toLowerCase().includes(term) ||
+      problem.difficulty.toLowerCase().includes(term) ||
+      (problem.createdBy && problem.createdBy.username.toLowerCase().includes(term))
+    );
+  }) || [];
+  
+  // Sort problems by due date (nearest first)
+  const sortedProblems = [...filteredProblems].sort((a, b) => {
+    // Problems with due dates come first
+    if (a.dueDate && !b.dueDate) return -1;
+    if (!a.dueDate && b.dueDate) return 1;
+    
+    // Sort by due date if both have it
+    if (a.dueDate && b.dueDate) {
+      return new Date(a.dueDate) - new Date(b.dueDate);
+    }
+    
+    // Otherwise sort by creation date
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+  
+  // Paginate problems
+  const indexOfLastProblem = currentPage * problemsPerPage;
+  const indexOfFirstProblem = indexOfLastProblem - problemsPerPage;
+  const currentProblems = sortedProblems?.slice(indexOfFirstProblem, indexOfLastProblem);
+  const totalProblemPages = Math.ceil((filteredProblems?.length || 0) / problemsPerPage);
 
   if (loading) {
     return (
@@ -106,10 +152,9 @@ const BatchDetails = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      
       <main className="container mx-auto px-4 py-8">
-        {/* Back button */}
-        <div className="mb-6 mt-12">
+        {/* Back and Dashboard buttons */}
+        <div className="flex justify-between items-center mb-8 mt-12">
           <button 
             onClick={() => navigate('/faculty/batches')}
             className="flex items-center text-blue-400 hover:text-blue-300 transition"
@@ -117,101 +162,163 @@ const BatchDetails = () => {
             <ChevronLeft size={20} />
             <span>Back to Batches</span>
           </button>
+          <button
+            onClick={() => navigate('/faculty/dashboard')}
+            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-semibold shadow transition"
+          >
+            <School size={18} />
+            Dashboard
+          </button>
         </div>
 
-        {/* Batch Header */}
-        {/* <div className="bg-gradient-to-r from-blue-800 to-indigo-900 rounded-xl p-6 shadow-lg mb-6">
-          <h1 className="text-2xl font-bold mb-2">{batch.name}</h1>
-          {batch.description && <p className="text-blue-100 mb-3">{batch.description}</p>}
-          
-          <div className="flex flex-wrap gap-4 text-sm">
-            {batch.subject && (
-              <div className="flex items-center gap-1">
-                <Book size={16} className="text-blue-300" />
-                <span>{batch.subject}</span>
+        {/* Batch info card */}
+        <div className="flex flex-col md:flex-row gap-6 items-center bg-gradient-to-r from-blue-800 to-indigo-900 rounded-2xl shadow-xl p-8 mb-8 border border-blue-900/40">
+          <div className="flex-1 flex flex-col gap-2">
+            <div className="flex items-center gap-3 mb-2">
+              <Tag size={20} className="text-blue-300" />
+              <span className="text-lg font-bold text-white">{batch.name}</span>
+              <span className={`ml-3 px-3 py-1 rounded-full text-xs font-bold tracking-widest shadow ${batch.isActive ? 'bg-green-800/80 text-green-100' : 'bg-red-800/80 text-red-100'}`}>{batch.isActive ? 'ACTIVE' : 'INACTIVE'}</span>
+            </div>
+            {batch.description && <p className="text-blue-100 italic mb-1">{batch.description}</p>}
+            <div className="flex flex-wrap gap-4 mt-2">
+              <div className="flex items-center gap-2 text-blue-200">
+                <Book size={16} />
+                <span className="font-semibold">{batch.subject || 'Not specified'}</span>
               </div>
-            )}
-            
-            <div className="flex items-center gap-1">
-              <Calendar size={16} className="text-blue-300" />
-              <span>Created: {formatDate(batch.createdAt)}</span>
-            </div>
-            
-            <div className="flex items-center gap-1">
-              <Users size={16} className="text-blue-300" />
-              <span>{batch.students?.length || 0} Students</span>
-            </div>
-            
-            <div className="flex items-center gap-1">
-              <span className={`px-2 py-0.5 rounded-full text-xs ${
-                batch.isActive
-                  ? 'bg-green-900/30 text-green-400'
-                  : 'bg-red-900/30 text-red-400'
-              }`}>
-                {batch.isActive ? 'Active' : 'Inactive'}
-              </span>
+              <div className="flex items-center gap-2 text-blue-200">
+                <User size={16} />
+                <span className="font-semibold">{batch.faculty?.username || 'Not assigned'}</span>
+                {batch.faculty?.email && <span className="ml-1 text-xs text-blue-100">({batch.faculty.email})</span>}
+              </div>
+              <div className="flex items-center gap-2 text-blue-200">
+                <Users size={16} />
+                <span className="font-semibold">{batch.students?.length || 0} Students</span>
+              </div>
             </div>
           </div>
-        </div> */}
+        </div>
 
-        <div className="">
-          {/* Batch Info Card */}
-          <div className="bg-gray-800 rounded-lg shadow-lg p-6 mb-5">
+        {/* Action buttons */}
+        <div className="flex gap-4 mb-8">
+          <button
+            onClick={() => setShowStudents(false)}
+            className={`px-6 py-2 rounded-lg font-semibold transition-colors ${!showStudents ? 'bg-blue-700 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+          >
+            Assigned Problems
+          </button>
+          <button
+            onClick={() => setShowStudents(true)}
+            className={`px-6 py-2 rounded-lg font-semibold transition-colors ${showStudents ? 'bg-blue-700 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+          >
+            Show Student List
+          </button>
+        </div>
+
+        {/* Main content: Problems or Students */}
+        {!showStudents ? (
+          <div className="bg-gray-800 rounded-lg shadow-lg p-6">
             <div className="flex items-center gap-2 mb-4 border-b border-gray-700 pb-3">
-              <FileText className="text-blue-400" size={20} />
-              <h2 className="text-xl font-semibold">Batch Information</h2>
+              <Code className="text-blue-400" size={20} />
+              <h2 className="text-xl font-semibold">
+                Assigned Problems <span className="text-blue-400">({batch.assignedProblems?.length || 0})</span>
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-700">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Title</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Difficulty</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Assigned At</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Due Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Dashbaord</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {currentProblems.map((problem) => (
+                    <tr key={problem._id} className="hover:bg-gray-750">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          className="text-blue-400 hover:underline font-semibold text-left"
+                          onClick={() => navigate(`/problems/${problem._id}`)}
+                        >
+                          {problem.title}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-300">{problem.difficulty}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-300">{problem.createdAt ? formatDate(problem.createdAt) : '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-300">{problem.dueDate ? formatDate(problem.dueDate) : '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap hover:cursor-pointer" onClick={() => navigate(`/dashboard/${problem._id}`)}>
+                        <div className="text-blue-400 hover:underline font-semibold text-left">Progress</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${isPastDue(problem.dueDate) ? 'bg-red-900/30 text-red-400' : 'bg-green-900/30 text-green-400'}`}>{isPastDue(problem.dueDate) ? 'Past Due' : 'Active'}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
             
-            <div className="space-y-5">
-              <div>
-                <h3 className="text-sm font-medium text-gray-400 mb-1 flex items-center">
-                  <Tag size={14} className="mr-2 text-blue-400" />
-                  Subject
-                </h3>
-                <p className="text-white">{batch.subject || 'Not specified'}</p>
+            {/* Pagination Controls */}
+            <div className="mt-6 flex justify-between items-center">
+              <div className="text-sm text-gray-400">
+                Showing {indexOfFirstProblem + 1}-{Math.min(indexOfLastProblem, filteredProblems.length)} of {filteredProblems.length} problems
               </div>
               
-              <div>
-                <h3 className="text-sm font-medium text-gray-400 mb-1 flex items-center">
-                  <User size={14} className="mr-2 text-blue-400" />
-                  Faculty
-                </h3>
-                <p className="text-white">{batch.faculty?.username || 'Not assigned'}</p>
-                {batch.faculty?.email && (
-                  <p className="text-sm text-gray-500">{batch.faculty.email}</p>
-                )}
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-gray-400 mb-1 flex items-center">
-                  <Users size={14} className="mr-2 text-blue-400" />
-                  Total Students
-                </h3>
-                <p className="text-white">{batch.students?.length || 0}</p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-gray-400 mb-1 flex items-center">
-                  {batch.isActive ? (
-                    <CheckCircle size={14} className="mr-2 text-green-400" />
-                  ) : (
-                    <XCircle size={14} className="mr-2 text-red-400" />
-                  )}
-                  Status
-                </h3>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  batch.isActive
-                    ? 'bg-green-900/30 text-green-400'
-                    : 'bg-red-900/30 text-red-400'
-                }`}>
-                  {batch.isActive ? 'Active' : 'Inactive'}
-                </span>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className={`p-2 rounded ${currentPage === 1 ? 'text-gray-500 cursor-not-allowed' : 'text-blue-400 hover:bg-gray-700'}`}
+                >
+                  <ChevronsLeft size={16} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className={`p-2 rounded ${currentPage === 1 ? 'text-gray-500 cursor-not-allowed' : 'text-blue-400 hover:bg-gray-700'}`}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                
+                <div className="flex items-center bg-gray-700 px-3 py-1 rounded">
+                  <span>Page {currentPage} of {totalProblemPages || 1}</span>
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalProblemPages))}
+                  disabled={currentPage === totalProblemPages || totalProblemPages === 0}
+                  className={`p-2 rounded ${currentPage === totalProblemPages || totalProblemPages === 0 ? 'text-gray-500 cursor-not-allowed' : 'text-blue-400 hover:bg-gray-700'}`}
+                >
+                  <ChevronRight size={16} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalProblemPages)}
+                  disabled={currentPage === totalProblemPages || totalProblemPages === 0}
+                  className={`p-2 rounded ${currentPage === totalProblemPages || totalProblemPages === 0 ? 'text-gray-500 cursor-not-allowed' : 'text-blue-400 hover:bg-gray-700'}`}
+                >
+                  <ChevronsRight size={16} />
+                </button>
               </div>
             </div>
           </div>
-
-          {/* Students List */}
-          <div className="bg-gray-800 rounded-lg shadow-lg p-6 lg:col-span-2">
+        ) : (
+          <div className="bg-gray-800 rounded-lg shadow-lg p-6">
+            {/* <div className="flex items-center gap-2 mb-4 border-b border-gray-700 pb-3">
+              <Users className="text-blue-400" size={20} />
+              <h2 className="text-xl font-semibold">
+                Students <span className="text-blue-400">({batch.students?.length || 0})</span>
+              </h2>
+            </div> */}
+            {/* Students Table (reuse your existing students table and pagination here) */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-gray-700 pb-3">
               <div className="flex items-center gap-2 mb-3 sm:mb-0">
                 <Users className="text-blue-400" size={20} />
@@ -329,7 +436,7 @@ const BatchDetails = () => {
               </div>
             )}
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

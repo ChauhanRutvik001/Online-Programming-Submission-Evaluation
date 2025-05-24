@@ -12,11 +12,31 @@ const execAsync = util.promisify(exec);
 const TIME_LIMIT = 10000;
 
 export const compileCode = async (req, res) => {
-  const { code, language, testCases, allTestcase } = req.body;
+  const { code, language, testCases, allTestcase, problemId } = req.body;
   if (!code || !testCases || !language) {
     return res
       .status(400)
       .json({ error: "Code, Testcases, and language are required" });
+  }
+  
+  // If this is a submission (not just running test cases) and problemId is provided, check due date
+  if (allTestcase && problemId) {
+    try {
+      const problemData = await problem.findById(problemId);
+      if (problemData && problemData.dueDate) {
+        const now = new Date();
+        const dueDate = new Date(problemData.dueDate);
+        
+        if (now > dueDate) {
+          return res
+            .status(403)
+            .json({ error: "Submission deadline has passed. You can no longer submit solutions for this problem." });
+        }
+      }
+    } catch (err) {
+      console.error("Error checking problem due date:", err);
+      // Continue execution even if there's an error checking the due date
+    }
   }
 
   const fileExtension =
@@ -191,17 +211,83 @@ export const compileCode = async (req, res) => {
     }
 
     const overallExecutionTime = Date.now() - overallStartTime;
-    const averageMemoryUsage = totalMemoryUsage / testCasesToRun.length;
-
-    console.log("Test results:", testResults);
+    const averageMemoryUsage = totalMemoryUsage / testCasesToRun.length;    console.log("Test results:", testResults);
     console.log("Overall execution time:", overallExecutionTime);
     console.log("Average memory usage:", averageMemoryUsage);
 
-    res.json({
-      testResults,
-      overallTime: overallExecutionTime,
-      averageMemory: averageMemoryUsage,
-    });
+    // Check if this is a submission (allTestcase is true) and problemId is provided
+    // If so, create a submission record
+    if (allTestcase && req.body.problemId && req.user) {
+      try {
+        const problemData = await problem.findById(req.body.problemId);
+        if (!problemData) {
+          return res.status(404).json({ error: "Problem not found" });
+        }
+
+        // Find the batch this student belongs to that's assigned to this problem
+        const Batch = (await import('../models/batch.js')).default;
+        const batches = await Batch.find({
+          students: req.user.id,
+          _id: { $in: problemData.assignedBatches }
+        });
+
+        // Calculate submission stats
+        const allPassed = testResults.every(test => test.passed);
+        const numberOfTestCase = testResults.length;
+        const numberOfTestCasePass = testResults.filter(test => test.passed).length;
+        
+        // Get the test case marks from the problem model
+        let totalMarks = 0;
+        if (problemData.testCases && problemData.testCases.length > 0) {
+          for (let i = 0; i < testResults.length; i++) {
+            if (testResults[i].passed && problemData.testCases[i]) {
+              totalMarks += problemData.testCases[i].marks || 0;
+            }
+          }
+        }
+
+        // Create submission
+        const Submission = (await import('../models/submission.js')).default;
+        const submission = new Submission({
+          user_id: req.user.id,
+          problem_id: req.body.problemId,
+          batch_id: batches.length > 0 ? batches[0]._id : null, // Use first matching batch if found
+          code: code,
+          language: language,
+          status: allPassed ? "completed" : "rejected",
+          execution_time: overallExecutionTime,
+          memory_usage: averageMemoryUsage / 1024, // Convert to MB
+          numberOfTestCase,
+          numberOfTestCasePass,
+          totalMarks,
+          testCaseResults: testResults,
+        });
+
+        const savedSubmission = await submission.save();
+        
+        res.json({
+          testResults,
+          overallTime: overallExecutionTime,
+          averageMemory: averageMemoryUsage,
+          savedSubmission
+        });
+      } catch (submissionError) {
+        console.error("Error creating submission:", submissionError);
+        // Still return test results even if submission creation fails
+        res.json({
+          testResults,
+          overallTime: overallExecutionTime,
+          averageMemory: averageMemoryUsage,
+          submissionError: submissionError.message
+        });
+      }
+    } else {
+      res.json({
+        testResults,
+        overallTime: overallExecutionTime,
+        averageMemory: averageMemoryUsage,
+      });
+    }
   } catch (error) {
     res
       .status(500)

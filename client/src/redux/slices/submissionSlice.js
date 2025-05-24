@@ -7,6 +7,7 @@ export const fetchSubmissions = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get("/submissions/user/submissions");
+      console.log("Fetched submissions:", response.data.submissions);
       return { submissions: response.data.submissions || [] };
     } catch (error) {
       return rejectWithValue(
@@ -17,12 +18,12 @@ export const fetchSubmissions = createAsyncThunk(
 );
 
 const submissionSlice = createSlice({
-  name: "submissions",
-  initialState: {
+  name: "submissions",  initialState: {
     submissions: [],
     loading: false,
     error: null,
     selectedSubmission: null,
+    hasAttemptedFetch: false,
   },
   reducers: {
     setSelectedSubmission(state, action) {
@@ -46,22 +47,24 @@ const submissionSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder
-      .addCase(fetchSubmissions.pending, (state) => {
+    builder      .addCase(fetchSubmissions.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchSubmissions.fulfilled, (state, action) => {
         state.loading = false;
-        state.submissions = action.payload.submissions;
+        state.hasAttemptedFetch = true;
+        state.submissions = action.payload.submissions || [];
         state.selectedSubmission =
-          action.payload.submissions.length > 0
+          action.payload.submissions?.length > 0
             ? action.payload.submissions[0]
             : null;
+        state.error = action.payload.submissions?.length === 0 ? "No submissions found" : null;
       })
       .addCase(fetchSubmissions.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "An error occurred.";
+        state.hasAttemptedFetch = true;
+        state.error = action.payload || "No submissions found";
       })
       // Handle user logout action from userSlice
       .addCase(logout, (state) => {

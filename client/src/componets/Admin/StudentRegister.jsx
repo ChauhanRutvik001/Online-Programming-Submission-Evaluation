@@ -34,6 +34,17 @@ const AdminStudentRegister = () => {
   const validBatches = ["a1", "b1", "c1", "d1", "a2", "b2", "c2", "d2"];
   const validSemesters = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
+  // Error state for form validation
+  const [errorState, setErrorState] = useState({
+    id: "",
+    username: "",
+    batch: "",
+    semester: "",
+  });
+
+  // ID format validation regex
+  const studentIDRegex = /^(1[5-9]|2[0-9]|3[0-9])(it|ce|cse|civil|mech|ec)\d{3}$/i;
+
   // Effect to animate the single student form
   useEffect(() => {
     if (showSingleStudentForm) {
@@ -104,81 +115,131 @@ const AdminStudentRegister = () => {
 
     if (!file) return;
 
-    // Set loading state
+    // Validate file type
+    const allowedTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel'
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please upload a valid Excel file (.xls or .xlsx)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      toast.error('File size should be less than 5MB');
+      return;
+    }
+
     setUploadLoading(true);
 
-    // Create a FileReader to read the file
     const reader = new FileReader();
 
     reader.onload = (event) => {
       try {
-        const data = new Uint8Array(event.target.result); // Read the file as ArrayBuffer
-        const workbook = XLSX.read(data, { type: "array" }); // Parse the Excel data into a workbook
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]; // Get the first sheet
-        const parsedData = XLSX.utils.sheet_to_json(sheet); // Parse the sheet into JSON data
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        
+        // Validate workbook has sheets
+        if (workbook.SheetNames.length === 0) {
+          throw new Error('Excel file is empty');
+        }
 
-        // Track errors in data format
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const parsedData = XLSX.utils.sheet_to_json(sheet);
+
+        // Validate at least one row of data
+        if (parsedData.length === 0) {
+          throw new Error('No data found in Excel file');
+        }
+
+        // Validate required columns exist
+        const requiredColumns = ['ID', 'Username', 'Batch', 'Semester'];
+        const missingColumns = requiredColumns.filter(col => 
+          !parsedData.some(row => row.hasOwnProperty(col))
+        );
+
+        if (missingColumns.length > 0) {
+          throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
+        }
+
         const dataErrors = [];
 
-        // Transform parsed data to expected format with validation
         const transformedData = parsedData.map((row, index) => {
-          const id = row.ID?.toLowerCase() || "";
-          const username = row.Username || "";
-          const batch = row.Batch?.toLowerCase() || "";
+          const id = row.ID?.toString().toLowerCase() || "";
+          const username = row.Username?.toString() || "";
+          const batch = row.Batch?.toString().toLowerCase() || "";
           const semester = String(row.Semester || "");
 
-          // Validate batch and semester
+          // Validate ID format
+          if (!studentIDRegex.test(id)) {
+            dataErrors.push(
+              `Row ${index + 1}: Invalid ID format "${id}". Required format: YYdeptXXX (e.g., 22it015)`
+            );
+          }
+
+          // Validate batch
           if (batch && !validBatches.includes(batch)) {
             dataErrors.push(
-              `Row ${
-                index + 1
-              }: Invalid batch "${batch}". Must be one of: ${validBatches.join(
+              `Row ${index + 1}: Invalid batch "${batch}". Must be one of: ${validBatches.join(
                 ", "
               )}`
             );
           }
 
+          // Validate semester
           if (semester && !validSemesters.includes(semester)) {
             dataErrors.push(
-              `Row ${
-                index + 1
-              }: Invalid semester "${semester}". Must be between 1-8`
+              `Row ${index + 1}: Invalid semester "${semester}". Must be between 1-8`
+            );
+          }
+
+          // Validate username
+          if (!username.trim()) {
+            dataErrors.push(
+              `Row ${index + 1}: Username is required`
             );
           }
 
           return {
             id,
-            username,
+            username: username.trim(),
             batch,
             semester,
             index,
             isValid:
+              studentIDRegex.test(id) &&
               validBatches.includes(batch) &&
               validSemesters.includes(semester) &&
-              id &&
-              username,
+              username.trim()
           };
         });
 
-        // Display any validation errors
         if (dataErrors.length > 0) {
           setErrorMessages(dataErrors);
           toast.error(
-            "Some data in the Excel file is invalid. See error messages below."
+            'Some data in the Excel file is invalid. Please check the error messages below.',
+            { duration: 5000 }
           );
         }
 
         setStudents(transformedData);
         setSelectedStudents({});
+        
+        const validCount = transformedData.filter(s => s.isValid).length;
+        const invalidCount = transformedData.length - validCount;
+        
         toast.success(
-          `Excel file processed with ${transformedData.length} records`
+          `Excel file processed: ${validCount} valid records, ${invalidCount} invalid records`,
+          { duration: 5000 }
         );
       } catch (error) {
         console.error("Error processing Excel file:", error);
-        toast.error("Failed to process Excel file. Please check the format.");
+        toast.error(error.message || "Failed to process Excel file. Please check the format.");
+        setStudents([]);
       }
 
-      // End loading state
       setUploadLoading(false);
     };
 
@@ -187,33 +248,43 @@ const AdminStudentRegister = () => {
       setUploadLoading(false);
     };
 
-    reader.readAsArrayBuffer(file); // Start reading the file
+    reader.readAsArrayBuffer(file);
+  };
+
+  // ID format validation
+  const validateStudentID = (id) => {
+    if (!id) return "Student ID is required";
+    if (!studentIDRegex.test(id.toLowerCase())) {
+      return "Invalid ID format. Example: 22it015 (YY-department-number)";
+    }
+    return "";
   };
 
   // Handle form submit for a single student
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Check if form values are valid
-    if (
-      !newStudent.id ||
-      !newStudent.username ||
-      !newStudent.batch ||
-      !newStudent.semester
-    ) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
+    // Reset error states
+    setErrorState({
+      id: "",
+      username: "",
+      batch: "",
+      semester: "",
+    });
 
-    // Validate batch value
-    if (!validBatches.includes(newStudent.batch.toLowerCase())) {
-      toast.error(`Invalid batch. Must be one of: ${validBatches.join(", ")}`);
-      return;
-    }
+    // Validate all fields
+    const idError = validateStudentID(newStudent.id);
+    const usernameError = !newStudent.username ? "Name is required" : "";
+    const batchError = !newStudent.batch ? "Batch is required" : "";
+    const semesterError = !newStudent.semester ? "Semester is required" : "";
 
-    // Validate semester value
-    if (!validSemesters.includes(String(newStudent.semester))) {
-      toast.error("Invalid semester. Must be between 1-8");
+    if (idError || usernameError || batchError || semesterError) {
+      setErrorState({
+        id: idError,
+        username: usernameError,
+        batch: batchError,
+        semester: semesterError,
+      });
       return;
     }
 
@@ -224,7 +295,7 @@ const AdminStudentRegister = () => {
         "/admin/faculty/student-register",
         {
           id: newStudent.id.toLowerCase(),
-          username: newStudent.username,
+          username: newStudent.username.trim(),
           batch: newStudent.batch.toLowerCase(),
           semester: newStudent.semester,
         }
@@ -273,7 +344,6 @@ const AdminStudentRegister = () => {
 
   // Handle registering selected students
   const handleRegisterSelected = async () => {
-    // Filter valid selected students only
     const selectedData = students.filter(
       (student) => selectedStudents[student.index] && student.isValid
     );
@@ -283,38 +353,69 @@ const AdminStudentRegister = () => {
       return;
     }
 
+    // Confirm if registering more than 10 students at once
+    if (selectedData.length > 10 && !window.confirm(
+      `You are about to register ${selectedData.length} students. This operation cannot be undone. Continue?`
+    )) {
+      return;
+    }
+
     setRegisterLoading(true);
 
     try {
-      const response = await axiosInstance.post(
-        "/admin/faculty/bulk-student-register",
-        {
-          students: selectedData,
-        }
-      );
-
-      // Process and display results
-      const registrationResults = response.data.results || {
+      // Register students in batches of 10 to prevent timeout
+      const batchSize = 10;
+      const results = {
         success: [],
-        errors: [],
+        errors: []
       };
 
-      setResults(registrationResults);
+      for (let i = 0; i < selectedData.length; i += batchSize) {
+        const batch = selectedData.slice(i, i + batchSize);
+        try {
+          const response = await axiosInstance.post(
+            "/admin/faculty/bulk-student-register",
+            {
+              students: batch,
+            }
+          );
+
+          // Merge results
+          results.success.push(...(response.data.results.success || []));
+          results.errors.push(...(response.data.results.errors || []));
+
+          // Update progress
+          const progress = Math.min(100, ((i + batchSize) / selectedData.length) * 100);
+          toast.loading(`Processing... ${Math.round(progress)}%`, {
+            id: 'registration-progress'
+          });
+        } catch (error) {
+          // If a batch fails, add all students in that batch to errors
+          results.errors.push(
+            ...batch.map(student => ({
+              id: student.id,
+              message: error.response?.data?.message || "Failed to register"
+            }))
+          );
+        }
+      }
+
+      toast.dismiss('registration-progress');
+      setResults(results);
       setShowResults(true);
 
-      // Display toast notifications
-      if (
-        registrationResults.success &&
-        registrationResults.success.length > 0
-      ) {
+      // Display summary toast
+      if (results.success.length > 0) {
         toast.success(
-          `${registrationResults.success.length} students registered successfully.`
+          `${results.success.length} students registered successfully.`,
+          { duration: 5000 }
         );
       }
 
-      if (registrationResults.errors && registrationResults.errors.length > 0) {
+      if (results.errors.length > 0) {
         toast.error(
-          `${registrationResults.errors.length} students failed to register.`
+          `${results.errors.length} students failed to register. Check results for details.`,
+          { duration: 5000 }
         );
       }
 
@@ -323,15 +424,16 @@ const AdminStudentRegister = () => {
       setSelectAll(false);
 
       // Remove successfully registered students from the list
-      const successIds = new Set(
-        registrationResults.success.map((student) => student.id)
-      );
+      const successIds = new Set(results.success.map((student) => student.id));
       setStudents((prev) =>
         prev.filter((student) => !successIds.has(student.id))
       );
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error("Error registering students. Please try again.");
+      toast.error(
+        "Error registering students. Please try again.",
+        { duration: 5000 }
+      );
     } finally {
       setRegisterLoading(false);
     }
@@ -485,13 +587,19 @@ const AdminStudentRegister = () => {
                       type="text"
                       name="id"
                       value={newStudent.id}
-                      onChange={(e) =>
-                        setNewStudent({ ...newStudent, id: e.target.value })
-                      }
-                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      onChange={(e) => {
+                        setNewStudent({ ...newStudent, id: e.target.value });
+                        setErrorState(prev => ({ ...prev, id: '' }));
+                      }}
+                      className={`w-full p-3 bg-gray-700 border ${
+                        errorState.id ? 'border-red-500' : 'border-gray-600'
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent`}
                       placeholder="e.g., 22it015"
                       required
                     />
+                    {errorState.id && (
+                      <p className="mt-1 text-sm text-red-500">{errorState.id}</p>
+                    )}
                   </div>
 
                   <div className="mb-4">
@@ -502,16 +610,22 @@ const AdminStudentRegister = () => {
                       type="text"
                       name="username"
                       value={newStudent.username}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setNewStudent({
                           ...newStudent,
                           username: e.target.value,
-                        })
-                      }
-                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        });
+                        setErrorState(prev => ({ ...prev, username: '' }));
+                      }}
+                      className={`w-full p-3 bg-gray-700 border ${
+                        errorState.username ? 'border-red-500' : 'border-gray-600'
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent`}
                       placeholder="Enter student name"
                       required
                     />
+                    {errorState.username && (
+                      <p className="mt-1 text-sm text-red-500">{errorState.username}</p>
+                    )}
                   </div>
 
                   <div className="mb-4">
@@ -521,10 +635,13 @@ const AdminStudentRegister = () => {
                     <select
                       name="batch"
                       value={newStudent.batch}
-                      onChange={(e) =>
-                        setNewStudent({ ...newStudent, batch: e.target.value })
-                      }
-                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      onChange={(e) => {
+                        setNewStudent({ ...newStudent, batch: e.target.value });
+                        setErrorState(prev => ({ ...prev, batch: '' }));
+                      }}
+                      className={`w-full p-3 bg-gray-700 border ${
+                        errorState.batch ? 'border-red-500' : 'border-gray-600'
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent`}
                       required
                     >
                       <option value="">Select Batch</option>
@@ -534,6 +651,9 @@ const AdminStudentRegister = () => {
                         </option>
                       ))}
                     </select>
+                    {errorState.batch && (
+                      <p className="mt-1 text-sm text-red-500">{errorState.batch}</p>
+                    )}
                   </div>
 
                   <div className="mb-6">
@@ -543,13 +663,16 @@ const AdminStudentRegister = () => {
                     <select
                       name="semester"
                       value={newStudent.semester}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setNewStudent({
                           ...newStudent,
                           semester: e.target.value,
-                        })
-                      }
-                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        });
+                        setErrorState(prev => ({ ...prev, semester: '' }));
+                      }}
+                      className={`w-full p-3 bg-gray-700 border ${
+                        errorState.semester ? 'border-red-500' : 'border-gray-600'
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent`}
                       required
                     >
                       <option value="">Select Semester</option>
@@ -559,6 +682,9 @@ const AdminStudentRegister = () => {
                         </option>
                       ))}
                     </select>
+                    {errorState.semester && (
+                      <p className="mt-1 text-sm text-red-500">{errorState.semester}</p>
+                    )}
                   </div>
 
                   <div className="flex justify-end">
@@ -751,7 +877,7 @@ const AdminStudentRegister = () => {
                                 {student.username}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 font-mono">
-                                {student.batch.toUpperCase()}
+                                {student.batch ? student.batch.toUpperCase() : ''}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                                 {student.semester}
@@ -960,7 +1086,7 @@ const AdminStudentRegister = () => {
                                       {item.username}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                      {item.batch.toUpperCase()}
+                                      {item.batch?.toUpperCase()}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                                       {item.semester}

@@ -89,18 +89,14 @@ const Profile = () => {
       }
     }
   }, [user, reduxDispatch, isCached]);
-
-  // Only fetch submissions if we don't have them already
+  // Only fetch submissions if we haven't attempted yet
+  const hasAttemptedFetch = useSelector((state) => state.submissions.hasAttemptedFetch);
+  
   useEffect(() => {
-    // Don't make API call if:
-    // 1. We don't have a user yet
-    // 2. We already have submissions data
-    // 3. We're currently loading submissions
-    // 4. The page is cached (recently visited)
-    if (user && submissions.length === 0 && !submissionsLoading && !isCached) {
+    if (user?._id && !submissionsLoading && !hasAttemptedFetch && !isCached) {
       reduxDispatch(fetchSubmissions({ page: 1, limit: 7 }));
     }
-  }, [reduxDispatch, user, submissions.length, submissionsLoading, isCached]);
+  }, [reduxDispatch, user, submissionsLoading, hasAttemptedFetch, isCached]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

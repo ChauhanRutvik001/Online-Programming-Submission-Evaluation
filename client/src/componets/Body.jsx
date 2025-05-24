@@ -15,12 +15,10 @@ import Profile from './Profile/Profile';
 import AdminPage from './Admin/AdminPage';
 import Dashboard from './Problem/Dashboard';
 import History from './History';
-import FacultyPage from './Faculty/FacultyPage';
 import AdminRegister from './Admin/AdminRegister';
 import CreateFaculty from './Admin/CreateFaculty';
 import { default as AdminStudentRegister } from './Admin/StudentRegister';
 import StudentList from './Admin/StudentList';
-import AssignProblem from './Problem/AssignProblem';
 import StudentInfo from './Admin/StudentInfo';
 import Details from './Problem/Details';
 import Support from './Support';
@@ -53,7 +51,6 @@ const appRouter = createBrowserRouter([
       { path: "/contests/:id", element: <Contest /> },
       { path: "/make-problem", element: <MakeProblem /> },
       { path: "/pending-requests", element: <AdminPage /> },
-      { path: "/faculty-section", element: <FacultyPage /> },
       { path: "/problem-form", element: <ProblemForm /> },
       { path: "/problem-form/:id", element: <ProblemForm /> },
       { path: "/problems/:id", element: <ProblemShow /> },      { path: "/profile", element: <Profile /> },
@@ -63,7 +60,6 @@ const appRouter = createBrowserRouter([
       { path: "/create-faculty", element: <CreateFaculty /> },
       { path: "/registerStudents", element: <AdminStudentRegister /> },
       { path:"/students/:facultyId", element: <StudentList /> },
-      { path:"/assignProblem/:problemId", element: <AssignProblem /> },
       { path:"/studentinformation", element: <StudentInfo /> },
       { path:"/submissions/:submissionId", element:<Details />},      { path:"/assignContestToStudents/:contestId", element:<UnAssignContest />},
       { path:"/unassignContestToStudents/:contestId", element:<AssignedContest />},

@@ -98,9 +98,13 @@ export const getProblems = async (req, res) => {
     } else if (isAdmin === "faculty") {
       problems = await Problem.find({ createdBy: userId }).sort({
         createdAt: -1,
-      });
-    } else if (isAdmin === "student") {
-      problems = await Problem.find({ assignedStudents: userId }).sort({
+      });    } else if (isAdmin === "student") {
+      // Find batches this student belongs to
+      const batches = await Batch.find({ students: userId });
+      const batchIds = batches.map(batch => batch._id);
+      
+      // Find problems that are assigned to any of these batches
+      problems = await Problem.find({ assignedBatches: { $in: batchIds } }).sort({
         createdAt: -1,
       });
     } else {
@@ -418,18 +422,23 @@ export const getProblemById = async (req, res) => {
           .json({ message: "You are not allowed to access this problem" });
       }
       return res.json(problem);
-    }
-
-    // Students can only access problems assigned to them
+    }    // Students can only access problems assigned to batches they belong to
     if (isAdmin === "student") {
-      const isAssigned = problem.assignedStudents.some(
-        (student) => student.toString() === userId.toString()
+      // Find the batches this student belongs to
+      const batches = await Batch.find({ students: userId });
+      const batchIds = batches.map(batch => batch._id.toString());
+      
+      // Check if any of these batches are assigned to the problem
+      const isAssigned = problem.assignedBatches.some(
+        batchId => batchIds.includes(batchId.toString())
       );
+      
       if (!isAssigned) {
         return res
           .status(403)
           .json({ message: "You are not allowed to access this problem" });
       }
+      
       return res.json(problem);
     }
 
@@ -614,13 +623,18 @@ export const assignProblemToBatches = async (req, res) => {
       return res.status(400).json({ 
         message: "Some batches don't exist or you don't have permission to assign to them." 
       });
-    }
-
-    // Add batches to assignedBatches if not already there
+    }    // Add batches to assignedBatches if not already there
     for (const batchId of batchIds) {
       if (!problem.assignedBatches.includes(batchId)) {
         problem.assignedBatches.push(batchId);
       }
+      
+      // Update the batch to include this problem in its assignedProblems array
+      await Batch.findByIdAndUpdate(
+        batchId,
+        { $addToSet: { assignedProblems: id } },
+        { new: true }
+      );
     }
 
     // Update due date if provided
@@ -628,24 +642,12 @@ export const assignProblemToBatches = async (req, res) => {
       problem.dueDate = new Date(dueDate);
     }
 
-    await problem.save();
+    await problem.save();    // Save the problem with the updated batch assignments and due date
 
-    // For each batch, add all the students to assignedStudents (if they're not already there)
-    let assignedStudentCount = 0;
-    for (const batch of batches) {
-      for (const studentId of batch.students) {
-        if (!problem.assignedStudents.includes(studentId)) {
-          problem.assignedStudents.push(studentId);
-          assignedStudentCount++;
-        }
-      }
-    }
-
-    // Save again after adding all students
-    await problem.save();
+    const totalStudentCount = batches.reduce((count, batch) => count + batch.students.length, 0);
 
     res.status(200).json({ 
-      message: `Problem assigned to ${batches.length} batches and ${assignedStudentCount} new students.`,
+      message: `Problem assigned to ${batches.length} batches with access for ${totalStudentCount} students.`,
       problem 
     });
   } catch (error) {
@@ -676,39 +678,21 @@ export const unassignBatches = async (req, res) => {
 
     if (problem.createdBy.toString() !== userId.toString() && userRole !== "admin") {
       return res.status(403).json({ message: "Unauthorized to unassign batches from this problem" });
-    }
-
-    // Get all batches to be unassigned
+    }    // Get all batches to be unassigned
     const batchesToUnassign = await Batch.find({ _id: { $in: batchIds } });
-    
-    // Create a set of all student IDs in these batches for efficient checking
-    const studentsInBatches = new Set();
-    for (const batch of batchesToUnassign) {
-      batch.students.forEach(studentId => studentsInBatches.add(studentId.toString()));
-    }
     
     // Remove the batches from assignedBatches
     problem.assignedBatches = problem.assignedBatches.filter(
       batchId => !batchIds.includes(batchId.toString())
     );
     
-    // If a student is in any remaining batch, they should still be assigned
-    // First, get all batches that are still assigned to the problem
-    const remainingBatchIds = problem.assignedBatches.map(id => id.toString());
-    const remainingBatches = await Batch.find({ _id: { $in: remainingBatchIds } });
-    
-    // Create a set of all students in remaining batches
-    const studentsInRemainingBatches = new Set();
-    for (const batch of remainingBatches) {
-      batch.students.forEach(studentId => studentsInRemainingBatches.add(studentId.toString()));
+    // Remove this problem from assignedProblems in each batch
+    for (const batchId of batchIds) {
+      await Batch.findByIdAndUpdate(
+        batchId,
+        { $pull: { assignedProblems: id } }
+      );
     }
-    
-    // Filter assignedStudents to only keep students who are in at least one remaining batch
-    problem.assignedStudents = problem.assignedStudents.filter(studentId => {
-      const studentIdStr = studentId.toString();
-      // Keep if student is in a remaining batch OR if they were assigned individually (not in any batch we're unassigning)
-      return studentsInRemainingBatches.has(studentIdStr) || !studentsInBatches.has(studentIdStr);
-    });
     
     await problem.save();
 
@@ -736,13 +720,17 @@ export const getProblemsByBatch = async (req, res) => {
 
     if (!batch.students.includes(userId)) {
       return res.status(403).json({ message: "You are not a member of this batch" });
-    }
-
-    // Find all problems assigned to this batch
-    const problems = await Problem.find({ assignedBatches: batchId })
-      .select('_id title difficulty createdAt dueDate createdBy')
-      .populate('createdBy', 'username firstName lastName')
-      .sort({ createdAt: -1 });
+    }    // Find all problems assigned to this batch using the assignedProblems field in the batch
+    const fullBatch = await Batch.findById(batchId).populate({
+      path: 'assignedProblems',
+      select: '_id title difficulty createdAt dueDate createdBy',
+      populate: {
+        path: 'createdBy',
+        select: 'username firstName lastName'
+      }
+    });
+    
+    const problems = fullBatch.assignedProblems || [];
 
     res.json({
       problems,
@@ -789,5 +777,38 @@ export const getProblemBatches = async (req, res) => {
   } catch (error) {
     console.error("Error fetching problem batches:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Update just the due date of a problem
+export const updateProblemDueDate = async (req, res) => {
+  try {
+    const problemId = req.params.id;
+    const { dueDate } = req.body;
+
+    const problem = await Problem.findById(problemId);
+    if (!problem) {
+      return res.status(404).json({ message: "Problem not found" });
+    }
+
+    // Check if user has permission to update problem
+    const userId = req.user.id;
+    const userRole = req.user.isAdmin;
+
+    if (problem.createdBy.toString() !== userId.toString() && userRole !== "admin") {
+      return res.status(403).json({ message: "Unauthorized to edit this problem" });
+    }
+
+    // Update due date
+    if (dueDate) {
+      problem.dueDate = new Date(dueDate);
+      const updatedProblem = await problem.save();
+      return res.json(updatedProblem);
+    } else {
+      return res.status(400).json({ message: "Due date is required" });
+    }
+  } catch (error) {
+    console.error("Error updating problem due date:", error);
+    res.status(500).json({ message: "Failed to update the problem due date" });
   }
 };

@@ -1,9 +1,10 @@
 {
-  "type": "module",
-  "scripts": {
+  "type": "module",  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon app.js",
-    "start": "node app.js"
+    "start": "node app.js",
+    "migrate": "node scripts/run_migrations.js",
+    "sync-batches": "node scripts/sync_batch_assigned_problems.js"
   },
   "dependencies": {
     "amqplib": "^0.10.5",

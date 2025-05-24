@@ -23,11 +23,17 @@ const batchSchema = new Schema(
         ref: "User",
         default: [],
       },
-    ],    
-    subject: {
+    ],      subject: {
       type: String,
       required: false,
     },
+    assignedProblems: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Problem",
+        default: [],
+      }
+    ],
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",

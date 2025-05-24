@@ -138,14 +138,18 @@ const Header = () => {
 
   const isActive = (path) => location.pathname === path;
   const makeContestButtonText =
-    user?.role === "student" ? "Contest" : "Make Contest";
+    user?.role === "student" ? "Contest" : "Make Contest";  // Define base nav links that apply to all users
   const navLinks = [
     { path: "/browse", label: "Home", icon: <Home size={18} /> },
     { path: "/profile", label: "Profile", icon: <User size={18} /> },
     { path: "/history", label: "History", icon: <History size={18} /> },
-    { path: "/make-problem", label: "Problem", icon: <Code2 size={18} /> },
     { path: "/support", label: "Support", icon: <HelpCircle size={18} /> },
   ];
+  
+  // Add Problem item only for admin and faculty
+  if (user?.role === "admin" || user?.role === "faculty") {
+    navLinks.splice(3, 0, { path: "/make-problem", label: "Problem", icon: <Code2 size={18} /> });
+  }
 
 
 
@@ -157,11 +161,11 @@ const Header = () => {
     });
   }
   if (user?.role === "faculty") {
-    navLinks.push({
-      path: "/faculty-section",
-      label: "Requests",
-      icon: <ClipboardList size={18} />,
-    });
+    // navLinks.push({
+    //   path: "/faculty-section",
+    //   label: "Requests",
+    //   icon: <ClipboardList size={18} />,
+    // });
     navLinks.push({
       path: "/faculty/batches",
       label: "Batches",

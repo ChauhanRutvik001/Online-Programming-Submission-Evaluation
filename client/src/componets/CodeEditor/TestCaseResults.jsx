@@ -11,6 +11,7 @@ const TestCaseResults = ({
   handleSubmit,
   handleSaveCode,
   error,
+  isPastDue,
 }) => {
   const hasResults = results && results.length > 0;
   const currentTestCase =
@@ -29,16 +30,15 @@ const TestCaseResults = ({
           }`}
         >
           {runLoading ? "Running..." : "Run Test Case"}
-        </button>
-
-        <button
+        </button>        <button
           onClick={handleSubmit}
-          disabled={isLoading || submitLoading || runLoading}
+          disabled={isLoading || submitLoading || runLoading || isPastDue}
           className={`px-4 py-2 rounded-lg shadow-md text-white transition-all duration-200 ${
-            submitLoading ? "bg-gray-500" : "bg-green-600 hover:bg-green-500"
+            submitLoading ? "bg-gray-500" : isPastDue ? "bg-gray-500" : "bg-green-600 hover:bg-green-500"
           }`}
+          title={isPastDue ? "Submission deadline has passed" : ""}
         >
-          {submitLoading ? "Submitting..." : "Submit Code"}
+          {submitLoading ? "Submitting..." : isPastDue ? "Past Due Date" : "Submit Code"}
         </button>
 
         <button onClick={handleSaveCode} className="bg-blue-500 text-white px-4 py-2 rounded">

@@ -4,6 +4,7 @@ import {
   getProblems,
   getProblemById,
   updateProblem,
+  updateProblemDueDate,
   deleteProblem,
   assignProblemToStudents,
   assignProblemToBatches,
@@ -24,6 +25,7 @@ router.use(isAuthorized);
 // Admin routes
 router.post('/',  isAdminOrFaculty, createProblem);
 router.put('/:id',  isAdminOrFaculty, updateProblem);
+router.patch('/:id',  isAdminOrFaculty, updateProblemDueDate); // Added PATCH endpoint specifically for due date updates
 router.delete('/:id',  isAdminOrFaculty, deleteProblem);
 router.get('/getStudents', isAdminOrFaculty, getStudents);
 router.get('/getProblemByIdForUpdate/:id', isAdminOrFaculty, getProblemByIdForUpdate); //edit problem

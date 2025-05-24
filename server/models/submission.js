@@ -13,8 +13,7 @@ const testCaseResultSchema = new Schema({
   is_hidden : { type: Boolean, required: true }, // Memory usage (in KB or another unit)
 });
 
-const submissionSchema = new Schema({
-  user_id: {
+const submissionSchema = new Schema({  user_id: {
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: [true, 'User ID is required'],
@@ -23,6 +22,11 @@ const submissionSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'Problem',
     required: [true, 'Problem ID is required'],
+  },
+  batch_id: {
+    type: Schema.Types.ObjectId,
+    ref: 'Batch',
+    required: false,
   },
   code: {
     type: String,

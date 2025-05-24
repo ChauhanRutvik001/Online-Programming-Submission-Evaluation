@@ -10,15 +10,16 @@ const SubmissionPage = () => {
   const navigate = useNavigate();
   const { submissions, loading, error } = useSelector((state) => state.submissions);
   const user = useSelector((state) => state.app.user);
-  
-  // Only fetch if we don't already have data and user exists
+    const hasAttemptedFetch = useSelector((state) => state.submissions.hasAttemptedFetch);
+
+  // Only fetch if we haven't attempted yet and are not in profile page
   useEffect(() => {
     // Check if we need to fetch submissions
-    // Don't fetch if we have submissions or if we're already loading
-    if (user?._id && submissions.length === 0 && !loading && !isPageCached("/profile")) {
+    // Don't fetch if we've already attempted or if we're loading
+    if (user?._id && !hasAttemptedFetch && !loading && !isPageCached("/profile")) {
       dispatch(fetchSubmissions({ page: 1, limit: 7 }));
     }
-  }, [dispatch, user?._id, submissions.length, loading]);
+  }, [dispatch, user?._id, hasAttemptedFetch, loading]);
 
   const handleViewMore = () => {
     navigate("/history");
@@ -88,9 +89,7 @@ const SubmissionPage = () => {
               </p>
             </div>
           </div>
-        )}
-
-        {error && (
+        )}        {error && error !== "No submissions found" && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 flex items-start">
             <AlertCircle size={24} className="text-red-500 mr-4 flex-shrink-0 mt-1" />
             <div>
@@ -100,7 +99,7 @@ const SubmissionPage = () => {
           </div>
         )}
 
-        {!loading && !error && submissions.length === 0 && (
+        {(!loading && submissions.length === 0) && (
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-8 text-center">
             <FileText size={48} className="text-blue-400 mx-auto mb-4" />
             <p className="text-xl font-medium text-gray-200 mb-2">No submissions found</p>

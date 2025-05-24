@@ -59,16 +59,12 @@ const problemSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Creator is required"],
-    },
-    totalMarks: {
+    },    totalMarks: {
       type: Number,
       required: [true, "Total marks are required"],
       min: 0,
     },
     tags: [{ type: String, default: [] }], // Tags for the problem
-    assignedStudents: [
-      { type: Schema.Types.ObjectId, ref: "User", default: [] },
-    ], // Students assigned to the problem (legacy - to be phased out)
     assignedBatches: [
       { type: Schema.Types.ObjectId, ref: "Batch", default: [] },
     ], // Batches assigned to the problem

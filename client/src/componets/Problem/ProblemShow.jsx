@@ -20,8 +20,7 @@ const ProblemShow = () => {
   const [code, setCode] = useState("");
   const [activeTab, setActiveTab] = useState("statement");
   const [latestSubmission, setLatestSubmission] = useState(null); // Store latest submission
-
-  
+  const [isPastDue, setIsPastDue] = useState(false);
 
   const handleSubmission = (submission) => {
     setLatestSubmission(submission); // Update with the new submission
@@ -37,13 +36,18 @@ const ProblemShow = () => {
   };
 
   const resizableRef = useRef(null);
-
   useEffect(() => {
     const fetchProblem = async () => {
       try {
         const response = await axiosInstance.get(`/problems/${id}`);
         setProblem(response.data);
-        // console.log(response.data)
+        
+        // Check if problem is past due date
+        if (response.data.dueDate) {
+          const dueDate = new Date(response.data.dueDate);
+          const now = new Date();
+          setIsPastDue(now > dueDate);
+        }
       } catch (error) {
         toast.error("Failed to load problem data");
         // console.error("Failed to load problem data", error);
@@ -56,7 +60,6 @@ const ProblemShow = () => {
   useEffect(() => {
     setCode(codeTemplates[language]);
   }, [language]);
-
   const handleResize = (event) => {
     const resizable = resizableRef.current;
     const containerWidth = resizable.parentElement.getBoundingClientRect()
@@ -65,6 +68,19 @@ const ProblemShow = () => {
     if (newWidth >= 35 && newWidth <= 75) {
       resizable.style.flexBasis = `${newWidth}%`;
     }
+  };
+  
+  // Format the due date for display
+  const formatDueDate = (dateString) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (!problem) {
@@ -105,6 +121,12 @@ const ProblemShow = () => {
             <h1 className="text-2xl font-extrabold text-white tracking-tight">
               {problem.title}
             </h1>
+            {problem.dueDate && (
+              <div className={`px-3 py-1 rounded-full text-sm font-medium ${isPastDue ? 'bg-red-900/20 text-red-400' : 'bg-blue-900/20 text-blue-400'}`}>
+                {isPastDue ? 'Due date passed: ' : 'Due: '}
+                {formatDueDate(problem.dueDate)}
+              </div>
+            )}
           </div>
 
           <div className="border-b border-gray-700 mb-4">
@@ -172,6 +194,7 @@ const ProblemShow = () => {
         setCode={setCode}
         problem={problem}
         onSubmission={handleSubmission}
+        isPastDue={isPastDue}
       />
     </div>
   );
