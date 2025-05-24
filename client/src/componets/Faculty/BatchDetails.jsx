@@ -254,8 +254,7 @@ const BatchDetails = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-300">{problem.dueDate ? formatDate(problem.dueDate) : '-'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap hover:cursor-pointer" onClick={() => navigate(`/dashboard/${problem._id}`)}>
+                      </td>                      <td className="px-6 py-4 whitespace-nowrap hover:cursor-pointer" onClick={() => navigate(`/dashboard/${problem._id}?batchId=${batchId}`)}>
                         <div className="text-blue-400 hover:underline font-semibold text-left">Progress</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

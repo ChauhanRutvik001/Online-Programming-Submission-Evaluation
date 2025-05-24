@@ -316,3 +316,52 @@ export const getSubmissionById = async (req, res) => {
 //     });
 //   }
 // };
+
+// Route to get ALL submissions for analytics (not just highest marks per student)
+export const getAllSubmissionsForAnalytics = async (req, res) => {
+  const { problem_id } = req.query;
+  console.log("Route to get ALL submissions for analytics for specific problem");
+
+  try {
+    // Fetch ALL submissions for the given problem_id (not filtered to highest marks)
+    const submissions = await Submission.find(
+      { problem_id },
+      {
+        language: 1,
+        status: 1,
+        numberOfTestCase: 1,
+        numberOfTestCasePass: 1,
+        _id: 1,
+        createdAt: 1,
+        totalMarks: 1,
+        testCaseResults: 1,
+        execution_time: 1,
+        memory_usage: 1,
+      }
+    ).populate({
+      path: "user_id",
+      select: "id username batch branch semester _id role",
+      match: { role: "student" }, // Only include users with role 'student'
+    });
+
+    // Filter out submissions where user_id is null (non-students)
+    const filteredSubmissions = submissions.filter(
+      (submission) => submission.user_id
+    );
+
+    if (filteredSubmissions.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No submissions found for the given problem ID." });
+    }
+
+    res.status(200).json({
+      message: "All submissions retrieved successfully for analytics",
+      submissions: filteredSubmissions,
+      totalSubmissions: filteredSubmissions.length,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: error.message });
+  }
+};
