@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import { toast } from 'react-toastify';
-import { Users, Book, Calendar, ChevronLeft, Clock, Code, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { Users, Book, Calendar, ChevronLeft, Clock, Code, AlertCircle, ArrowUpRight, TrendingUp } from 'lucide-react';
 import { debounce } from 'lodash';
 
 const StudentBatchDetails = () => {
@@ -127,9 +127,8 @@ const StudentBatchDetails = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <main className="container mx-auto px-4 py-8">
-        {/* Back button */}
-        <div className="mb-6 mt-16">
+      <main className="container mx-auto px-4 py-8">        {/* Back button */}
+        <div className="mb-6 mt-16 flex items-center justify-between">
           <button 
             onClick={() => navigate('/student/batches')}
             className="flex items-center text-blue-400 hover:text-blue-300 transition"
@@ -137,6 +136,14 @@ const StudentBatchDetails = () => {
             <ChevronLeft size={20} />
             <span>Back to Dashboard</span>
           </button>
+          
+          <Link
+            to={`/student/batch/${batchId}/progress`}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-lg"
+          >
+            <TrendingUp size={18} />
+            <span>View Progress Analytics</span>
+          </Link>
         </div>
 
         {/* Batch Header */}

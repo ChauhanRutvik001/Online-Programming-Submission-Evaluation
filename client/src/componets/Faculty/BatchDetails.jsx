@@ -4,7 +4,7 @@ import axiosInstance from '../../utils/axiosInstance';
 import { toast } from 'react-toastify';
 import { 
   ChevronLeft, Users, Book, Calendar, School, Search, User, Tag, FileText, 
-  CheckCircle, XCircle, ChevronRight, ChevronsLeft, ChevronsRight, Code, AlertCircle 
+  CheckCircle, XCircle, ChevronRight, ChevronsLeft, ChevronsRight, Code, AlertCircle, BarChart3 
 } from 'lucide-react';
 
 const BatchDetails = () => {
@@ -196,9 +196,7 @@ const BatchDetails = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Action buttons */}
+        </div>   
         <div className="flex gap-4 mb-8">
           <button
             onClick={() => setShowStudents(false)}
@@ -211,6 +209,13 @@ const BatchDetails = () => {
             className={`px-6 py-2 rounded-lg font-semibold transition-colors ${showStudents ? 'bg-blue-700 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
           >
             Show Student List
+          </button>
+          <button
+            onClick={() => navigate(`/faculty/batches/${batchId}/progress`)}
+            className="px-6 py-2 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <BarChart3 size={18} />
+            Batch Progress Analytics
           </button>
         </div>
 

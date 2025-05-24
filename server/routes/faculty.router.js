@@ -21,5 +21,7 @@ router.route("/my-batches")
   .get(isAuthorized, isFaculty, facultyController.getMyBatches);
 router.route("/batches/:batchId")
   .get(isAuthorized, isFaculty, facultyController.getBatchDetails);
+router.route("/batches/:batchId/progress")
+  .get(isAuthorized, isFaculty, facultyController.getBatchProgress);
 
 export default router;

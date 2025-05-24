@@ -81,8 +81,8 @@ const Dashboard = () => {
     performanceMetrics: {},
     languageDistribution: {},
     timeDistribution: []
-  });
-  const [showAnalytics, setShowAnalytics] = useState(false);
+  });  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [activeTab, setActiveTab] = useState('submissions'); // 'submissions' or 'classmates'
 
   const [filters, setFilters] = useState({
     branch: "ALL",
@@ -1323,22 +1323,54 @@ const Dashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               Download PDF
-            </button>
-          </div>
+            </button>          </div>
 
-          {/* Submissions Table */}
-          <div className="overflow-x-auto">
-            <div className="mb-4 font-medium text-xl text-gray-300">
-              {(batchId && batchInfo) || (selectedBatchId && batchInfo) ? (
-                <>
-                  Filtered Batch Submissions: {filteredSubmissions.length > 0 ? filteredSubmissions.length : "0"}
-                </>
-              ) : (
-                <>
-                  Total After Filter of Submissions: {filteredSubmissions.length > 0 ? filteredSubmissions.length : "0"}
-                </>
-              )}
+          {/* Tab Navigation - Only show when in batch context */}
+          {((batchId && batchInfo) || (selectedBatchId && batchInfo)) && (
+            <div className="flex space-x-1 mb-6 bg-gray-800 p-1 rounded-lg">
+              <button
+                onClick={() => setActiveTab('submissions')}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors flex-1 justify-center ${
+                  activeTab === 'submissions'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Submissions</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('classmates')}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors flex-1 justify-center ${
+                  activeTab === 'classmates'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                </svg>
+                <span>Students Progress</span>
+              </button>
             </div>
+          )}
+
+          {/* Submissions Table - Show when activeTab is 'submissions' */}
+          {activeTab === 'submissions' && (
+            <div className="overflow-x-auto">
+              <div className="mb-4 font-medium text-xl text-gray-300">
+                {(batchId && batchInfo) || (selectedBatchId && batchInfo) ? (
+                  <>
+                    Filtered Batch Submissions: {filteredSubmissions.length > 0 ? filteredSubmissions.length : "0"}
+                  </>
+                ) : (
+                  <>
+                    Total After Filter of Submissions: {filteredSubmissions.length > 0 ? filteredSubmissions.length : "0"}
+                  </>
+                )}
+              </div>
 
             <table className="w-full min-w-max text-sm text-left text-gray-400 border-collapse border border-gray-600">
               <thead className="bg-gray-800 text-gray-300">
@@ -1564,9 +1596,253 @@ const Dashboard = () => {
                     </td>
                   </tr>
                 )}
-              </tbody>
-            </table>
+              </tbody>            </table>
           </div>
+          )}
+
+          {/* Classmate Progress Tab - Show when activeTab is 'classmates' */}
+          {activeTab === 'classmates' && ((batchId && batchInfo) || (selectedBatchId && batchInfo)) && (
+            <div className="space-y-6">
+              <div className="bg-gray-800 p-6 rounded-lg border border-gray-600">
+                <h3 className="text-xl font-semibold text-blue-400 mb-4 flex items-center">
+                  <Users className="mr-2" size={20} />
+                  Classmate Progress for This Problem
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-700">
+                        <th className="text-left py-3 px-4 text-gray-300">Rank</th>
+                        <th className="text-left py-3 px-4 text-gray-300">Student</th>
+                        <th className="text-left py-3 px-4 text-gray-300">Student ID</th>
+                        <th className="text-left py-3 px-4 text-gray-300">Branch</th>
+                        <th className="text-left py-3 px-4 text-gray-300">Semester</th>
+                        <th className="text-left py-3 px-4 text-gray-300">Test Cases</th>
+                        <th className="text-left py-3 px-4 text-gray-300">Score</th>
+                        <th className="text-left py-3 px-4 text-gray-300">Performance</th>
+                        <th className="text-left py-3 px-4 text-gray-300">Attempts</th>
+                        <th className="text-left py-3 px-4 text-gray-300">Last Submission</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        // Get all students from the batch
+                        const batchStudents = batchInfo.students || [];
+                        
+                        // Create a map of student progress based on submissions
+                        const studentProgress = {};
+                        
+                        // Initialize all batch students
+                        batchStudents.forEach(student => {
+                          studentProgress[student._id] = {
+                            student: student,
+                            attempts: 0,
+                            bestScore: 0,
+                            testCasesPassed: 0,
+                            totalTestCases: 0,
+                            lastSubmission: null,
+                            hasSubmitted: false
+                          };
+                        });
+                        
+                        // Count all submissions (not just best ones) for attempts
+                        allSubmissions.forEach(submission => {
+                          const studentId = submission.user_id._id;
+                          if (studentProgress[studentId]) {
+                            studentProgress[studentId].attempts++;
+                            if (!studentProgress[studentId].lastSubmission || 
+                                new Date(submission.createdAt) > new Date(studentProgress[studentId].lastSubmission)) {
+                              studentProgress[studentId].lastSubmission = submission.createdAt;
+                            }
+                          }
+                        });
+                        
+                        // Update with best submission data
+                        filteredSubmissions.forEach(submission => {
+                          const studentId = submission.user_id._id;
+                          if (studentProgress[studentId]) {
+                            const score = submission.numberOfTestCase > 0 ? 
+                              (submission.numberOfTestCasePass / submission.numberOfTestCase) * 100 : 0;
+                            
+                            if (score > studentProgress[studentId].bestScore) {
+                              studentProgress[studentId].bestScore = score;
+                              studentProgress[studentId].testCasesPassed = submission.numberOfTestCasePass || 0;
+                              studentProgress[studentId].totalTestCases = submission.numberOfTestCase || 0;
+                              studentProgress[studentId].hasSubmitted = true;
+                            }
+                          }
+                        });
+                        
+                        // Convert to array and sort by score (descending)
+                        const sortedStudents = Object.values(studentProgress)
+                          .sort((a, b) => {
+                            if (b.bestScore !== a.bestScore) return b.bestScore - a.bestScore;
+                            if (b.hasSubmitted !== a.hasSubmitted) return b.hasSubmitted - a.hasSubmitted;
+                            return a.student.username.localeCompare(b.student.username);
+                          });
+                        
+                        const getPerformanceColor = (score) => {
+                          if (score >= 80) return "text-green-400";
+                          if (score >= 50) return "text-yellow-400";
+                          return "text-red-400";
+                        };
+                        
+                        const getPerformanceIcon = (score) => {
+                          if (score >= 80) return "🟢";
+                          if (score >= 50) return "🟡";
+                          return "🔴";
+                        };
+                        
+                        const formatDate = (dateString) => {
+                          if (!dateString) return '-';
+                          const date = new Date(dateString);
+                          return date.toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          });
+                        };
+                        
+                        return sortedStudents.map((progress, index) => (
+                          <tr key={progress.student._id} className="border-b border-gray-700 hover:bg-gray-700">
+                            <td className="py-3 px-4">
+                              <div className="flex items-center">
+                                {index < 3 && progress.hasSubmitted && (
+                                  <span className={`mr-2 ${
+                                    index === 0 ? 'text-yellow-400' : 
+                                    index === 1 ? 'text-gray-300' : 'text-orange-400'
+                                  }`}>
+                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                                  </span>
+                                )}
+                                <span className="font-medium">{index + 1}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold mr-3">
+                                  {progress.student.username.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="font-medium">{progress.student.username}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="text-blue-400 font-mono">{progress.student.id}</span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-1 bg-gray-700 text-blue-300 rounded-full text-xs font-medium">
+                                {progress.student.branch?.toUpperCase() || "N/A"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-1 bg-gray-700 text-green-300 rounded-full text-xs font-medium">
+                                Sem {progress.student.semester || "N/A"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              {progress.hasSubmitted ? (
+                                <div className="flex flex-col space-y-1">
+                                  <div className="flex items-center">
+                                    <span className="text-xs mr-2">
+                                      {progress.testCasesPassed}/{progress.totalTestCases}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                      ({progress.bestScore.toFixed(0)}%)
+                                    </span>
+                                  </div>
+                                  <div className="w-20 bg-gray-600 rounded-full h-2">
+                                    <div 
+                                      className={`h-2 rounded-full ${
+                                        progress.bestScore >= 80 ? 'bg-green-500' :
+                                        progress.bestScore >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                                      }`}
+                                      style={{ width: `${progress.bestScore}%` }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-gray-500 text-xs">Not Attempted</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
+                              {progress.hasSubmitted ? (
+                                <span className={`font-medium ${getPerformanceColor(progress.bestScore)}`}>
+                                  {progress.bestScore.toFixed(1)}%
+                                </span>
+                              ) : (
+                                <span className="text-gray-500 text-xs">-</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
+                              {progress.hasSubmitted ? (
+                                <div className="flex items-center">
+                                  <span className="mr-2">{getPerformanceIcon(progress.bestScore)}</span>
+                                  <span className={`font-medium text-xs ${getPerformanceColor(progress.bestScore)}`}>
+                                    {progress.bestScore >= 80 ? 'Excellent' :
+                                     progress.bestScore >= 50 ? 'Good' :
+                                     progress.bestScore > 0 ? 'Needs Work' : 'Failed'}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-gray-500 text-xs">-</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                progress.attempts > 0 ? 'bg-blue-900 text-blue-300' : 'bg-gray-700 text-gray-400'
+                              }`}>
+                                {progress.attempts}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="text-xs text-gray-400">
+                                {formatDate(progress.lastSubmission)}
+                              </span>
+                            </td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Summary Statistics */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-gray-900 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-blue-400">
+                      {batchInfo.students?.length || 0}
+                    </div>
+                    <div className="text-sm text-gray-300">Total Students</div>
+                  </div>
+                  <div className="bg-gray-900 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-green-400">
+                      {filteredSubmissions.length > 0 ? [...new Set(filteredSubmissions.map(s => s.user_id._id))].length : 0}
+                    </div>
+                    <div className="text-sm text-gray-300">Students Submitted</div>
+                  </div>
+                  <div className="bg-gray-900 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-yellow-400">
+                      {filteredSubmissions.length > 0 ? 
+                        Math.round(filteredSubmissions.reduce((sum, s) => 
+                          sum + (s.numberOfTestCase > 0 ? (s.numberOfTestCasePass / s.numberOfTestCase) * 100 : 0), 0
+                        ) / filteredSubmissions.length) : 0}%
+                    </div>
+                    <div className="text-sm text-gray-300">Average Score</div>
+                  </div>
+                  <div className="bg-gray-900 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-purple-400">
+                      {filteredSubmissions.length > 0 ? 
+                        Math.round((filteredSubmissions.filter(s => 
+                          s.numberOfTestCase > 0 && (s.numberOfTestCasePass / s.numberOfTestCase) >= 0.5
+                        ).length / filteredSubmissions.length) * 100) : 0}%
+                    </div>
+                    <div className="text-sm text-gray-300">Pass Rate (≥50%)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

@@ -454,7 +454,6 @@ export const getProblemById = async (req, res) => {
 export const getProblemByIdForUpdate = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("hello22");
     const problem = await Problem.findById(id).select(
       "-createdAt -updatedAt -assignedStudents"
     );

@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import Code from '../models/Code.js';
 import Submission from '../models/submission.js';
 import Batch from '../models/batch.js';
+import Problem from '../models/problem.js';
 
 const facultyController = {
     getStudents: async (req, res) => {
@@ -187,8 +188,7 @@ const facultyController = {
             message: "Batch not found or you don't have access to it"
           });
         }
-        
-        return res.status(200).json({
+          return res.status(200).json({
           success: true,
           batch
         });
@@ -197,6 +197,173 @@ const facultyController = {
         return res.status(500).json({
           success: false,
           message: "An error occurred while fetching batch details",
+          error: error.message
+        });
+      }
+    },
+
+    // Get batch progress analytics for faculty
+    getBatchProgress: async (req, res) => {
+      try {
+        const { batchId } = req.params;
+        const facultyId = req.user.id;
+
+        // First verify the faculty has access to this batch
+        const batch = await Batch.findOne({
+          _id: batchId,
+          faculty: facultyId,
+          isActive: true
+        }).populate('students', 'username id email branch semester batch');
+
+        if (!batch) {
+          return res.status(404).json({
+            success: false,
+            message: "Batch not found or you don't have access to it"
+          });
+        }
+
+        // Get all problems assigned to this batch
+        const problems = await Problem.find({
+          _id: { $in: batch.assignedProblems }
+        }).select('_id title difficulty createdAt dueDate');
+
+        // Get all student IDs in this batch
+        const batchStudentIds = batch.students.map(student => student._id);
+
+        // Get all submissions for batch students on batch problems
+        const submissions = await Submission.find({
+          user_id: { $in: batchStudentIds },
+          problem_id: { $in: batch.assignedProblems }
+        }).populate('user_id', 'username id').populate('problem_id', 'title difficulty');
+
+        // Calculate progress statistics
+        const progressStats = {
+          totalStudents: batch.students.length,
+          totalProblems: problems.length,
+          submissionStats: {},
+          problemStats: {},
+          studentStats: {},
+          overallProgress: {}
+        };
+
+        // Calculate per-problem statistics
+        problems.forEach(problem => {
+          const problemSubmissions = submissions.filter(sub => 
+            sub.problem_id._id.toString() === problem._id.toString()
+          );
+
+          // Get highest marks per student for this problem
+          const studentBestSubmissions = {};
+          problemSubmissions.forEach(sub => {
+            const studentId = sub.user_id._id.toString();
+            if (!studentBestSubmissions[studentId] || 
+                sub.totalMarks > studentBestSubmissions[studentId].totalMarks) {
+              studentBestSubmissions[studentId] = sub;
+            }
+          });
+
+          const bestSubmissions = Object.values(studentBestSubmissions);
+          const studentsAttempted = bestSubmissions.length;
+          const studentsCompleted = bestSubmissions.filter(sub => 
+            sub.numberOfTestCasePass === sub.numberOfTestCase && sub.numberOfTestCase > 0
+          ).length;
+          const studentsPartial = bestSubmissions.filter(sub => 
+            sub.numberOfTestCasePass > 0 && sub.numberOfTestCasePass < sub.numberOfTestCase
+          ).length;
+
+          progressStats.problemStats[problem._id] = {
+            title: problem.title,
+            difficulty: problem.difficulty,
+            studentsAttempted,
+            studentsCompleted,
+            studentsPartial,
+            completionRate: studentsAttempted > 0 ? (studentsCompleted / studentsAttempted * 100).toFixed(1) : 0,
+            attemptRate: (studentsAttempted / progressStats.totalStudents * 100).toFixed(1),
+            averageScore: bestSubmissions.length > 0 ? 
+              (bestSubmissions.reduce((sum, sub) => {
+                const score = sub.numberOfTestCase > 0 ? 
+                  (sub.numberOfTestCasePass / sub.numberOfTestCase) * 100 : 0;
+                return sum + score;
+              }, 0) / bestSubmissions.length).toFixed(1) : 0
+          };
+        });
+
+        // Calculate per-student statistics
+        batch.students.forEach(student => {
+          const studentSubmissions = submissions.filter(sub => 
+            sub.user_id._id.toString() === student._id.toString()
+          );
+
+          // Get best submission per problem for this student
+          const problemsAttempted = new Set();
+          const problemsCompleted = new Set();
+          let totalScore = 0;
+          let problemsWithScores = 0;
+
+          const studentBestByProblem = {};
+          studentSubmissions.forEach(sub => {
+            const problemId = sub.problem_id._id.toString();
+            if (!studentBestByProblem[problemId] || 
+                sub.totalMarks > studentBestByProblem[problemId].totalMarks) {
+              studentBestByProblem[problemId] = sub;
+            }
+          });
+
+          Object.values(studentBestByProblem).forEach(sub => {
+            problemsAttempted.add(sub.problem_id._id.toString());
+            if (sub.numberOfTestCasePass === sub.numberOfTestCase && sub.numberOfTestCase > 0) {
+              problemsCompleted.add(sub.problem_id._id.toString());
+            }
+            if (sub.numberOfTestCase > 0) {
+              totalScore += (sub.numberOfTestCasePass / sub.numberOfTestCase) * 100;
+              problemsWithScores++;
+            }
+          });          progressStats.studentStats[student._id] = {
+            _id: student._id,
+            username: student.username,
+            email: student.email,
+            id: student.id,
+            branch: student.branch,
+            semester: student.semester,
+            batch: student.batch,
+            problemsAttempted: problemsAttempted.size,
+            problemsCompleted: problemsCompleted.size,
+            completionRate: problemsAttempted.size > 0 ? 
+              (problemsCompleted.size / problemsAttempted.size * 100).toFixed(1) : 0,
+            averageScore: problemsWithScores > 0 ? (totalScore / problemsWithScores).toFixed(1) : 0,
+            progressPercentage: (problemsAttempted.size / progressStats.totalProblems * 100).toFixed(1)
+          };
+        });
+
+        // Calculate overall batch statistics
+        const allStudentStats = Object.values(progressStats.studentStats);
+        progressStats.overallProgress = {
+          averageCompletionRate: allStudentStats.length > 0 ? 
+            (allStudentStats.reduce((sum, stat) => sum + parseFloat(stat.completionRate), 0) / allStudentStats.length).toFixed(1) : 0,
+          averageScore: allStudentStats.length > 0 ? 
+            (allStudentStats.reduce((sum, stat) => sum + parseFloat(stat.averageScore), 0) / allStudentStats.length).toFixed(1) : 0,
+          studentsActive: allStudentStats.filter(stat => stat.problemsAttempted > 0).length,
+          totalSubmissions: submissions.length,
+          averageAttemptsPerStudent: (submissions.length / progressStats.totalStudents).toFixed(1)
+        };
+
+        return res.status(200).json({
+          success: true,
+          batch: {
+            _id: batch._id,
+            name: batch.name,
+            subject: batch.subject,
+            branch: batch.branch,
+            semester: batch.semester
+          },
+          progressStats,
+          problems
+        });
+      } catch (error) {
+        console.error("Error fetching batch progress:", error);
+        return res.status(500).json({
+          success: false,
+          message: "An error occurred while fetching batch progress",
           error: error.message
         });
       }
