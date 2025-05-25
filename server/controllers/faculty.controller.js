@@ -4,6 +4,9 @@ import Code from '../models/Code.js';
 import Submission from '../models/submission.js';
 import Batch from '../models/batch.js';
 import Problem from '../models/problem.js';
+import Contest from '../models/contest.js';
+import mongoose from 'mongoose';
+import { GridFSBucket } from 'mongodb';
 
 const facultyController = {
     getStudents: async (req, res) => {
@@ -74,9 +77,7 @@ const facultyController = {
         res.status(500).json({ success: false, message: "Internal server error." });
       }
     },
-    
-
-    removeUser: async (req, res) => {
+        removeUser: async (req, res) => {
       const { userId } = req.params;
     
       console.log("User ID received:", userId);
@@ -85,39 +86,82 @@ const facultyController = {
         return res.status(400).json({ success: false, message: "Missing User ID." });
       }
     
+      const session = await mongoose.startSession();
+    
       try {
-        // Check if the user exists
-        const user = await User.findById(userId); // Assuming `userId` is an ObjectId
-        if (!user) {
-          return res
-            .status(404)
-            .json({ success: false, message: "User not found." });
-        }
+        await session.withTransaction(async () => {
+          // Check if the user exists
+          const user = await User.findById(userId).session(session);
+          if (!user) {
+            throw new Error("User not found.");
+          }
     
-        console.log("User found:", user);
-        const userName = user.id;
-    
-        // Remove the user
-        await User.deleteOne({ _id: userId }); // Assuming `_id` is the field for user ID
-    
-        // Remove all submissions related to the user
-        await Submission.deleteMany({ user_id: userId });
-    
-        // Remove all codes related to the user
-        await Code.deleteMany({ userId: userId });
-    
+          console.log("User found:", user);
+          const userName = user.id;
+
+          // Only allow removal of students by faculty
+          if (user.role !== "student") {
+            throw new Error("Faculty can only remove students.");
+          }
+
+          // 1. Remove profile picture from GridFS if exists
+          if (user.profile?.avatar) {
+            try {
+              const bucket = new GridFSBucket(mongoose.connection.db, {
+                bucketName: "uploads",
+              });
+              await bucket.delete(new mongoose.Types.ObjectId(user.profile.avatar));
+            } catch (gridfsError) {
+              console.warn(`Failed to delete profile picture for user ${userId}:`, gridfsError.message);
+              // Continue with deletion even if profile picture deletion fails
+            }
+          }
+
+          // 2. Remove student from all batches' students array
+          await Batch.updateMany(
+            { students: userId },
+            { $pull: { students: userId } },
+            { session }
+          );
+
+          // 3. Remove student from contests' assignedStudents array
+          await Contest.updateMany(
+            { assignedStudents: userId },
+            { $pull: { assignedStudents: userId } },
+            { session }
+          );
+
+          // 4. Remove student from problems' assignedStudents array
+          await Problem.updateMany(
+            { assignedStudents: userId },
+            { $pull: { assignedStudents: userId } },
+            { session }
+          );
+
+          // 5. Remove all submissions related to the user
+          await Submission.deleteMany({ user_id: userId }, { session });
+
+          // 6. Remove all codes related to the user
+          await Code.deleteMany({ userId: userId }, { session });
+
+          // 7. Finally, remove the user
+          await User.deleteOne({ _id: userId }, { session });
+        });
+
         return res.status(200).json({
           success: true,
-          message: `User with ID ${userName} and all related data have been successfully removed.`,
+          message: `Student and all related data have been successfully removed.`,
         });
       } catch (error) {
         console.error("Error in removing user:", error.message);
         return res.status(500).json({
           success: false,
-          message: "Internal server error.",
-        });
-      }    }
-    ,
+          message: error.message || "Internal server error.",
+        });      } finally {
+        await session.endSession();
+      }
+    },
+    
     // Batch related functions for faculty
     getMyBatches: async (req, res) => {
       try {

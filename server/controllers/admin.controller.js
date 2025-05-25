@@ -4,8 +4,11 @@ import Submission from "../models/submission.js";
 import Code from "../models/Code.js";
 import Contest from "../models/contest.js";
 import Batch from "../models/batch.js";
+import Problem from "../models/problem.js";
 import { query } from "express";
 import batch from "../models/batch.js";
+import mongoose from "mongoose";
+import { GridFSBucket } from "mongodb";
 
 const adminController = {
   getusers: async (req, res) => {
@@ -418,8 +421,7 @@ const adminController = {
       .status(500)
       .json({ success: false, message: "Internal server error." });
   }
-},
-  removeStudent: async (req, res) => {
+},  removeStudent: async (req, res) => {
     const { userId } = req.body;
 
     if (!userId) {
@@ -428,36 +430,83 @@ const adminController = {
         .json({ success: false, message: "Missing User ID." });
     }
 
+    const session = await mongoose.startSession();
+    
     try {
-      // Check if the user exists
-      const user = await User.findById(userId);
-      if (!user) {
-        return res
-          .status(404)
-          .json({ success: false, message: "User not found." });
-      }
+      await session.withTransaction(async () => {
+        // Check if the user exists and is a student
+        const user = await User.findById(userId).session(session);
+        if (!user) {
+          throw new Error("User not found.");
+        }
 
-      const userName = user.id;
+        if (user.role !== "student") {
+          throw new Error("User is not a student.");
+        }
 
-      // Remove the user
-      await User.deleteOne({ _id: userId });
+        const userName = user.id;
 
-      // Remove all submissions related to the user
-      await Submission.deleteMany({ user_id: userId });
+        // 1. Remove profile picture from GridFS if exists
+        if (user.profile?.avatar) {
+          try {
+            const bucket = new GridFSBucket(mongoose.connection.db, {
+              bucketName: "uploads",
+            });
+            await bucket.delete(new mongoose.Types.ObjectId(user.profile.avatar));
+          } catch (gridfsError) {
+            console.warn(`Failed to delete profile picture for user ${userId}:`, gridfsError.message);
+            // Continue with deletion even if profile picture deletion fails
+          }
+        }
 
-      // Remove all codes related to the user
-      await Code.deleteMany({ userId: userId });
+        // 2. Remove student from all batches' students array
+        await Batch.updateMany(
+          { students: userId },
+          { $pull: { students: userId } },
+          { session }
+        );
+
+        // 3. Remove student from contests' assignedStudents array
+        await Contest.updateMany(
+          { assignedStudents: userId },
+          { $pull: { assignedStudents: userId } },
+          { session }
+        );
+
+        // 4. Remove student from problems' assignedStudents array
+        await Problem.updateMany(
+          { assignedStudents: userId },
+          { $pull: { assignedStudents: userId } },
+          { session }
+        );
+
+        // 5. Remove all submissions related to the user
+        await Submission.deleteMany({ user_id: userId }, { session });
+
+        // 6. Remove all codes related to the user
+        await Code.deleteMany({ userId: userId }, { session });
+
+        // 7. Finally, remove the user
+        await User.deleteOne({ _id: userId }, { session });
+
+        return {
+          success: true,
+          message: `Student with ID ${userName} and all related data have been successfully removed.`,
+        };
+      });
 
       return res.status(200).json({
         success: true,
-        message: `Student with ID ${userName} and all related data have been successfully removed.`,
+        message: `Student and all related data have been successfully removed.`,
       });
     } catch (error) {
       console.error("Error in removing student:", error.message);
       return res.status(500).json({
         success: false,
-        message: "Internal server error.",
+        message: error.message || "Internal server error.",
       });
+    } finally {
+      await session.endSession();
     }
   },
   getDashboardStats: async (req, res) => {
@@ -1017,6 +1066,174 @@ editstudent: async (req, res) => {
     res.json({ success: true, message: "Student updated.", student: updated });
   } catch (err) {
     res.status(500).json({ success: false, message: "Internal server error." });
+  }
+},
+
+removeFaculty: async (req, res) => {
+  const { facultyId } = req.body;
+
+  if (!facultyId) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing Faculty ID." });
+  }
+
+  const session = await mongoose.startSession();
+  
+  try {
+    await session.withTransaction(async () => {
+      // Check if the faculty exists
+      const faculty = await User.findById(facultyId).session(session);
+      if (!faculty) {
+        throw new Error("Faculty not found.");
+      }
+
+      if (faculty.role !== "faculty") {
+        throw new Error("User is not a faculty member.");
+      }
+
+      // 1. Remove profile picture from GridFS if exists
+      if (faculty.profile?.avatar) {
+        try {
+          const bucket = new GridFSBucket(mongoose.connection.db, {
+            bucketName: "uploads",
+          });
+          await bucket.delete(new mongoose.Types.ObjectId(faculty.profile.avatar));
+        } catch (gridfsError) {
+          console.warn(`Failed to delete profile picture for faculty ${facultyId}:`, gridfsError.message);
+          // Continue with deletion even if profile picture deletion fails
+        }
+      }
+
+      // 2. Remove faculty from all batches' faculty field and set to null
+      await Batch.updateMany(
+        { faculty: facultyId },
+        { $unset: { faculty: 1 } },
+        { session }
+      );
+
+      // 3. Update contests created by this faculty - transfer ownership or delete
+      const facultyContests = await Contest.find({ created_by: facultyId }).session(session);
+      
+      // Option 1: Delete contests created by faculty (if no admin should inherit them)
+      await Contest.deleteMany({ created_by: facultyId }, { session });
+      
+      // Option 2: Transfer to admin (uncomment if preferred)
+      // const adminUser = await User.findOne({ role: "admin" }).session(session);
+      // if (adminUser) {
+      //   await Contest.updateMany(
+      //     { created_by: facultyId },
+      //     { created_by: adminUser._id },
+      //     { session }
+      //   );
+      // }
+
+      // 4. Update problems created by this faculty
+      const facultyProblems = await Problem.find({ createdBy: facultyId }).session(session);
+      
+      // Option 1: Delete problems created by faculty
+      await Problem.deleteMany({ createdBy: facultyId }, { session });
+      
+      // Option 2: Transfer to admin (uncomment if preferred)
+      // if (adminUser) {
+      //   await Problem.updateMany(
+      //     { createdBy: facultyId },
+      //     { createdBy: adminUser._id },
+      //     { session }
+      //   );
+      // }
+
+      // 5. Remove faculty submissions and codes (if any)
+      await Submission.deleteMany({ user_id: facultyId }, { session });
+      await Code.deleteMany({ userId: facultyId }, { session });
+
+      // 6. Finally, remove the faculty user
+      await User.deleteOne({ _id: facultyId }, { session });
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Faculty and all related data have been successfully removed.",
+    });
+  } catch (error) {
+    console.error("Error in removing faculty:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error.",
+    });
+  } finally {
+    await session.endSession();
+  }
+},
+
+removeBatch: async (req, res) => {
+  const { batchId } = req.body;
+
+  if (!batchId) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing Batch ID." });
+  }
+
+  const session = await mongoose.startSession();
+  
+  try {
+    await session.withTransaction(async () => {
+      // Check if the batch exists
+      const batch = await Batch.findById(batchId).session(session);
+      if (!batch) {
+        throw new Error("Batch not found.");
+      }
+
+      const batchName = batch.name;
+
+      // 1. Remove batch from problems' assignedBatches array
+      await Problem.updateMany(
+        { assignedBatches: batchId },
+        { $pull: { assignedBatches: batchId } },
+        { session }
+      );
+
+      // 2. Update submissions that reference this batch
+      // Option 1: Delete submissions related to this batch
+      await Submission.deleteMany({ batch_id: batchId }, { session });
+      
+      // Option 2: Set batch_id to null (uncomment if preferred)
+      // await Submission.updateMany(
+      //   { batch_id: batchId },
+      //   { $unset: { batch_id: 1 } },
+      //   { session }
+      // );
+
+      // 3. Update users (students) - remove batch reference
+      await User.updateMany(
+        { batch: batchId },
+        { $unset: { batch: 1 } },
+        { session }
+      );
+
+      // 4. Handle contests that might reference this batch indirectly
+      // Remove batch-specific contest associations if any exist
+      const contestsWithBatchStudents = await Contest.find({
+        assignedStudents: { $in: batch.students }
+      }).session(session);
+
+      // 5. Finally, remove the batch
+      await Batch.deleteOne({ _id: batchId }, { session });
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Batch and all related references have been successfully removed.",
+    });
+  } catch (error) {
+    console.error("Error in removing batch:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error.",
+    });
+  } finally {
+    await session.endSession();
   }
 },
 };

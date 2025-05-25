@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Code2, Trophy, Users, Timer, Terminal, Rocket, ExternalLink } from "lucide-react";
+import { Code2, Trophy, Users, Timer, Terminal, Rocket, ExternalLink, ArrowRight, CheckCircle, Star } from "lucide-react";
 import Header from "./Header";
 import { useAnimation } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -91,42 +91,221 @@ const Browse = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-950 to-black text-white">
       <main className="container mx-auto px-4 pb-12">
         <HeroSection />
-        
-        {/* Features Section with Enhanced Design */}
+          {/* Features Section with Enhanced Design */}
         <section className="py-20">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-16"
           >
-            <span className="px-4 py-2 rounded-full bg-blue-900/30 text-blue-400 text-sm font-medium">Our Platform Features</span>
+            <span className="px-4 py-2 rounded-full bg-blue-900/30 text-blue-400 text-sm font-medium">Why Choose Our Platform?</span>
             <h2 className="mt-4 text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 text-transparent bg-clip-text">
-              Everything You Need to Excel
+              Online Programming Submission & Evaluation
             </h2>
             <p className="mt-3 max-w-2xl mx-auto text-gray-400">
-              Designed to help programmers of all levels improve their skills through practical challenges and competition.
+              A modern platform for students, faculty, and administrators to manage, submit, and evaluate programming assignments and contests with ease. Built for CSPIT/KDPIT/CHARUSAT, it supports secure code evaluation, real-time feedback, and collaborative learning.
             </p>
           </motion.div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * index }}
-                className={`group rounded-xl p-6 bg-gradient-to-br ${feature.color} backdrop-blur-sm border ${feature.borderColor} hover:border-opacity-70 transition-all duration-300 hover:-translate-y-1`}
-              >
-                <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block">{feature.icon}</div>
-                <h3 className={`text-xl font-bold mb-3 ${feature.hoverColor} transition-colors duration-300`}>{feature.title}</h3>
-                <p className="text-gray-300 leading-relaxed">{feature.description}</p>
-              </motion.div>
-            ))}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 * 0 }}
+              className="group rounded-xl p-6 bg-gradient-to-br from-blue-500/20 to-blue-600/20 backdrop-blur-sm border border-blue-500/30 hover:border-opacity-70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10"
+            >
+              <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-blue-600/20 transition-all duration-300">
+                <Code2 className="w-10 h-10 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 group-hover:text-blue-400 transition-colors duration-300">Online Code Submission</h3>
+              <p className="text-gray-300 leading-relaxed">Submit code for assignments and contests in multiple languages. Get instant feedback and detailed results for every submission.</p>
+            </motion.div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 * 1 }}
+              className="group rounded-xl p-6 bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 backdrop-blur-sm border border-yellow-500/30 hover:border-opacity-70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-yellow-500/10"
+            >
+              <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-yellow-600/20 transition-all duration-300">
+                <Trophy className="w-10 h-10 text-yellow-400 group-hover:scale-110 transition-transform duration-300" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 group-hover:text-yellow-400 transition-colors duration-300">Automated Evaluation</h3>
+              <p className="text-gray-300 leading-relaxed">All submissions are automatically tested against multiple test cases. See your score, errors, and performance instantly.</p>
+            </motion.div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 * 2 }}
+              className="group rounded-xl p-6 bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm border border-green-500/30 hover:border-opacity-70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-green-500/10"
+            >
+              <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-green-600/20 transition-all duration-300">
+                <Users className="w-10 h-10 text-green-400 group-hover:scale-110 transition-transform duration-300" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 group-hover:text-green-400 transition-colors duration-300">Batch & Contest Management</h3>
+              <p className="text-gray-300 leading-relaxed">Faculty can create batches, assign problems, and organize contests. Students can join with codes and track their progress.</p>
+            </motion.div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 * 3 }}
+              className="group rounded-xl p-6 bg-gradient-to-br from-purple-500/20 to-purple-600/20 backdrop-blur-sm border border-purple-500/30 hover:border-opacity-70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/10"
+            >
+              <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-purple-600/20 transition-all duration-300">
+                <Timer className="w-10 h-10 text-purple-400 group-hover:scale-110 transition-transform duration-300" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 group-hover:text-purple-400 transition-colors duration-300">Learning & Analytics</h3>
+              <p className="text-gray-300 leading-relaxed">Track your coding history, analyze your strengths, and get personalized feedback to improve your programming skills.</p>
+            </motion.div>
           </div>
         </section>
 
-        {/* Join Contest Section */}
-        <section className="py-12 my-12">
+        {/* Statistics Section */}
+        <section className="py-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-8"
+          >
+            <div className="text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-4xl font-bold text-blue-400 mb-2"
+              >
+                500+
+              </motion.div>
+              <p className="text-gray-400">Active Students</p>
+            </div>
+            <div className="text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-4xl font-bold text-green-400 mb-2"
+              >
+                50+
+              </motion.div>
+              <p className="text-gray-400">Faculty Members</p>
+            </div>
+            <div className="text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-4xl font-bold text-yellow-400 mb-2"
+              >
+                1000+
+              </motion.div>
+              <p className="text-gray-400">Code Submissions</p>
+            </div>
+            <div className="text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-4xl font-bold text-purple-400 mb-2"
+              >
+                100+
+              </motion.div>
+              <p className="text-gray-400">Programming Problems</p>
+            </div>
+          </motion.div>
+        </section>
+
+        {/* How It Works Section */}
+        <section className="py-20">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-16"
+          >
+            <span className="px-4 py-2 rounded-full bg-purple-900/30 text-purple-400 text-sm font-medium">Simple Process</span>
+            <h2 className="mt-4 text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-400 via-blue-400 to-purple-500 text-transparent bg-clip-text">
+              How It Works
+            </h2>
+            <p className="mt-3 max-w-2xl mx-auto text-gray-400">
+              Get started with our platform in just a few simple steps
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-center relative"
+            >
+              <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center border border-blue-500/30">
+                <span className="text-2xl font-bold text-blue-400">1</span>
+              </div>
+              <h3 className="text-xl font-bold mb-4 text-blue-400">Register & Join</h3>
+              <p className="text-gray-300">Sign up with your student credentials and join your assigned batches or contests using invite codes.</p>
+              {/* Connecting line */}
+              <div className="hidden md:block absolute top-10 left-3/4 w-1/2 h-0.5 bg-gradient-to-r from-blue-500/50 to-transparent"></div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-center relative"
+            >
+              <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center border border-green-500/30">
+                <span className="text-2xl font-bold text-green-400">2</span>
+              </div>
+              <h3 className="text-xl font-bold mb-4 text-green-400">Code & Submit</h3>
+              <p className="text-gray-300">Write your solutions in our online code editor supporting multiple programming languages with syntax highlighting.</p>
+              {/* Connecting line */}
+              <div className="hidden md:block absolute top-10 left-3/4 w-1/2 h-0.5 bg-gradient-to-r from-green-500/50 to-transparent"></div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 }}
+              className="text-center"
+            >
+              <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center border border-purple-500/30">
+                <span className="text-2xl font-bold text-purple-400">3</span>
+              </div>
+              <h3 className="text-xl font-bold mb-4 text-purple-400">Get Results</h3>
+              <p className="text-gray-300">Receive instant feedback with detailed test case results, performance metrics, and suggestions for improvement.</p>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Language Support Section */}
+        <section className="py-16">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-12"
+          >
+            <span className="px-4 py-2 rounded-full bg-green-900/30 text-green-400 text-sm font-medium">Multi-Language Support</span>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-white">
+              Code in Your Favorite Language
+            </h2>
+          </motion.div>
+
+          <div className="flex flex-wrap justify-center gap-4">
+            {['C++', 'Java', 'Python', 'JavaScript', 'C'].map((lang, index) => (
+              <motion.div
+                key={lang}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 * index }}
+                className="px-6 py-3 bg-gradient-to-r from-gray-800 to-gray-900 rounded-full border border-gray-700 hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-1"
+              >
+                <span className="font-medium text-gray-300">{lang}</span>
+              </motion.div>
+            ))}
+          </div>
+        </section>        {/* Join Contest Section */}
+        <section className="py-16 my-12">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -134,7 +313,7 @@ const Browse = () => {
           >
             {/* Animated background elements */}
             <div className="absolute inset-0 overflow-hidden">
-              {[...Array(5)].map((_, i) => (
+              {[...Array(8)].map((_, i) => (
                 <motion.div
                   key={i}
                   className="absolute w-40 h-40 bg-blue-500/10 rounded-full"
@@ -158,122 +337,87 @@ const Browse = () => {
             </div>
 
             <div className="relative z-10">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-blue-600/30 text-blue-300 backdrop-blur-sm border border-blue-500/30"
+              >
+                <Star className="w-5 h-5" />
+                <span className="font-medium">Ready to Challenge Yourself?</span>
+              </motion.div>
+
               <motion.h2 
                 className="text-3xl md:text-4xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
               >
-                Ready to Test Your Skills?
+                Join Programming Contests
               </motion.h2>
               
               <motion.p 
                 className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1 }}
+                transition={{ delay: 0.4 }}
               >
-                Join our upcoming coding contests and challenge yourself against programmers worldwide.
+                Test your skills against fellow students in timed programming challenges. 
+                Compete, learn, and climb the leaderboard!
               </motion.p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <motion.button
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3 }}
+                  transition={{ delay: 0.5 }}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.97 }}
-                  className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-lg font-semibold shadow-lg hover:shadow-blue-500/20 transition-all duration-300"
-                  onClick={() => navigate('/contests')}
+                  className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-lg font-semibold shadow-lg hover:shadow-blue-500/20 transition-all duration-300 flex items-center justify-center gap-2"
+                  onClick={() => navigate('/make-contest')}
                 >
-                  View Upcoming Contests
+                  <span>View Upcoming Contests</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </motion.button>
                 
-                <motion.button
+                {/* <motion.button
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.4 }}
+                  transition={{ delay: 0.6 }}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setIsPopupOpen(true)}
-                  className="px-8 py-4 border border-blue-500/30 hover:border-blue-400 rounded-xl text-lg font-semibold hover:bg-blue-900/20 transition-all duration-300"
+                  className="group px-8 py-4 border-2 border-blue-500/30 hover:border-blue-400 rounded-xl text-lg font-semibold hover:bg-blue-900/20 transition-all duration-300 flex items-center justify-center gap-2"
                 >
-                  Join with Code
-                </motion.button>
+                  <span>Join with Code</span>
+                  <Terminal className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+                </motion.button> */}
               </div>
-            </div>
-          </motion.div>
-        </section>
 
-        {/* Join Contest Popup */}
-        <AnimatePresence>
-          {isPopupOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 px-4"
-              onClick={() => setIsPopupOpen(false)}
-            >
+              {/* Benefits row */}
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-gray-800 border border-gray-700 rounded-xl p-6 max-w-md w-full"
-                onClick={(e) => e.stopPropagation()}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto"
               >
-                <h3 className="text-xl font-bold mb-4">Join Contest</h3>
-                <p className="text-gray-300 mb-6">Enter the contest code provided by the organizer to join the competition.</p>
-                
-                <div className="space-y-4">
-                  <input
-                    type="text"
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value)}
-                    placeholder="Enter contest code"
-                    className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  
-                  {errorMessage && <p className="text-red-400 text-sm">{errorMessage}</p>}
-                  
-                  <div className="flex gap-3 justify-end">
-                    <button
-                      onClick={() => setIsPopupOpen(false)}
-                      className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        setIsLoading(true);
-                        // Add your join contest logic here
-                        setTimeout(() => {
-                          setIsLoading(false);
-                          if (joinCode === "demo") {
-                            navigate('/contest/demo');
-                          } else {
-                            setErrorMessage("Invalid contest code. Please try again.");
-                          }
-                        }, 1500);
-                      }}
-                      disabled={isLoading}
-                      className="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center"
-                    >
-                      {isLoading ? (
-                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      ) : (
-                        "Join Contest"
-                      )}
-                    </button>
-                  </div>
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span>Real-time Rankings</span>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span>Instant Feedback</span>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span>Skill Analytics</span>
                 </div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </motion.div>
+        </section>        {/* Join Contest Popup */}
+      
 
         <Footer />
       </main>
