@@ -1,3 +1,16 @@
+
+/**
+ * CONTEST MANAGEMENT ROUTES
+ * 
+ * This file contains all routes for managing programming contests in the online platform.
+ * Routes handle contest CRUD operations, student assignment/unassignment, and contest analytics.
+ * 
+ * MIDDLEWARE:
+ * - isAuthorized: Required for all routes (user must be logged in)
+ * - isAdminOrFaculty: Required for admin/faculty operations (create, update, delete, assign)
+ * - isAdmin: Required for admin-only operations
+ */
+
 import express from "express";
 import {
   createContest,
@@ -22,41 +35,108 @@ const router = express.Router();
 // Middleware to ensure the user is authenticated
 router.use(isAuthorized);
 
-// Create a new contest
+/**
+ * POST /contests/create
+ * Create a new contest (Admin/Faculty only)
+ * 
+ * USED BY FRONTEND COMPONENTS:
+ * - Contest/CreateContest.jsx (line 133) - Creates new contest with contest data
+ */
 router.post("/create", isAdminOrFaculty, createContest);
 
-// Get All Contests
+/**
+ * GET /contests/
+ * Get all contests
+ * 
+ * USED BY FRONTEND COMPONENTS:
+ * - Contest/MakeContest.jsx (line 80) - Fetches all contests for listing
+ * - Browse.jsx (line 186) - Navigation to contests page
+ */
 router.get("/", getAllContests);
 
-// Get Contest by ID
+/**
+ * GET /contests/:id
+ * Get specific contest by ID
+ * 
+ * USED BY FRONTEND COMPONENTS:
+ * - Contest/CreateContest.jsx (line 67) - Fetches contest details for editing
+ * - Contest/Contest.jsx (line 50) - Fetches contest details for display
+ * - Contest/MakeContest.jsx (line 265) - Navigation to contest details
+ * - Body.jsx (line 53) - Route definition for /contests/:id
+ */
 router.get("/:id", getContestById);
 
-// Update Contest
+/**
+ * PUT /contests/:id
+ * Update existing contest (Admin/Faculty only)
+ * 
+ * USED BY FRONTEND COMPONENTS:
+ * - Contest/CreateContest.jsx (line 130) - Updates contest with modified data
+ */
 router.put("/:id", isAdminOrFaculty, updateContest);
 
-// Delete Contest
+/**
+ * DELETE /contests/:id
+ * Delete contest (Admin/Faculty only)
+ * 
+ * USED BY FRONTEND COMPONENTS:
+ * - Contest/MakeContest.jsx (line 56) - Deletes contest by contestToDelete ID
+ */
 router.delete("/:id", isAdminOrFaculty, deleteContest);
 
-//assignContestToStudents
+/**
+ * POST /contests/:id/assignContestToStudents
+ * Assign contest to selected students (Admin/Faculty only)
+ * 
+ * USED BY FRONTEND COMPONENTS:
+ * - Contest/UnAssignContest.jsx (line 76) - Assigns contest to students with student IDs
+ */
 router.post(
   "/:id/assignContestToStudents",
   isAdminOrFaculty,
   assignContestToStudents
 );
 
-//assignContestToStudents list
+/**
+ * GET /contests/:id/getAssignedStudents
+ * Get list of students assigned to contest (Admin/Faculty only)
+ * 
+ * USED BY FRONTEND COMPONENTS:
+ * - Contest/AssignedContest.jsx (line 29) - Fetches assigned students for contest management
+ */
 router.get("/:id/getAssignedStudents", isAdminOrFaculty, getAssignedStudents);
 
-//unassigned students list
+/**
+ * GET /contests/:id/unassignedStudents
+ * Get list of students not assigned to contest (Admin/Faculty only)
+ * 
+ * USED BY FRONTEND COMPONENTS:
+ * - Contest/UnAssignContest.jsx (line 28) - Fetches unassigned students for assignment
+ */
 router.get("/:id/unassignedStudents", isAdminOrFaculty, getUnassignedStudents);
 
-//unassignContestToStudents
+/**
+ * POST /contests/:id/unassignContestToStudents
+ * Remove contest assignment from selected students (Admin/Faculty only)
+ * 
+ * USED BY FRONTEND COMPONENTS:
+ * - Contest/AssignedContest.jsx (line 77) - Unassigns contest from students with student IDs
+ */
 router.post(
   "/:id/unassignContestToStudents",
   isAdminOrFaculty,
   unassignContestToStudents
 );
 
+/**
+ * GET /contests/:id/dashboard
+ * Get contest dashboard with analytics and statistics (Admin/Faculty only)
+ * 
+ * USED BY FRONTEND COMPONENTS:
+ * - Contest/ContestDashboard.jsx (line 51) - Fetches dashboard data with query parameters
+ * - Contest/MakeContest.jsx (line 309) - Navigation to contest dashboard
+ * - Body.jsx (line 68) - Route definition for /contests/:id/dashboard
+ */
 router.get(
   "/:id/dashboard",
   isAuthorized,

@@ -31,6 +31,7 @@ const BatchDetails = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get(`/faculty/batches/${batchId}`);
+      console.log('Batch details response:', response.data);
       if (response.data.success) {
         setBatch(response.data.batch);
       }
@@ -163,11 +164,11 @@ const BatchDetails = () => {
             <span>Back to Batches</span>
           </button>
           <button
-            onClick={() => navigate('/faculty/dashboard')}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-semibold shadow transition"
+            onClick={() => navigate(`/faculty/batches/${batchId}/progress`)}
+            className="px-6 py-2 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2"
           >
-            <School size={18} />
-            Dashboard
+            <BarChart3 size={18} />
+            Batch Progress Analytics
           </button>
         </div>
 
@@ -210,13 +211,7 @@ const BatchDetails = () => {
           >
             Show Student List
           </button>
-          <button
-            onClick={() => navigate(`/faculty/batches/${batchId}/progress`)}
-            className="px-6 py-2 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2"
-          >
-            <BarChart3 size={18} />
-            Batch Progress Analytics
-          </button>
+          
         </div>
 
         {/* Main content: Problems or Students */}

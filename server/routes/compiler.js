@@ -1,3 +1,25 @@
+
+/**
+ * CODE COMPILATION AND EXECUTION ROUTES
+ * 
+ * This file contains routes for code compilation and execution using Judge0 API.
+ * Routes handle code submission, testing against problem test cases, and submission creation.
+ * 
+ * MIDDLEWARE:
+ * - isAuthorized: Required for all routes (user must be logged in)
+ * 
+ * BASE PATH: /api/v1/compiler
+ * 
+ * FEATURES:
+ * - Rate limiting per user (20 requests per minute)
+ * - Queue management for concurrent submissions
+ * - Judge0 API integration with RapidAPI
+ * - Base64 encoding/decoding for code and test data
+ * - Comprehensive error handling with retry logic
+ * - Test case execution and result comparison
+ * - Automatic submission creation for full test runs
+ */
+
 import express from "express";
 import axios from "axios";
 import problem from "../models/problem.js";
@@ -85,6 +107,38 @@ const checkRateLimit = (userId) => {
   return true;
 };
 
+/**
+ * POST /compiler/run-code
+ * Execute code against problem test cases using Judge0 API
+ * 
+ * FEATURES:
+ * - Rate limiting: 20 requests per minute per user
+ * - Queue management for concurrent submissions
+ * - Support for multiple programming languages (Python, C++, Java, JavaScript)
+ * - Test case execution with hidden/visible test case filtering
+ * - Full submission creation when allTestCases=true
+ * - Comprehensive error handling and retry logic
+ * - Performance metrics tracking (time, memory usage)
+ * 
+ * USED BY FRONTEND COMPONENTS:
+ * - CodeEditor/CodeEditor.jsx (line 95) - Main code execution for testing
+ * - CodeEditor/CodeEditor.jsx (line 142) - Commented alternative execution
+ * - CodeEditor/CodeEditor.jsx (line 249) - Code submission for full evaluation
+ * 
+ * REQUEST BODY:
+ * - code: Source code to execute
+ * - language: Programming language (python, cpp, java, javascript)
+ * - allTestCases: Boolean - if true, runs all test cases and creates submission
+ * - problemId: ID of the problem containing test cases
+ * 
+ * RESPONSE:
+ * - testResults: Array of test case results with pass/fail status
+ * - overallTime: Total execution time in milliseconds
+ * - averageMemory: Average memory usage in MB
+ * - totalMarks: Total marks obtained from passed test cases
+ * - submissionStatus: "completed" or "rejected"
+ * - submissionId: ID of created submission (when allTestCases=true)
+ */
 router.post("/run-code", isAuthorized, async (req, res) => {
   const { code, language, allTestCases, problemId } = req.body;
   const userId = req.user?.id;
@@ -457,7 +511,18 @@ router.post("/run-code", isAuthorized, async (req, res) => {
   }
 });
 
-// Add a new endpoint to check queue status
+/**
+ * GET /compiler/queue-status
+ * Get current queue status and active user count
+ * 
+ * USED BY FRONTEND COMPONENTS:
+ * - Available for monitoring compilation queue status
+ * - Can be used for displaying system load to users
+ * 
+ * RESPONSE:
+ * - queueStatus: Object with pending and processing counts
+ * - activeUsers: Number of users currently using the system
+ */
 router.get("/queue-status", isAuthorized, (req, res) => {
   res.json({
     success: true,

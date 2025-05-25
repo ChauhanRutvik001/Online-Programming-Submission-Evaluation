@@ -32,6 +32,7 @@ const FacultyBatchProgress = () => {
       setLoading(true);
       try {
         const response = await axiosInstance.get(`/faculty/batches/${batchId}/progress`);
+        console.log('Batch Progress Response:', response.data);
         if (response.data.success) {
           setBatch(response.data.batch);
           setProgressStats(response.data.progressStats);
@@ -100,9 +101,9 @@ const FacultyBatchProgress = () => {
   }
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 ">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 mt-16">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigate(`/faculty/batches/${batchId}`)}

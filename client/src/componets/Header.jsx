@@ -190,6 +190,7 @@ const Header = () => {
           ? "top-0 bg-black shadow-sm" 
           : "top-3 mx-auto max-w-[95%] left-0 right-0 bg-black rounded-full px-2"
       } transition-all duration-300`}
+      // style={{border:"2px solid #1e40af"}}
     >
       <div className={`mx-auto px-4 ${scrolled ? "max-w-7xl sm:px-6 lg:px-8" : "max-w-7xl"}`}>
         <div className="flex items-center justify-between h-14">

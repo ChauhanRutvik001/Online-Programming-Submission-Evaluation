@@ -7,19 +7,19 @@ const router = express.Router();
 router.use(isAuthorized);
 
 // Dashboard endpoints
-router.post("/getFaculty", isAdmin, adminController.getFaculty);
-router.post("/getStudents", isAdmin, adminController.getStudents);
+router.post("/getFaculty", isAdmin, adminController.getFaculty); // Used by: Admin/ManageUser.jsx (line 82) - for faculty management
+router.post("/getStudents", isAdmin, adminController.getStudents); // Used by: Admin/ManageUser.jsx (line 93) - for student management
 
-router.post("/deleteFaculty", isAdmin, adminController.deleteFaculty); 
-router.post("/removeStudent", isAdmin, adminController.removeStudent); 
+// User management endpoints
+router.post("/deleteFaculty", isAdmin, adminController.deleteFaculty); // Used by: Admin/ManageUser.jsx (for deleting faculty)
+router.post("/removeStudent", isAdmin, adminController.removeStudent); // Used by: Admin/ManageUser.jsx (for removing students)
 
-// Optionally, for dropdowns (branches, batches)
-router.get("/branches", isAdmin, adminController.getAllBranches);     
-router.get("/batches", isAdmin, adminController.getAllBatche);        
+// Metadata endpoints for dropdowns
+router.get("/branches", isAdmin, adminController.getAllBranches); // Used for branch dropdown options (not directly visible in current components)
+router.get("/batches", isAdmin, adminController.getAllBatche); // Used for batch dropdown options (not directly visible in current components)
 
-router.post("/editFaculty/:userID", isAdmin, adminController.editfaculty);    
-router.post("/editStudent/:userID", isAdmin, adminController.editstudent);     
-
-
+// User editing endpoints
+router.post("/editFaculty/:userID", isAdmin, adminController.editfaculty); // Used for faculty editing (not directly visible in current components)
+router.post("/editStudent/:userID", isAdmin, adminController.editstudent); // Used for student editing (not directly visible in current components)
 
 export default router;
