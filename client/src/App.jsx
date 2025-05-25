@@ -6,6 +6,7 @@ import { setUser, logout, setLoading } from "./redux/userSlice";
 import { fetchProfilePicThunk } from "./redux/userSlice";
 import Body from "./componets/Body";
 import { LoaderPinwheel } from "lucide-react";
+import { NotificationProvider } from "./contexts/NotificationContext";
 
 const App = () => {
   const dispatch = useDispatch();
@@ -43,11 +44,12 @@ const App = () => {
       </div>
     );
   }
-
   return (
     <div>
-      <Body />
-      <Toaster />
+      <NotificationProvider>
+        <Body />
+        <Toaster />
+      </NotificationProvider>
     </div>
   );
 };

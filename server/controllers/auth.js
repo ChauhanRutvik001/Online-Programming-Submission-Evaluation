@@ -350,6 +350,53 @@ export const fetchSubjects = async (req, res) => {
   }
 };
 
+export const getSocketToken = async (req, res) => {
+  try {
+    // Get the token from the cookie
+    const token = req.cookies.token;
+    
+    if (!token) {
+      return res.status(401).json({
+        message: "Not authenticated",
+        success: false
+      });
+    }
+
+    // Verify the token to ensure it's valid
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    const user = await User.findById(decoded.id);
+
+    if (!user || user.sessionId !== decoded.sessionId) {
+      return res.status(401).json({
+        message: "Invalid session",
+        success: false
+      });
+    }
+
+    // Generate a short-lived socket token
+    const socketToken = jwt.sign(
+      { 
+        id: user._id, 
+        sessionId: user.sessionId,
+        purpose: 'socket'
+      }, 
+      process.env.JWT_SECRET_KEY, 
+      { expiresIn: '1h' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      socketToken
+    });
+  } catch (error) {
+    console.error("Socket token error:", error);
+    return res.status(500).json({
+      message: "Failed to generate socket token",
+      success: false
+    });
+  }
+};
+
 cron.schedule("* * * * *", async () => {
   const currentTime = new Date();
   const expirationTime = 1000 * 60 * 60 * 24;

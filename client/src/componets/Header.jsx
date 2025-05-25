@@ -8,6 +8,10 @@ import axiosInstance from "../utils/axiosInstance";
 import { persistor } from "../redux/store";
 import { logoutHistory } from "../redux/slices/historySlice";
 import { logoutSubmissions } from "../redux/slices/submissionSlice";
+import { useNotification } from "../contexts/NotificationContext";
+import NotificationList from './Notification/NotificationList';
+import NotificationCenter from './Notification/NotificationCenter';
+import NotificationIcon from './Notification/NotificationIcon';
 import {
   Menu,
   X,
@@ -36,14 +40,22 @@ const Header = () => {
   const [isScreenSmall, setIsScreenSmall] = useState(false);
   const [isMediumScreen, setIsMediumScreen] = useState(false);
   const [isOnMakeContest, setIsOnMakeContest] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const userMenuRef = useRef(null);
   const notificationMenuRef = useRef(null);
   const headerRef = useRef(null);
+  
+  // Use the notification context
+  const { 
+    notifications, 
+    unreadCount, 
+    markNotificationAsRead, 
+    markAllNotificationsAsRead,
+    clearNotification,
+    formatTimeAgo
+  } = useNotification();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -111,51 +123,7 @@ const Header = () => {
   useEffect(() => {
     setIsOnMakeContest(location.pathname === "/make-contest");
   }, [location]);
-
-  // Fetch notifications
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        // For now, we'll simulate notifications
-        // Later you can replace this with actual API call
-        const mockNotifications = [
-          {
-            id: 1,
-            title: "New Contest Available",
-            message: "A new programming contest 'Data Structures Challenge' has been assigned to your batch.",
-            type: "contest",
-            read: false,
-            timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-          },
-          {
-            id: 2,
-            title: "Assignment Graded",
-            message: "Your submission for 'Array Problems' has been graded. Score: 85/100",
-            type: "grade",
-            read: false,
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-          },
-          {
-            id: 3,
-            title: "Batch Updated",
-            message: "You have been added to batch 'Advanced Programming - Semester 5'",
-            type: "batch",
-            read: true,
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-          },
-        ];
-
-        setNotifications(mockNotifications);
-        setUnreadCount(mockNotifications.filter(n => !n.read).length);
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-      }
-    };
-
-    if (user) {
-      fetchNotifications();
-    }
-  }, [user]);
+  // Notifications are now managed by the NotificationContext
 
   const logoutHandler = async () => {
     try {
@@ -183,39 +151,7 @@ const Header = () => {
       navigate("/make-contest");
     }
   };
-
-  // Notification handlers
-  const markNotificationAsRead = (notificationId) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
-    setUnreadCount(prev => Math.max(0, prev - 1));
-  };
-
-  const markAllNotificationsAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-    setUnreadCount(0);
-  };
-
-  const formatTimeAgo = (timestamp) => {
-    const now = new Date();
-    const diffInMinutes = Math.floor((now - new Date(timestamp)) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}d ago`;
-  };
+  // Notification handlers are now provided by the NotificationContext
 
   const handleNavigate = (path) => {
     // Smooth navigation with transition
@@ -308,81 +244,24 @@ const Header = () => {
           </motion.div>{isScreenSmall && user ? (
             <div className="flex items-center space-x-2">
               {/* Notification Icon for Mobile/Tablet View */}
-              <div className="relative" ref={notificationMenuRef}>
-                <button
+              <div className="relative" ref={notificationMenuRef}>                <NotificationIcon 
+                  unreadCount={unreadCount} 
                   onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                  className={`text-white p-1.5 sm:p-2 rounded-md transition-all duration-300 relative ${
+                  className={`text-white ${
                     scrolled ? "hover:bg-blue-500/20" : "hover:bg-white/10"
                   }`}
-                  title="Notifications"
-                >
-                  <Bell size={16} className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold text-[9px] sm:text-[10px]">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
+                />
 
-                {/* Desktop-style Notification Dropdown for Tablet View */}
-                <AnimatePresence>
-                  {isNotificationOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-72 sm:w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700 rounded-lg shadow-xl overflow-hidden z-50"
-                    >
-                      <div className="px-4 py-3 border-b border-gray-700 flex justify-between items-center">
-                        <p className="text-sm font-medium text-white">Notifications</p>
-                        {unreadCount > 0 && (
-                          <button
-                            onClick={markAllNotificationsAsRead}
-                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                          >
-                            Mark all read
-                          </button>
-                        )}
-                      </div>
-                      
-                      {notifications.length === 0 ? (
-                        <div className="px-4 py-6 text-center text-gray-400 text-sm">
-                          No notifications yet
-                        </div>
-                      ) : (
-                        <div className="max-h-64 overflow-y-auto">
-                          {notifications.map((notification) => (
-                            <div
-                              key={notification.id}
-                              onClick={() => !notification.read && markNotificationAsRead(notification.id)}
-                              className={`px-4 py-3 border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors cursor-pointer ${
-                                !notification.read ? 'bg-blue-500/5' : ''
-                              }`}
-                            >
-                              <div className="flex items-start space-x-3">
-                                <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                                  !notification.read ? 'bg-blue-500' : 'bg-transparent'
-                                }`} />
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-sm font-medium ${
-                                    !notification.read ? 'text-white' : 'text-gray-300'
-                                  }`}>
-                                    {notification.title}
-                                  </p>
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    {notification.message}
-                                  </p>
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {formatTimeAgo(notification.timestamp)}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
+                {/* Desktop-style Notification Dropdown for Tablet View */}                <AnimatePresence>
+                  {isNotificationOpen && (                    <div className="absolute right-0 mt-2 z-50">
+                      <NotificationList 
+                        onClose={() => setIsNotificationOpen(false)}
+                        onViewAll={() => {
+                          setIsNotificationOpen(false);
+                          setShowNotificationCenter(true);
+                        }} 
+                      />
+                    </div>
                   )}
                 </AnimatePresence>
               </div>
@@ -439,66 +318,16 @@ const Header = () => {
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
-                  </button>
-
-                  <AnimatePresence>
-                    {isNotificationOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute right-0 mt-2 w-80 sm:w-96 bg-gray-800/95 backdrop-blur-md border border-gray-700 rounded-lg shadow-xl py-1 overflow-hidden max-h-96 overflow-y-auto"
-                      >
-                        <div className="px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-700 flex justify-between items-center">
-                          <p className="text-sm font-medium text-white">Notifications</p>
-                          {unreadCount > 0 && (
-                            <button
-                              onClick={markAllNotificationsAsRead}
-                              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                            >
-                              Mark all read
-                            </button>
-                          )}
-                        </div>
-                        
-                        {notifications.length === 0 ? (
-                          <div className="px-3 sm:px-4 py-6 text-center text-gray-400 text-sm">
-                            No notifications yet
-                          </div>
-                        ) : (
-                          <div className="max-h-64 overflow-y-auto">
-                            {notifications.map((notification) => (
-                              <div
-                                key={notification.id}
-                                onClick={() => !notification.read && markNotificationAsRead(notification.id)}
-                                className={`px-3 sm:px-4 py-3 border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors cursor-pointer ${
-                                  !notification.read ? 'bg-blue-500/5' : ''
-                                }`}
-                              >
-                                <div className="flex items-start space-x-3">
-                                  <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                                    !notification.read ? 'bg-blue-500' : 'bg-transparent'
-                                  }`} />
-                                  <div className="flex-1 min-w-0">
-                                    <p className={`text-sm font-medium ${
-                                      !notification.read ? 'text-white' : 'text-gray-300'
-                                    }`}>
-                                      {notification.title}
-                                    </p>
-                                    <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                                      {notification.message}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      {formatTimeAgo(notification.timestamp)}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </motion.div>
+                  </button>                  <AnimatePresence>
+                    {isNotificationOpen && (                      <div className="absolute right-0 mt-2">
+                        <NotificationList 
+                          onClose={() => setIsNotificationOpen(false)}
+                          onViewAll={() => {
+                            setIsNotificationOpen(false);
+                            setShowNotificationCenter(true);
+                          }}
+                        />
+                      </div>
                     )}
                   </AnimatePresence>
                 </div>
@@ -609,64 +438,23 @@ const Header = () => {
                   )}
                 </button>
 
-                {/* Mobile Notification Dropdown */}
-                <AnimatePresence>
-                  {isNotificationOpen && (
-                    <motion.div
+                {/* Mobile Notification Dropdown */}                <AnimatePresence>
+                  {isNotificationOpen && (                    <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="mt-2 bg-gray-800/95 backdrop-blur-md border border-gray-700 rounded-lg shadow-xl overflow-hidden"
+                      className="mt-2"
                     >
-                      <div className="px-3 py-2 border-b border-gray-700 flex justify-between items-center">
-                        <p className="text-sm font-medium text-white">Notifications</p>
-                        {unreadCount > 0 && (
-                          <button
-                            onClick={markAllNotificationsAsRead}
-                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                          >
-                            Mark all read
-                          </button>
-                        )}
-                      </div>
-                      
-                      {notifications.length === 0 ? (
-                        <div className="px-3 py-4 text-center text-gray-400 text-sm">
-                          No notifications yet
-                        </div>
-                      ) : (
-                        <div className="max-h-48 overflow-y-auto">
-                          {notifications.map((notification) => (
-                            <div
-                              key={notification.id}
-                              onClick={() => !notification.read && markNotificationAsRead(notification.id)}
-                              className={`px-3 py-3 border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors cursor-pointer ${
-                                !notification.read ? 'bg-blue-500/5' : ''
-                              }`}
-                            >
-                              <div className="flex items-start space-x-3">
-                                <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                                  !notification.read ? 'bg-blue-500' : 'bg-transparent'
-                                }`} />
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-sm font-medium ${
-                                    !notification.read ? 'text-white' : 'text-gray-300'
-                                  }`}>
-                                    {notification.title}
-                                  </p>
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    {notification.message}
-                                  </p>
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {formatTimeAgo(notification.timestamp)}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <NotificationList 
+                        onClose={() => setIsNotificationOpen(false)} 
+                        isCompact={true}
+                        onViewAll={() => {
+                          setIsNotificationOpen(false);
+                          setIsMenuOpen(false);
+                          setShowNotificationCenter(true);
+                        }}
+                      />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -700,8 +488,14 @@ const Header = () => {
                 {isOnMakeContest ? <Home size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />}
                 <span>{isOnMakeContest ? "Home" : makeContestButtonText}</span>
               </button>
-            </div>
-          </motion.div>
+            </div>          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Notification Center Modal */}
+      <AnimatePresence>
+        {showNotificationCenter && (
+          <NotificationCenter onClose={() => setShowNotificationCenter(false)} />
         )}
       </AnimatePresence>
     </motion.nav>

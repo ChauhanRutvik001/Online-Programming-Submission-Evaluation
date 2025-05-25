@@ -140,10 +140,24 @@ const adminController = {
         role: "faculty",
         isApproved: true, // Auto-approve since admin is creating
         firstTimeLogin: true, // User should change password on first login
-      });
-
-      // Save the new faculty
+      });      // Save the new faculty
       await newFaculty.save();
+
+      // Send welcome notification
+      try {
+        const { notificationService } = await import("../app.js");
+        if (notificationService) {
+          await notificationService.createNotification(
+            newFaculty._id.toString(),
+            "Welcome to Online Programming Submission & Evaluation",
+            `Hello ${newFaculty.username}, your faculty account has been created successfully. Use your ID as password for first login.`,
+            "account",
+            { accountType: "faculty" }
+          );
+        }
+      } catch (notifError) {
+        console.error("Failed to send welcome notification:", notifError);
+      }
 
       res.status(201).json({
         success: true,
@@ -1005,10 +1019,24 @@ const adminController = {
         role: "student",
         isApproved: true, // Auto-approve since admin is creating
         firstTimeLogin: true, // Student should change password on first login
-      });
-
-      // Save the new student
+      });      // Save the new student
       await newStudent.save();
+
+      // Send welcome notification
+      try {
+        const { notificationService } = await import("../app.js");
+        if (notificationService) {
+          await notificationService.createNotification(
+            newStudent._id.toString(),
+            "Welcome to Online Programming Submission & Evaluation",
+            `Hello ${newStudent.username}, your student account has been created successfully. Use your ID as password for first login.`,
+            "account",
+            { accountType: "student", batch: newStudent.batch, semester: newStudent.semester }
+          );
+        }
+      } catch (notifError) {
+        console.error("Failed to send welcome notification:", notifError);
+      }
 
       res.status(201).json({
         success: true,

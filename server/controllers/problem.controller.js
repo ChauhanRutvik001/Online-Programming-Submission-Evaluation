@@ -77,9 +77,11 @@ export const createProblem = async (req, res) => {
       tags,
       totalMarks,
       createdBy,
-    });
-
-    const createdProblem = await problem.save();
+    });    const createdProblem = await problem.save();
+    
+    // If the problem is created successfully, we can send the notification
+    // But at this point, it's not assigned to any batches yet
+    
     res.status(201).json(createdProblem);
   } catch (error) {
     console.error("Error creating problem:", error);
@@ -639,9 +641,49 @@ export const assignProblemToBatches = async (req, res) => {
     // Update due date if provided
     if (dueDate) {
       problem.dueDate = new Date(dueDate);
-    }
+    }    await problem.save();    // Save the problem with the updated batch assignments and due date
 
-    await problem.save();    // Save the problem with the updated batch assignments and due date
+    // Send notifications to students in the batches
+    try {
+      const { notificationService } = await import("../app.js");
+      if (notificationService) {
+        for (const batch of batches) {
+          // Send notification to each student in the batch
+          for (const studentId of batch.students) {
+            await notificationService.createNotification(
+              studentId.toString(),
+              "New Problem Assigned",
+              `A new problem "${problem.title}" has been assigned to your batch ${batch.name}.`,
+              "problem",
+              { 
+                problemId: problem._id.toString(),
+                problemTitle: problem.title,
+                batchId: batch._id.toString(),
+                batchName: batch.name,
+                dueDate: problem.dueDate
+              }
+            );
+          }
+          
+          // Send notification to the faculty of the batch
+          await notificationService.createNotification(
+            batch.faculty.toString(),
+            "Problem Assigned to Your Batch",
+            `Problem "${problem.title}" has been assigned to your batch ${batch.name}.`,
+            "problem",
+            { 
+              problemId: problem._id.toString(),
+              problemTitle: problem.title,
+              batchId: batch._id.toString(),
+              batchName: batch.name,
+              dueDate: problem.dueDate
+            }
+          );
+        }
+      }
+    } catch (notifError) {
+      console.error("Failed to send problem assignment notifications:", notifError);
+    }
 
     const totalStudentCount = batches.reduce((count, batch) => count + batch.students.length, 0);
 

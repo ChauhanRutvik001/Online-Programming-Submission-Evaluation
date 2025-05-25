@@ -4,6 +4,7 @@ config({ path: "../.env"});
 import express from "express";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
+import http from "http";
 import notFoundHandler from "./controllers/not-found.js";
 import errorHandler from "./controllers/error.js";
 import authRoutes from "./routes/auth.js";
@@ -18,6 +19,8 @@ import adminBatchRouter from "./routes/admin.batch.router.js";
 import facultyRouter from "./routes/faculty.router.js";
 import compiler from "./routes/compiler.js";
 import adminRouter from "./routes/admin.router.js"; // Import the admin router
+import notificationRouter from "./routes/notification.router.js"; // Import the notification router
+import { initSocketServer, initNotificationService } from "./utils/socket.js";
 
 
 const app = express();
@@ -48,18 +51,30 @@ app.use("/api/v1/admin/batch", adminBatchRouter); // admin batch management
 app.use("/api/v1/faculty", facultyRouter);
 app.use("/api/v1/compiler", compiler);
 app.use("/api/v1/admin", adminRouter); // admin dashboard
+app.use("/api/v1/notifications", notificationRouter); // notifications
 
 app.all("*", notFoundHandler);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3100;
 mongoose.set("strictQuery", true);
+
+// Create an HTTP server instance
+const server = http.createServer(app);
+
+// Initialize Socket.IO with the HTTP server
+const { io, connectedUsers } = initSocketServer(server);
+
+// Initialize the notification service
+const notificationService = initNotificationService(io, connectedUsers);
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("DB Connected");
-    app.listen(PORT,process.env.ALL_IP, () => {
-      console.log(`server running on http://localhost:${PORT}`);
+    server.listen(PORT, process.env.ALL_IP, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+      console.log(`Socket.IO running on http://localhost:${PORT}`);
     });
   })
   .catch((error) => {
@@ -67,4 +82,4 @@ mongoose
     process.exit(1);
   });
 
-export { mongoose };
+export { mongoose, notificationService };

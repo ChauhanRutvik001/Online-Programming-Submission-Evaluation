@@ -118,8 +118,53 @@ const adminBatchController = {
           branch,
           createdBy: req.user.id,
         });
+          await newBatch.save();
         
-        await newBatch.save();
+        // Send notifications for batch creation
+        try {
+          const { notificationService } = await import("../app.js");
+          if (notificationService) {
+            // Notification to faculty
+            await notificationService.createNotification(
+              facultyId,
+              "New Batch Assigned",
+              `You have been assigned as faculty for the ${name} batch.`,
+              "batch",
+              { 
+                batchId: newBatch._id.toString(),
+                batchName: name,
+                subject,
+                semester,
+                branch
+              }
+            );
+            
+            // Notifications to all students in the batch
+            if (students && students.length > 0) {
+              for (const studentId of students) {
+                const student = await User.findById(studentId);
+                if (student) {
+                  await notificationService.createNotification(
+                    studentId,
+                    "Added to New Batch",
+                    `You have been added to the ${name} batch with ${faculty.username} as your faculty.`,
+                    "batch",
+                    { 
+                      batchId: newBatch._id.toString(),
+                      batchName: name,
+                      faculty: faculty.username,
+                      subject,
+                      semester,
+                      branch
+                    }
+                  );
+                }
+              }
+            }
+          }
+        } catch (notifError) {
+          console.error("Failed to send batch creation notifications:", notifError);
+        }
         
         return res.status(201).json({
           success: true,
@@ -334,13 +379,60 @@ const adminBatchController = {
             message: "One or more student IDs are invalid"
           });
         }
-        
-        // Add students to batch
+          // Add students to batch
         const currentStudentIds = batch.students.map(id => id.toString());
         const newStudentIds = studentIds.filter(id => !currentStudentIds.includes(id));
         
         batch.students = [...batch.students, ...newStudentIds];
         await batch.save();
+        
+        // Send notifications to students and faculty about the batch update
+        try {
+          const { notificationService } = await import("../app.js");
+          if (notificationService) {
+            // Get faculty details
+            const faculty = await User.findById(batch.faculty);
+            
+            // Notify each new student added to the batch
+            for (const studentId of newStudentIds) {
+              const student = await User.findById(studentId);
+              if (student) {
+                await notificationService.createNotification(
+                  studentId,
+                  "Added to Batch",
+                  `You have been added to the ${batch.name} batch` + 
+                  (faculty ? ` with ${faculty.username} as your faculty.` : "."),
+                  "batch",
+                  {
+                    batchId: batch._id.toString(),
+                    batchName: batch.name,
+                    faculty: faculty ? faculty.username : null,
+                    subject: batch.subject,
+                    semester: batch.semester,
+                    branch: batch.branch
+                  }
+                );
+              }
+            }
+            
+            // Notify faculty about new students
+            if (faculty && newStudentIds.length > 0) {
+              await notificationService.createNotification(
+                batch.faculty.toString(),
+                "Students Added to Your Batch",
+                `${newStudentIds.length} new student(s) have been added to your batch ${batch.name}.`,
+                "batch",
+                {
+                  batchId: batch._id.toString(),
+                  batchName: batch.name,
+                  studentCount: newStudentIds.length
+                }
+              );
+            }
+          }
+        } catch (notifError) {
+          console.error("Failed to send batch update notifications:", notifError);
+        }
         
         return res.status(200).json({
           success: true,
@@ -383,10 +475,51 @@ const adminBatchController = {
             message: "Batch not found"
           });
         }
+          // Find students being removed to send notifications
+        const removedStudentIds = batch.students
+          .filter(id => studentIds.includes(id.toString()))
+          .map(id => id.toString());
         
         // Remove students from batch
         batch.students = batch.students.filter(id => !studentIds.includes(id.toString()));
         await batch.save();
+        
+        // Send notifications about removal from batch
+        try {
+          const { notificationService } = await import("../app.js");
+          if (notificationService) {
+            // Notify faculty about student removal
+            if (batch.faculty && removedStudentIds.length > 0) {
+              await notificationService.createNotification(
+                batch.faculty.toString(),
+                "Students Removed from Batch",
+                `${removedStudentIds.length} student(s) have been removed from your batch ${batch.name}.`,
+                "batch",
+                {
+                  batchId: batch._id.toString(),
+                  batchName: batch.name,
+                  studentCount: removedStudentIds.length
+                }
+              );
+            }
+            
+            // Notify each removed student
+            for (const studentId of removedStudentIds) {
+              await notificationService.createNotification(
+                studentId,
+                "Removed from Batch",
+                `You have been removed from the ${batch.name} batch.`,
+                "batch",
+                {
+                  batchId: batch._id.toString(),
+                  batchName: batch.name
+                }
+              );
+            }
+          }
+        } catch (notifError) {
+          console.error("Failed to send batch removal notifications:", notifError);
+        }
         
         return res.status(200).json({
           success: true,
