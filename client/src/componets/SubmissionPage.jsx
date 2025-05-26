@@ -75,21 +75,16 @@ const SubmissionPage = () => {
           <div className="p-3 bg-blue-500/10 rounded-full">
             <History size={24} className="text-blue-400" />
           </div>
-        </div>
-
-        {loading && (
+        </div>        {loading && (
           <div className="flex justify-center items-center h-64">
             <div className="flex flex-col items-center">
-              <div className="relative w-20 h-20">
-                <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-500/30 rounded-full"></div>
-                <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
-              </div>
-              <p className="mt-6 text-blue-400 text-lg font-medium">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+              <p className="mt-4 text-blue-400 text-lg font-medium">
                 Loading submissions...
               </p>
             </div>
           </div>
-        )}        {error && error !== "No submissions found" && (
+        )}{error && error !== "No submissions found" && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 flex items-start">
             <AlertCircle size={24} className="text-red-500 mr-4 flex-shrink-0 mt-1" />
             <div>
@@ -103,10 +98,9 @@ const SubmissionPage = () => {
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-8 text-center">
             <FileText size={48} className="text-blue-400 mx-auto mb-4" />
             <p className="text-xl font-medium text-gray-200 mb-2">No submissions found</p>
-            <p className="text-gray-400 mb-6">You haven't submitted any solutions yet.</p>
-            <button 
+            <p className="text-gray-400 mb-6">You haven't submitted any solutions yet.</p>            <button 
               onClick={() => navigate('/problems')}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 shadow-lg"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Browse Problems
             </button>
@@ -118,18 +112,16 @@ const SubmissionPage = () => {
             {submissions.map((submission) => {
               const status = submission.status || getRandomStatus();
               const statusColor = getStatusColor(status);
-              return (
-                <li
+              return (                <li
                   key={submission._id}
                   onClick={() => navigate("/submissions/" + submission._id)}
-                  className="bg-gray-800/50 border border-gray-700 hover:border-blue-500/50 p-4 rounded-lg flex items-center cursor-pointer transition-all duration-300 hover:bg-gray-700/50 group"
+                  className="bg-gray-800/50 border border-gray-700 hover:border-blue-500/50 p-4 rounded-lg flex items-center cursor-pointer hover:bg-gray-700/50"
                 >
                   <div className="flex-shrink-0 mr-4 w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
                     <Code size={20} className="text-blue-400" />
                   </div>
-                  <div className="flex-grow">
-                    <div className="flex items-center">
-                      <h3 className="text-lg font-medium text-white group-hover:text-blue-400 transition-colors">
+                  <div className="flex-grow">                    <div className="flex items-center">
+                      <h3 className="text-lg font-medium text-white">
                         {truncateTitle(submission.problem_id?.title, 40)}
                       </h3>
                       <div className={`ml-4 px-3 py-1 rounded-full text-xs font-medium bg-${statusColor}-500/20 text-${statusColor}-400 border border-${statusColor}-500/30`}>
@@ -140,9 +132,8 @@ const SubmissionPage = () => {
                       <Clock size={14} className="mr-1" />
                       <span>{formatDate(submission.createdAt)}</span>
                     </div>
-                  </div>
-                  <div className="flex-shrink-0 ml-4">
-                    <ChevronRight size={20} className="text-gray-500 group-hover:text-blue-400 transition-colors" />
+                  </div>                  <div className="flex-shrink-0 ml-4">
+                    <ChevronRight size={20} className="text-gray-500" />
                   </div>
                 </li>
               );
@@ -151,9 +142,8 @@ const SubmissionPage = () => {
         )}
 
         {!loading && submissions.length > 0 && (
-          <div className="flex justify-end mt-8">
-            <button
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center space-x-2"
+          <div className="flex justify-end mt-8">            <button
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2"
               onClick={handleViewMore}
             >
               <span>View All Submissions</span>
