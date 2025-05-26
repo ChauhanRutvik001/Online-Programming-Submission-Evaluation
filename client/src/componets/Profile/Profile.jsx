@@ -46,7 +46,6 @@ const Profile = () => {
   const imageUrl = useSelector((state) => state.app.imageUrl);
   const reduxDispatch = useDispatch();
   const submissions = useSelector((state) => state.submissions.submissions);
-  const submissionsLoading = useSelector((state) => state.submissions.loading);
   const location = useLocation();
   const isCached = isPageCached(location.pathname);
   const [rightColumnKey, setRightColumnKey] = useState("submissions");
@@ -89,14 +88,14 @@ const Profile = () => {
       }
     }
   }, [user, reduxDispatch, isCached]);
-  // Only fetch submissions if we haven't attempted yet
-  const hasAttemptedFetch = useSelector((state) => state.submissions.hasAttemptedFetch);
-  
+
+
   useEffect(() => {
-    if (user?._id && !submissionsLoading && !hasAttemptedFetch && !isCached) {
-      reduxDispatch(fetchSubmissions({ page: 1, limit: 7 }));
-    }
-  }, [reduxDispatch, user, submissionsLoading, hasAttemptedFetch, isCached]);
+      if (submissions.length === 0) {
+        console.log("Fetching submissions for the first time");
+        reduxDispatch(fetchSubmissions({ page: 1, limit: 7 }));
+      }
+    }, [dispatch, submissions.length]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -172,16 +171,7 @@ const Profile = () => {
               />
             ) : (
               <div>
-                {submissionsLoading ? (
-                  <div className="flex justify-center items-center p-10 h-64">
-                    <div className="animate-pulse flex flex-col items-center">
-                      <div className="h-12 w-12 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin mb-4"></div>
-                      <div className="text-blue-400">Loading submissions...</div>
-                    </div>
-                  </div>
-                ) : (
                   <SubmissionPage />
-                )}
               </div>
             )}
           </div>

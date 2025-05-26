@@ -96,7 +96,7 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
                 name="name"
                 value={formData.name}
                 onChange={handleInputFieldChange}
-                className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shazzdow-lg
+                className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg
                            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
                            transition-all duration-300 group-hover:border-gray-600"
                 placeholder="Enter your full name"
