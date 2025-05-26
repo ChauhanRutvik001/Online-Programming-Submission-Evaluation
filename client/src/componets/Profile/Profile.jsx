@@ -12,7 +12,6 @@ import {
 } from "../../redux/slices/historySlice";
 import { useLocation } from "react-router-dom";
 import { isPageCached } from "../../utils/transitionManager";
-import { motion, AnimatePresence } from "framer-motion";
 
 const initialState = {
   username: "",
@@ -114,15 +113,12 @@ const Profile = () => {
     try {
       const response = await axiosInstance.put("user/update", { ...formData });
 
-      if (response.data.success) {
-        // First update UI state to appear responsive
+      if (response.data.success) {        // First update UI state to appear responsive
         toast.success("Profile updated successfully.");
 
-        // Then smoothly transition out of edit mode
+        // Then transition out of edit mode
         setRightColumnKey("submissions");
-        setTimeout(() => {
-          setIsEditing(false);
-        }, 300);
+        setIsEditing(false);
       } else {
         toast.error(response.data.message || "Profile update failed.");
       }
@@ -133,12 +129,9 @@ const Profile = () => {
       console.error(error);
     }
   };
-
   const toggleEdit = () => {
     setRightColumnKey(isEditing ? "submissions" : "edit");
-    setTimeout(() => {
-      setIsEditing(!isEditing);
-    }, 50);
+    setIsEditing(!isEditing);
   };
 
   if (!user) {
@@ -171,11 +164,10 @@ const Profile = () => {
                 user={user || {}} // Provide an empty object as fallback
               />
             ) : (
-              <div>
-                {submissionsLoading ? (
+              <div>                {submissionsLoading ? (
                   <div className="flex justify-center items-center p-10 h-64">
-                    <div className="animate-pulse flex flex-col items-center">
-                      <div className="h-12 w-12 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin mb-4"></div>
+                    <div className="flex flex-col items-center">
+                      <div className="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
                       <div className="text-blue-400">Loading submissions...</div>
                     </div>
                   </div>
