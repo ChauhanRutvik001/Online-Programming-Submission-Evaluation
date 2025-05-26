@@ -50,9 +50,20 @@ const Profile = () => {
   const location = useLocation();
   const isCached = isPageCached(location.pathname);
   const [rightColumnKey, setRightColumnKey] = useState("submissions");
+
+  useEffect(() => {
+    // Only signal navigation start if we're not already cached
+    if (!isCached) {
+      reduxDispatch(startNavigation());
+    }
+
+    return () => {};
+  }, []);
+
   useEffect(() => {
     if (user) {
-      // Update form data from existing Redux state
+      // No need to signal navigation start again
+      // Just update form data from existing Redux state
       dispatch({
         type: "SET_FORM_DATA",
         payload: {
@@ -71,13 +82,21 @@ const Profile = () => {
           email: user.email || "",
         },
       });
+
+      // Only end navigation if we started it
+      if (!isCached) {
+        reduxDispatch(endNavigation());
+      }
     }
-  }, [user]);  // Fetch submissions directly for profile page
+  }, [user, reduxDispatch, isCached]);
+  // Only fetch submissions if we haven't attempted yet
+  const hasAttemptedFetch = useSelector((state) => state.submissions.hasAttemptedFetch);
+  
   useEffect(() => {
-    if (user?._id) {
+    if (user?._id && !submissionsLoading && !hasAttemptedFetch && !isCached) {
       reduxDispatch(fetchSubmissions({ page: 1, limit: 7 }));
     }
-  }, [reduxDispatch, user?._id]);
+  }, [reduxDispatch, user, submissionsLoading, hasAttemptedFetch, isCached]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -95,12 +114,15 @@ const Profile = () => {
     try {
       const response = await axiosInstance.put("user/update", { ...formData });
 
-      if (response.data.success) {        // First update UI state to appear responsive
+      if (response.data.success) {
+        // First update UI state to appear responsive
         toast.success("Profile updated successfully.");
 
-        // Then transition out of edit mode
+        // Then smoothly transition out of edit mode
         setRightColumnKey("submissions");
-        setIsEditing(false);
+        setTimeout(() => {
+          setIsEditing(false);
+        }, 300);
       } else {
         toast.error(response.data.message || "Profile update failed.");
       }
@@ -111,9 +133,12 @@ const Profile = () => {
       console.error(error);
     }
   };
+
   const toggleEdit = () => {
     setRightColumnKey(isEditing ? "submissions" : "edit");
-    setIsEditing(!isEditing);
+    setTimeout(() => {
+      setIsEditing(!isEditing);
+    }, 50);
   };
 
   if (!user) {

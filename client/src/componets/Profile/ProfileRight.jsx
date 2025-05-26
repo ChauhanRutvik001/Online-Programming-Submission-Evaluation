@@ -16,6 +16,15 @@ import {
 const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
   const [isFormTouched, setIsFormTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contentReady, setContentReady] = useState(false);
+
+  // Enable smooth transition on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setContentReady(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Track form changes to enable/disable submit button
   useEffect(() => {
@@ -41,36 +50,55 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
     await handleSubmit(e);
     setIsSubmitting(false);
   };
+
   const handleInputFieldChange = (e) => {
     handleInputChange(e);
   };
 
+  // Prepare form field animations
+  const getFieldAnimation = (index) => {
+    return {
+      animationDelay: `${index * 50}ms`,
+      animationName: 'slide-up',
+      animationDuration: '400ms',
+      animationFillMode: 'both',
+      animationTimingFunction: 'ease-out',
+    };
+  };
+
   return (
-    <div className="flex flex-col space-y-4">
+    <div 
+      className={`flex flex-col space-y-4 transition-opacity duration-500 ease-in-out ${
+        contentReady ? "opacity-100" : "opacity-0"
+      }`}
+    >
       <div className="bg-gradient-to-br from-gray-900 to-gray-900 rounded-xl shadow-2xl p-8 border border-blue-900/30">
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
             Profile Information
           </h2>
           <div className="mt-2 h-1 w-24 mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"></div>
-        </div>        <form
+        </div>
+
+        <form
           onSubmit={onSubmit}
           className="grid grid-cols-1 md:grid-cols-2 gap-8"
         >
           {/* Full Name */}
-          <div className="col-span-2">
+          <div className="col-span-2" style={getFieldAnimation(1)}>
             <label className="flex items-center text-white mb-3 text-sm font-medium">
               <User size={18} className="mr-3 text-blue-400" />
               Full Name
             </label>
-            <div className="relative">
+            <div className="relative group">
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleInputFieldChange}
-                className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shazzdow-lg
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-all duration-300 group-hover:border-gray-600"
                 placeholder="Enter your full name"
                 autoComplete="name"
               />
@@ -78,20 +106,23 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               </div>
             </div>
-          </div>          {/* Username */}
-          <div className="col-span-2">
+          </div>
+
+          {/* Username */}
+          <div className="col-span-2" style={getFieldAnimation(2)}>
             <label className="flex items-center text-white mb-3 text-sm font-medium">
               <User size={18} className="mr-3 text-blue-400" />
               Username
             </label>
-            <div className="relative">
+            <div className="relative group">
               <input
                 type="text"
                 name="username"
                 value={formData.username}
                 onChange={handleInputFieldChange}
                 className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-all duration-300 group-hover:border-gray-600"
                 placeholder="Enter your username"
                 autoComplete="username"
               />
@@ -102,7 +133,7 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
           </div>
 
           {/* Email */}
-          <div className="col-span-2">
+          <div className="col-span-2" style={getFieldAnimation(3)}>
             <label className="flex items-center text-white mb-3 text-sm font-medium">
               <Mail size={18} className="mr-3 text-blue-400" />
               Email
@@ -119,19 +150,22 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
                 Read only
               </div>
             </div>
-          </div>          {/* Github */}
-          <div className="col-span-1">
+          </div>
+
+          {/* Github */}
+          <div className="col-span-1" style={getFieldAnimation(4)}>
             <label className="flex items-center text-white mb-3 text-sm font-medium">
               <Github size={18} className="mr-3 text-blue-400" />
               Github
             </label>
-            <div className="relative">
+            <div className="relative group">
               <input
                 name="github"
                 value={formData.github}
                 onChange={handleInputFieldChange}
                 className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-all duration-300 group-hover:border-gray-600"
                 placeholder="Enter your GitHub profile name"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -141,37 +175,41 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
           </div>
 
           {/* LinkedIn */}
-          <div className="col-span-1">
+          <div className="col-span-1" style={getFieldAnimation(5)}>
             <label className="flex items-center text-white mb-3 text-sm font-medium">
               <Linkedin size={18} className="mr-3 text-blue-400" />
               LinkedIn
             </label>
-            <div className="relative">
+            <div className="relative group">
               <input
                 name="linkedIn"
                 value={formData.linkedIn}
                 onChange={handleInputFieldChange}
                 className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-all duration-300 group-hover:border-gray-600"
                 placeholder="Enter your LinkedIn profile URL"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               </div>
             </div>
-          </div>          {/* Bio */}
-          <div className="col-span-2">
+          </div>
+
+          {/* Bio */}
+          <div className="col-span-2" style={getFieldAnimation(6)}>
             <label className="flex items-center text-white mb-3 text-sm font-medium">
               <FileText size={18} className="mr-3 text-blue-400" />
               Bio
             </label>
-            <div className="relative">
+            <div className="relative group">
               <textarea
                 name="bio"
                 value={formData.bio}
                 onChange={handleInputFieldChange}
                 className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-all duration-300 group-hover:border-gray-600 resize-none"
                 placeholder="Tell us about yourself..."
                 rows={4}
               ></textarea>
@@ -182,18 +220,19 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
           </div>
 
           {/* Gender */}
-          <div className="col-span-1">
+          <div className="col-span-1" style={getFieldAnimation(7)}>
             <label className="flex items-center text-white mb-3 text-sm font-medium">
               <User size={18} className="mr-3 text-blue-400" />
               Gender
             </label>
-            <div className="relative">
+            <div className="relative group">
               <select
                 name="gender"
                 value={formData.gender}
                 onChange={handleInputFieldChange}
                 className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-all duration-300 group-hover:border-gray-600 appearance-none"
               >
                 <option value="">Select Gender</option>
                 <option value="Male">Male</option>
@@ -216,20 +255,23 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
                 </svg>
               </div>
             </div>
-          </div>          {/* Birthday */}
-          <div className="col-span-1">
+          </div>
+
+          {/* Birthday */}
+          <div className="col-span-1" style={getFieldAnimation(8)}>
             <label className="flex items-center text-white mb-3 text-sm font-medium">
               <Cake size={18} className="mr-3 text-blue-400" />
               Birthday
             </label>
-            <div className="relative">
+            <div className="relative group">
               <input
                 type="date"
                 name="birthday"
                 value={formData.birthday}
                 onChange={handleInputFieldChange}
                 className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-all duration-300 group-hover:border-gray-600"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -238,18 +280,19 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
           </div>
 
           {/* Location */}
-          <div className="col-span-2">
+          <div className="col-span-2" style={getFieldAnimation(9)}>
             <label className="flex items-center text-white mb-3 text-sm font-medium">
               <MapPin size={18} className="mr-3 text-blue-400" />
               Location
             </label>
-            <div className="relative">
+            <div className="relative group">
               <textarea
                 name="location"
                 value={formData.location}
                 onChange={handleInputFieldChange}
                 className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-all duration-300 group-hover:border-gray-600 resize-none"
                 placeholder="Enter your location details"
                 rows={3}
               ></textarea>
@@ -257,20 +300,23 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               </div>
             </div>
-          </div>          {/* Skills */}
-          <div className="col-span-2">
+          </div>
+
+          {/* Skills */}
+          <div className="col-span-2" style={getFieldAnimation(10)}>
             <label className="flex items-center text-white mb-3 text-sm font-medium">
               <Code size={18} className="mr-3 text-blue-400" />
               Skills
             </label>
-            <div className="relative">
+            <div className="relative group">
               <input
                 type="text"
                 name="skills"
                 value={formData.skills}
                 onChange={handleInputFieldChange}
                 className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-all duration-300 group-hover:border-gray-600"
                 placeholder="Enter your skills (e.g., JavaScript, React, Node.js)"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -280,39 +326,44 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
           </div>
 
           {/* Education */}
-          <div className="col-span-2">
+          <div className="col-span-2" style={getFieldAnimation(11)}>
             <label className="flex items-center text-white mb-3 text-sm font-medium">
               <BookOpen size={18} className="mr-3 text-blue-400" />
               Education
             </label>
-            <div className="relative">
+            <div className="relative group">
               <input
                 type="text"
                 name="education"
                 value={formData.education}
                 onChange={handleInputFieldChange}
                 className="w-full p-4 pl-5 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           transition-all duration-300 group-hover:border-gray-600"
                 placeholder="Enter your education details"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               </div>
             </div>
-          </div>          {/* Submit Button */}
-          <div className="col-span-2 mt-6">
+          </div>
+
+          {/* Submit Button */}
+          <div className="col-span-2 mt-6" style={getFieldAnimation(12)}>
             <button
               type="submit"
               disabled={isSubmitting || !isFormTouched}
-              className={`w-full p-4 rounded-lg font-medium text-lg
-                         bg-blue-600 ${
-                           isFormTouched && !isSubmitting ? 'hover:bg-blue-700' : 'opacity-70'
+              className={`w-full p-4 rounded-lg font-medium text-lg transition-all duration-300 transform ${
+                isFormTouched && !isSubmitting ? 'hover:scale-[1.02]' : ''
+              } 
+                         bg-gradient-to-r from-blue-500 to-blue-700 ${
+                           isFormTouched && !isSubmitting ? 'hover:from-blue-600 hover:to-blue-800' : 'opacity-70'
                          }
                          text-white shadow-xl flex items-center justify-center space-x-3 border border-blue-600`}
             >
               {isSubmitting ? (
                 <>
-                  <div className="rounded-full h-5 w-5 border-2 border-t-transparent border-white"></div>
+                  <Loader2 size={20} className="animate-spin" />
                   <span>Saving...</span>
                 </>
               ) : (
