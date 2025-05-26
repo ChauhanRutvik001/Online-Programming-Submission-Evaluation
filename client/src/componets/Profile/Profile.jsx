@@ -12,7 +12,7 @@ import {
 } from "../../redux/slices/historySlice";
 import { useLocation } from "react-router-dom";
 import { isPageCached } from "../../utils/transitionManager";
-import { motion, AnimatePresence } from "framer-motion";
+// Removed framer-motion animation imports
 
 const initialState = {
   username: "",
@@ -50,20 +50,9 @@ const Profile = () => {
   const location = useLocation();
   const isCached = isPageCached(location.pathname);
   const [rightColumnKey, setRightColumnKey] = useState("submissions");
-
-  useEffect(() => {
-    // Only signal navigation start if we're not already cached
-    if (!isCached) {
-      reduxDispatch(startNavigation());
-    }
-
-    return () => {};
-  }, []);
-
   useEffect(() => {
     if (user) {
-      // No need to signal navigation start again
-      // Just update form data from existing Redux state
+      // Update form data from existing Redux state
       dispatch({
         type: "SET_FORM_DATA",
         payload: {
@@ -82,21 +71,13 @@ const Profile = () => {
           email: user.email || "",
         },
       });
-
-      // Only end navigation if we started it
-      if (!isCached) {
-        reduxDispatch(endNavigation());
-      }
     }
-  }, [user, reduxDispatch, isCached]);
-  // Only fetch submissions if we haven't attempted yet
-  const hasAttemptedFetch = useSelector((state) => state.submissions.hasAttemptedFetch);
-  
+  }, [user]);  // Fetch submissions directly for profile page
   useEffect(() => {
-    if (user?._id && !submissionsLoading && !hasAttemptedFetch && !isCached) {
+    if (user?._id) {
       reduxDispatch(fetchSubmissions({ page: 1, limit: 7 }));
     }
-  }, [reduxDispatch, user, submissionsLoading, hasAttemptedFetch, isCached]);
+  }, [reduxDispatch, user?._id]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -170,18 +151,9 @@ const Profile = () => {
                 handleSubmit={handleSubmit}
                 user={user || {}} // Provide an empty object as fallback
               />
-            ) : (
-              <div>
-                {submissionsLoading ? (
-                  <div className="flex justify-center items-center p-10 h-64">
-                    <div className="animate-pulse flex flex-col items-center">
-                      <div className="h-12 w-12 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin mb-4"></div>
-                      <div className="text-blue-400">Loading submissions...</div>
-                    </div>
-                  </div>
-                ) : (
-                  <SubmissionPage />
-                )}
+            ) : (              <div>
+                {/* Always show the submission page component to avoid animation issues */}
+                <SubmissionPage />
               </div>
             )}
           </div>

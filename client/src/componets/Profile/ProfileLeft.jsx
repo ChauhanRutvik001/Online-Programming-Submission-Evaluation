@@ -180,7 +180,7 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
         </div>
 
         <h2 className="text-2xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 transition-all duration-300">
-          {formData.name || "Your Name"}
+          {formData.username || "Your Name"}
         </h2>
 
         <div className="flex items-center space-x-4 mb-6 transition-all duration-300">
