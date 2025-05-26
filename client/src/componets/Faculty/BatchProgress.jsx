@@ -341,10 +341,32 @@ const FacultyBatchProgress = () => {
                       <th className="text-left py-3 px-4 text-gray-300">Average Score</th>
                       <th className="text-left py-3 px-4 text-gray-300">Overall Progress</th>
                     </tr>
-                  </thead>
-                  <tbody>
+                  </thead>                  <tbody>
                     {Object.values(progressStats.studentStats)
-                      .sort((a, b) => parseFloat(b.averageScore) - parseFloat(a.averageScore))
+                      .sort((a, b) => {
+                        // Primary: Average Score (descending)
+                        const scoreA = parseFloat(a.averageScore);
+                        const scoreB = parseFloat(b.averageScore);
+                        if (scoreB !== scoreA) return scoreB - scoreA;
+                        
+                        // Tie-breaker 1: Problems Completed (descending)
+                        if (b.problemsCompleted !== a.problemsCompleted) {
+                          return b.problemsCompleted - a.problemsCompleted;
+                        }
+                        
+                        // Tie-breaker 2: Completion Rate (descending)
+                        const completionA = parseFloat(a.completionRate);
+                        const completionB = parseFloat(b.completionRate);
+                        if (completionB !== completionA) return completionB - completionA;
+                        
+                        // Tie-breaker 3: Problems Attempted (descending)
+                        if (b.problemsAttempted !== a.problemsAttempted) {
+                          return b.problemsAttempted - a.problemsAttempted;
+                        }
+                        
+                        // Final tie-breaker: Username (alphabetical)
+                        return a.username.localeCompare(b.username);
+                      })
                       .map((student, index) => (
                       <tr key={student.username} className="border-b border-gray-700 hover:bg-gray-700">
                         <td className="py-3 px-4">

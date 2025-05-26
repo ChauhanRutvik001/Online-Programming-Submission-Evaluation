@@ -264,14 +264,36 @@ const StudentBatchProgress = () => {
             {/* Performance Analysis */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Your Ranking */}
-              <div className="bg-gray-800 p-6 rounded-lg border border-gray-600">
-                <h3 className="text-xl font-semibold text-blue-400 mb-4 flex items-center">
+              <div className="bg-gray-800 p-6 rounded-lg border border-gray-600">                <h3 className="text-xl font-semibold text-blue-400 mb-4 flex items-center">
                   <Star className="mr-2" size={20} />
                   Your Class Ranking
                 </h3>
                 {(() => {
                   const students = Object.values(progressStats.studentStats)
-                    .sort((a, b) => parseFloat(b.averageScore) - parseFloat(a.averageScore));
+                    .sort((a, b) => {
+                      // Primary: Average Score (descending)
+                      const scoreA = parseFloat(a.averageScore);
+                      const scoreB = parseFloat(b.averageScore);
+                      if (scoreB !== scoreA) return scoreB - scoreA;
+                      
+                      // Tie-breaker 1: Problems Completed (descending)
+                      if (b.problemsCompleted !== a.problemsCompleted) {
+                        return b.problemsCompleted - a.problemsCompleted;
+                      }
+                      
+                      // Tie-breaker 2: Completion Rate (descending)
+                      const completionA = parseFloat(a.completionRate);
+                      const completionB = parseFloat(b.completionRate);
+                      if (completionB !== completionA) return completionB - completionA;
+                      
+                      // Tie-breaker 3: Problems Attempted (descending)
+                      if (b.problemsAttempted !== a.problemsAttempted) {
+                        return b.problemsAttempted - a.problemsAttempted;
+                      }
+                      
+                      // Final tie-breaker: Username (alphabetical)
+                      return a.username.localeCompare(b.username);
+                    });
                   const myRank = students.findIndex(s => s.username === myProgress.username) + 1;
                   const totalStudents = students.length;
                   
@@ -578,9 +600,31 @@ const StudentBatchProgress = () => {
                       <th className="text-left py-3 px-4 text-gray-300">Overall Progress</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {Object.values(progressStats.studentStats)
-                      .sort((a, b) => parseFloat(b.averageScore) - parseFloat(a.averageScore))
+                  <tbody>                    {Object.values(progressStats.studentStats)
+                      .sort((a, b) => {
+                        // Primary: Average Score (descending)
+                        const scoreA = parseFloat(a.averageScore);
+                        const scoreB = parseFloat(b.averageScore);
+                        if (scoreB !== scoreA) return scoreB - scoreA;
+                        
+                        // Tie-breaker 1: Problems Completed (descending)
+                        if (b.problemsCompleted !== a.problemsCompleted) {
+                          return b.problemsCompleted - a.problemsCompleted;
+                        }
+                        
+                        // Tie-breaker 2: Completion Rate (descending)
+                        const completionA = parseFloat(a.completionRate);
+                        const completionB = parseFloat(b.completionRate);
+                        if (completionB !== completionA) return completionB - completionA;
+                        
+                        // Tie-breaker 3: Problems Attempted (descending)
+                        if (b.problemsAttempted !== a.problemsAttempted) {
+                          return b.problemsAttempted - a.problemsAttempted;
+                        }
+                        
+                        // Final tie-breaker: Username (alphabetical)
+                        return a.username.localeCompare(b.username);
+                      })
                       .map((student, index) => {
                         const isCurrentUser = user && student.username === user.username;
                         return (
@@ -678,11 +722,33 @@ const StudentBatchProgress = () => {
             {myProgress && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Your Position Analysis */}
-                <div className="bg-gray-800 p-6 rounded-lg border border-gray-600">
-                  <h3 className="text-xl font-semibold text-blue-400 mb-4">📈 Your Position Analysis</h3>
+                <div className="bg-gray-800 p-6 rounded-lg border border-gray-600">                  <h3 className="text-xl font-semibold text-blue-400 mb-4">📈 Your Position Analysis</h3>
                   {(() => {
                     const students = Object.values(progressStats.studentStats)
-                      .sort((a, b) => parseFloat(b.averageScore) - parseFloat(a.averageScore));
+                      .sort((a, b) => {
+                        // Primary: Average Score (descending)
+                        const scoreA = parseFloat(a.averageScore);
+                        const scoreB = parseFloat(b.averageScore);
+                        if (scoreB !== scoreA) return scoreB - scoreA;
+                        
+                        // Tie-breaker 1: Problems Completed (descending)
+                        if (b.problemsCompleted !== a.problemsCompleted) {
+                          return b.problemsCompleted - a.problemsCompleted;
+                        }
+                        
+                        // Tie-breaker 2: Completion Rate (descending)
+                        const completionA = parseFloat(a.completionRate);
+                        const completionB = parseFloat(b.completionRate);
+                        if (completionB !== completionA) return completionB - completionA;
+                        
+                        // Tie-breaker 3: Problems Attempted (descending)
+                        if (b.problemsAttempted !== a.problemsAttempted) {
+                          return b.problemsAttempted - a.problemsAttempted;
+                        }
+                        
+                        // Final tie-breaker: Username (alphabetical)
+                        return a.username.localeCompare(b.username);
+                      });
                     const myRank = students.findIndex(s => s.username === myProgress.username) + 1;
                     const totalStudents = students.length;
                     const studentsAbove = myRank - 1;

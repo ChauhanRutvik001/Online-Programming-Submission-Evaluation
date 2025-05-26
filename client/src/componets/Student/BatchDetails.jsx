@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import axiosInstance from '../../utils/axiosInstance';
 import { toast } from 'react-toastify';
-import { Users, Book, Calendar, ChevronLeft, Clock, Code, AlertCircle, ArrowUpRight, TrendingUp } from 'lucide-react';
+import { Users, Book, Calendar, ChevronLeft, Clock, Code, AlertCircle, ArrowUpRight, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
 import { debounce } from 'lodash';
 
 const StudentBatchDetails = () => {
   const { batchId } = useParams();
   const navigate = useNavigate();
+  const user = useSelector((state) => state.app.user); // Get current user from Redux
   const [batch, setBatch] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showClassmates, setShowClassmates] = useState(false);
@@ -18,8 +20,7 @@ const StudentBatchDetails = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [problems, setProblems] = useState([]);
   const [problemsLoading, setProblemsLoading] = useState(false);
-
-  // Add the fetchProblems function
+  const [problemStatuses, setProblemStatuses] = useState({});
   const fetchProblems = useCallback(async (searchQuery = '', pageNum = 1) => {
     setProblemsLoading(true);
     try {
@@ -35,7 +36,18 @@ const StudentBatchDetails = () => {
       if (response.data.success) {
         setProblems(response.data.problems);
         setTotalPages(Math.ceil(response.data.totalProblems / limit));
+      }      // Fetch completion status for problems
+      try {
+        const progressResponse = await axiosInstance.get(`/user/batches/${batchId}/progress`);
+        if (progressResponse.data.success && user && user._id) {
+          const userProgress = progressResponse.data.progressStats?.studentStats?.[user._id];
+          setProblemStatuses(userProgress?.problemDetails || {});
+        }
+      } catch (progressError) {
+        console.error('Error fetching problem progress:', progressError);
+        setProblemStatuses({});
       }
+
     } catch (error) {
       console.error('Error fetching problems:', error);
       toast.error('Failed to load problems');
@@ -84,7 +96,6 @@ const StudentBatchDetails = () => {
 
     fetchBatchDetails();
   }, [batchId, navigate, fetchProblems]);
-
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -93,6 +104,42 @@ const StudentBatchDetails = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+  // Helper function to get completion status icon and color
+  const getCompletionIcon = (problemId) => {
+    const status = problemStatuses[problemId];
+    if (!status) {
+      return {
+        icon: <AlertCircle size={20} className="text-gray-400" />,
+        text: 'Not Started',
+        color: 'text-gray-400',
+        bgColor: 'bg-gray-900/30'
+      };
+    }
+
+    switch (status.status) {
+      case 'completed':
+        return {
+          icon: <CheckCircle size={20} className="text-green-400" />,
+          text: 'Completed',
+          color: 'text-green-400',
+          bgColor: 'bg-green-900/30'
+        };
+      case 'attempted':
+        return {
+          icon: <AlertCircle size={20} className="text-yellow-400" />,
+          text: 'In Progress',
+          color: 'text-yellow-400',
+          bgColor: 'bg-yellow-900/30'
+        };
+      default:
+        return {
+          icon: <AlertCircle size={20} className="text-gray-400" />,
+          text: 'Not Started',
+          color: 'text-gray-400',
+          bgColor: 'bg-gray-900/30'
+        };
+    }
   };
 
   if (loading) {
@@ -239,42 +286,62 @@ const StudentBatchDetails = () => {
                       <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
                     </div>
                   ) : problems.length > 0 ? (
-                    <>
-                      <div className="grid grid-cols-1 gap-4 mb-4">
-                        {problems.map(problem => (
-                          <div 
-                            key={problem._id}
-                            onClick={() => navigate(`/problems/${problem._id}`)}
-                            className="p-4 bg-gray-750 rounded-lg border border-gray-700 hover:bg-gray-700 cursor-pointer transition-all relative group"
-                          >
-                            <h3 className="font-medium text-white group-hover:text-blue-400 transition-colors flex items-center gap-2">
-                              {problem.title}
-                              <ArrowUpRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </h3>
-                            <div className="flex justify-between items-center mt-2 gap-4">
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-0.5 text-xs rounded-full ${
-                                  problem.difficulty === 'Easy' ? 'bg-green-900/30 text-green-400' :
-                                  problem.difficulty === 'Medium' ? 'bg-yellow-900/30 text-yellow-400' :
-                                  'bg-red-900/30 text-red-400'
-                                }`}>
-                                  {problem.difficulty}
-                                </span>
-                                {problem.dueDate && (
-                                  <span className="text-xs text-gray-400 flex items-center gap-1" title={`Due: ${formatDate(problem.dueDate)}`}>
-                                    <Clock size={12} />
-                                    Due: {formatDate(problem.dueDate)}
-                                  </span>
-                                )}
+                    <>                      <div className="grid grid-cols-1 gap-4 mb-4">
+                        {problems.map(problem => {
+                          const completionStatus = getCompletionIcon(problem._id);
+                          return (
+                            <div 
+                              key={problem._id}
+                              onClick={() => navigate(`/problems/${problem._id}`)}
+                              className="p-4 bg-gray-750 rounded-lg border border-gray-700 hover:bg-gray-700 cursor-pointer transition-all relative group"
+                            >
+                              <div className="flex items-center gap-4">
+                                {/* Status Icon */}
+                                <div className={`flex items-center justify-center w-12 h-12 rounded-lg ${completionStatus.bgColor} border-2 border-current ${completionStatus.color} flex-shrink-0`}>
+                                  {completionStatus.icon}
+                                </div>
+                                
+                                {/* Problem Details */}
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h3 className="font-medium text-white group-hover:text-blue-400 transition-colors">
+                                      {problem.title}
+                                    </h3>
+                                    <ArrowUpRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                  <div className={`text-sm mb-2 font-medium ${completionStatus.color}`}>
+                                    {completionStatus.text}
+                                    {problemStatuses[problem._id]?.score !== undefined && 
+                                      ` - ${problemStatuses[problem._id].score}% score`
+                                    }
+                                  </div>
+                                  <div className="flex justify-between items-center gap-4">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`px-2 py-0.5 text-xs rounded-full ${
+                                        problem.difficulty === 'Easy' ? 'bg-green-900/30 text-green-400' :
+                                        problem.difficulty === 'Medium' ? 'bg-yellow-900/30 text-yellow-400' :
+                                        'bg-red-900/30 text-red-400'
+                                      }`}>
+                                        {problem.difficulty}
+                                      </span>
+                                      {problem.dueDate && (
+                                        <span className="text-xs text-gray-400 flex items-center gap-1" title={`Due: ${formatDate(problem.dueDate)}`}>
+                                          <Clock size={12} />
+                                          Due: {formatDate(problem.dueDate)}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {problem.createdBy && (
+                                      <span className="text-xs text-gray-400">
+                                        By: {problem.createdBy.username}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                              {problem.createdBy && (
-                                <span className="text-xs text-gray-400">
-                                  By: {problem.createdBy.username}
-                                </span>
-                              )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       {/* Results count */}
