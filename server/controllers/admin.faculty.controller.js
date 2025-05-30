@@ -19,7 +19,16 @@ const adminFacultyController = {
           .select("username branch email subject createdAt id")
           .sort({ createdAt: -1 })
           .skip(skip)
-          .limit(limit);
+          .limit(limit)
+          .lean();
+
+          const facultysWithBatches= await Promise.all(
+            facultys.map(async (faculty) => {
+              const batches = await Batch.find({ faculty: faculty._id })
+                .select("name").lean();
+              return {...faculty, batches: batches.map(batch => batch.name) };
+            })  
+          );
     
         const totalStudents = await User.countDocuments({ role: "faculty", isApproved: true });
     
@@ -28,7 +37,7 @@ const adminFacultyController = {
         res.status(200).json({
           success: true,
           message: "Faculty fetched successfully.",
-          facultys,
+          facultys: facultysWithBatches,
           totalPages,
           currentPage: page,
           totalStudents
@@ -37,7 +46,8 @@ const adminFacultyController = {
         console.error("Error in fetching faculty by admin ID:", error);
         res.status(500).json({ success: false, message: "Internal server error." });
       }
-    },      deleteFaculty: async (req, res) => {
+    },      
+    deleteFaculty: async (req, res) => {
         const { facultyId } = req.body;
 
         if (!facultyId) {
@@ -247,7 +257,8 @@ const adminFacultyController = {
                 error: error.message
             });
         }
-    },      BulkStudentRequests: async (req, res) => {
+    },    
+      BulkStudentRequests: async (req, res) => {
       const { students } = req.body;
     
       if (!students || !Array.isArray(students) || students.length === 0) {
@@ -348,7 +359,8 @@ const adminFacultyController = {
           message: "Internal server error." 
         });
       }
-    },    getStudents: async (req, res) => {
+    },    
+    getStudents: async (req, res) => {
       const { 
         page = 1, 
         limit = 10, 
@@ -423,7 +435,8 @@ const adminFacultyController = {
         console.error("Error in fetching students:", error);
         res.status(500).json({ success: false, message: "Internal server error." });
       }
-    },    removeStudent: async (req, res) => {
+    },    
+    removeStudent: async (req, res) => {
       const { userId } = req.params;
     
       if (!userId) {
@@ -503,7 +516,8 @@ const adminFacultyController = {
       } finally {
         await session.endSession();
       }
-    },registerStudent: async (req, res) => {
+    },
+    registerStudent: async (req, res) => {
       try {
         const { id, username, batch, semester } = req.body;
         

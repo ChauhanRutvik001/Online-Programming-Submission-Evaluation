@@ -2,22 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { useSelector } from "react-redux";
-import {
-  FaUserPlus,
-  FaLayerGroup,
-  FaUserTie,
-  FaUsers,
-  FaChalkboardTeacher,
-  FaHome,
-} from "react-icons/fa";
-
-const sidebarLinks = [
-  { name: "Dashboard", icon: <FaHome />, to: "/pending-requests" },
-  { name: "Manage Users", icon: <FaUsers />, to: "/admin/users" },
-  { name: "Student Registration", icon: <FaUserPlus />, to: "/registerStudents" },
-  { name: "Teacher Registration", icon: <FaChalkboardTeacher />, to: "/create-faculty" },
-  { name: "Batch Creation", icon: <FaLayerGroup />, to: "/admin/batch/batches/create" },
-];
+import { FaUserTie } from "react-icons/fa";
 
 const AdminRegister = () => {
   const user = useSelector((store) => store.app.user);
@@ -30,7 +15,6 @@ const AdminRegister = () => {
 
   const itemsPerPage = 8;
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const fetchFacultys = async (page) => {
     try {
@@ -39,7 +23,6 @@ const AdminRegister = () => {
         page,
         limit: itemsPerPage,
       });
-
       if (response.data.success) {
         setFacultys(response.data.facultys);
         setTotalFacultyPages(response.data.totalPages);
@@ -56,10 +39,11 @@ const AdminRegister = () => {
 
   useEffect(() => {
     fetchFacultys(facultyPage);
+    // eslint-disable-next-line
   }, [facultyPage]);
 
   const handleFacultyClick = (facultyId) => {
-    navigate(`/students/${facultyId}`);
+    navigate(`/faculty/${facultyId}/batches`);
   };
 
   const formatDate = (dateString) => {
@@ -73,160 +57,162 @@ const AdminRegister = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white">
-      {/* Navbar */}
-      <nav className="w-full bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-800 shadow-lg px-4 py-4 flex items-center justify-between z-40">
-        {/* Hamburger for small screens */}
-        <div className="md:hidden">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-full bg-gray-800 text-white shadow-lg focus:outline-none"
-            aria-label="Open sidebar"
-          >
-            <svg width="24" height="24" fill="none">
-              <rect y="4" width="24" height="2" rx="1" fill="currentColor"/>
-              <rect y="11" width="24" height="2" rx="1" fill="currentColor"/>
-              <rect y="18" width="24" height="2" rx="1" fill="currentColor"/>
-            </svg>
-          </button>
-        </div>
-      </nav>
-      <div className="flex">
-        {/* Sidebar for large screens */}
-        <aside className="hidden md:flex flex-col w-60 bg-gray-800/90 border-r border-gray-700 shadow-lg py-8 px-4 min-h-screen">
-          <div className="mb-8 mt-6">
-            <ul className="space-y-2">
-              {sidebarLinks.map((link) => (
-                <li key={link.name}>
-                  <button
-                    onClick={() => navigate(link.to)}
-                    className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-lg hover:bg-gray-700 text-blue-100 font-medium transition"
-                  >
-                    {link.icon}
-                    {link.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-        {/* Sidebar Drawer for small screens */}
-        {sidebarOpen && (
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setSidebarOpen(false)}>
-            <div
-              className="absolute top-0 left-0 h-full w-60 bg-gray-900/95 border-r border-gray-700 shadow-2xl py-8 px-4 backdrop-blur-md"
-              onClick={e => e.stopPropagation()}
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-950 to-gray-900 text-white p-0 md:p-4">
+      {/* Header Section */}
+      <div className="py-6 mb-8 border-b border-blue-900">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center mt-14">
+            <div className="flex items-center mb-4 md:mb-0">
+              <FaUserTie className="h-8 w-8 mr-3 text-blue-300" />
+              <h1 className="text-3xl font-bold tracking-tight">
+                Faculty Info
+              </h1>
+            </div>
+            <button
+              className="py-2.5 px-6 flex items-center bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-200 active:scale-95"
+              onClick={() => navigate("/pending-requests")}
             >
-              <div className="mb-8 flex justify-between items-center">
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="text-gray-400 hover:text-white text-2xl"
-                  aria-label="Close sidebar"
-                >
-                  &times;
-                </button>
-              </div>
-              <ul className="space-y-2">
-                {sidebarLinks.map((link) => (
-                  <li key={link.name}>
-                    <button
-                      onClick={() => {
-                        navigate(link.to);
-                        setSidebarOpen(false);
-                      }}
-                      className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-lg hover:bg-gray-700/80 text-blue-100 font-medium transition"
-                    >
-                      {link.icon}
-                      {link.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col items-center px-2 md:px-8 py-8">
-          <div className="w-full max-w-6xl">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 mt-6 gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-blue-200 mb-1">Faculty Register</h1>
-                <p className="text-blue-300 text-base">List of all registered faculty members.</p>
-              </div>
-              <button
-                className="py-2 px-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-lg shadow-md hover:from-blue-600 hover:to-indigo-700 active:scale-95 transition transform duration-200"
-                onClick={() => navigate(-1)}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 mr-2"
+                viewBox="0 0 20 20"
+                fill="currentColor"
               >
-                Back to Dashboard
-              </button>
-            </div>
-            <div className="flex items-center text-white py-2 px-4 rounded-lg shadow text-lg font-semibold mb-4 bg-gray-800">
-              <span>Total Number of Faculty Registered:</span>
-              <span className="ml-2 text-xl font-bold text-yellow-400">{totalFaculty}</span>
-            </div>
+                <path
+                  fillRule="evenodd"
+                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        <div className="w-full max-w-7xl">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
             <div>
-              {loading ? (
-                <div className="flex justify-center items-center h-64">
-                  <div className="flex flex-col items-center">
-                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-75"></div>
-                    <p className="mt-4 text-blue-500 text-lg font-medium">
-                      Loading, please wait...
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4">
-                  <table className="min-w-full text-base text-left text-blue-100">
-                    <thead className="bg-gray-800 text-blue-200">
-                      <tr>
-                        <th className="py-3 px-6">#</th>
-                        <th className="py-3 px-6">Username</th>
-                        <th className="py-3 px-6">Email</th>
-                        <th className="py-3 px-6">Branch</th>
-                        <th className="py-3 px-6">Subject</th>
-                        <th className="py-3 px-6">Create Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {facultys.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan="6"
-                            className="py-3 px-6 text-center text-blue-300"
-                          >
-                            Data not available
-                          </td>
-                        </tr>
-                      ) : (
-                        facultys.map((faculty, index) => (
-                          <tr
-                            key={faculty._id}
-                            onClick={() => handleFacultyClick(faculty._id)}
-                            className={`cursor-pointer ${
-                              index % 2 === 0 ? "bg-gray-900" : "bg-gray-800"
-                            } hover:bg-gray-700 transition`}
-                          >
-                            <td className="py-3 px-6">{index + 1}</td>
-                            <td className="py-3 px-6">{faculty.username}</td>
-                            <td className="py-3 px-6">{faculty.email}</td>
-                            <td className="py-3 px-6">
-                              {faculty?.branch?.toUpperCase()}
-                            </td>
-                            <td className="py-3 px-6">{faculty.subject}</td>
-                            <td className="py-3 px-6">
-                              {formatDate(faculty.createdAt)}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <p className="text-blue-300 text-lg font-medium">
+                List of all registered faculty members.
+              </p>
+            </div>
+            <div className="flex items-center bg-gradient-to-r from-gray-800 to-gray-900 py-3 px-6 rounded-xl shadow font-semibold text-lg">
+              <span>Total Registered:</span>
+              <span className="ml-3 text-2xl font-extrabold text-yellow-400">{totalFaculty}</span>
             </div>
           </div>
-        </main>
-      </div>
+          <div className="overflow-x-auto rounded-xl shadow-2xl bg-[#222733]">
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-75"></div>
+                  <p className="mt-4 text-blue-400 text-lg font-semibold">
+                    Loading, please wait...
+                  </p>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-16 text-red-400 text-lg">
+                {error}
+              </div>
+            ) : (
+              <table className="min-w-full text-base text-left text-blue-100">
+                <thead className="bg-gradient-to-r from-gray-800 to-gray-900 text-blue-200">
+                  <tr>
+                    <th className="py-4 px-6 rounded-tl-xl">#</th>
+                    <th className="py-4 px-6">Username</th>
+                    <th className="py-4 px-6">Email</th>
+                    <th className="py-4 px-6">Branch</th>
+                    <th className="py-4 px-6">Batches</th>
+                    <th className="py-4 px-6 rounded-tr-xl">Create Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {facultys.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan="6"
+                        className="py-6 px-6 text-center text-blue-300 text-lg"
+                      >
+                        Data not available
+                      </td>
+                    </tr>
+                  ) : (
+                    facultys.map((faculty, index) => (
+                      <tr
+                        key={faculty._id}
+                        onClick={() => handleFacultyClick(faculty._id)}
+                        className={`cursor-pointer transition-all duration-150 ${
+                          index % 2 === 0
+                            ? "bg-[#23272f] hover:bg-blue-950"
+                            : "bg-[#1a1d23] hover:bg-blue-950"
+                        }`}
+                      >
+                        <td className="py-3 px-6 font-bold">{index + 1}</td>
+                        <td className="py-3 px-6">{faculty.username}</td>
+                        <td className="py-3 px-6">{faculty.email}</td>
+                        <td className="py-3 px-6">
+                          {faculty?.branch?.toUpperCase()}
+                        </td>
+                        <td className="py-3 px-6">
+                          {faculty.batches && faculty.batches.length > 0 ? (
+                            <span
+                              title={
+                                Array.isArray(faculty.batches)
+                                  ? faculty.batches
+                                      .map((b) => (typeof b === "string" ? b : b.name))
+                                      .join(", ")
+                                  : ""
+                              }
+                            >
+                              {faculty.batches
+                                .slice(0, 3)
+                                .map((b) => (typeof b === "string" ? b : b.name))
+                                .join(", ")}
+                              {faculty.batches.length > 3 && (
+                                <span className="text-blue-400">
+                                  , +{faculty.batches.length - 3} more
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            "No batches"
+                          )}
+                        </td>
+                        <td className="py-3 px-6">
+                          {formatDate(faculty.createdAt)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+          {/* Pagination */}
+          {totalFacultyPages > 1 && (
+            <div className="flex justify-end mt-6">
+              <div className="flex gap-2">
+                {Array.from({ length: totalFacultyPages }, (_, idx) => (
+                  <button
+                    key={idx + 1}
+                    className={`px-4 py-2 rounded-lg font-semibold text-sm ${
+                      facultyPage === idx + 1
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-700 text-gray-200 hover:bg-blue-700 hover:text-white"
+                    } transition`}
+                    onClick={() => setFacultyPage(idx + 1)}
+                  >
+                    {idx + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

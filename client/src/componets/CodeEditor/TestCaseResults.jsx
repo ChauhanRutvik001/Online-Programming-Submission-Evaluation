@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 const TestCaseResults = ({
   results,
@@ -12,15 +12,104 @@ const TestCaseResults = ({
   handleSaveCode,
   error,
   isPastDue,
+  saveStatus,
 }) => {
+  const [countdown, setCountdown] = useState(5);
+
+  // Countdown timer for auto-save
+  useEffect(() => {
+    let interval;
+    if (saveStatus === 'unsaved') {
+      setCountdown(5);
+      interval = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [saveStatus]);
+
   const hasResults = results && results.length > 0;
   const currentTestCase =
     hasResults && activeTestCaseIndex >= 0 && activeTestCaseIndex < results.length
       ? results[activeTestCaseIndex]
       : null;
 
+  // Save status configurations
+  const getSaveStatusConfig = () => {
+    switch (saveStatus) {
+      case 'saving':
+        return {
+          text: 'Saving...',
+          icon: '🔄',
+          bgColor: 'bg-yellow-500',
+          textColor: 'text-white'
+        };
+      case 'saved':
+        return {
+          text: 'Saved',
+          icon: '✓',
+          bgColor: 'bg-green-500',
+          textColor: 'text-white'
+        };
+      case 'unsaved':
+        return {
+          text: 'Unsaved Changes',
+          icon: '●',
+          bgColor: 'bg-orange-500',
+          textColor: 'text-white'
+        };
+      case 'error':
+        return {
+          text: 'Save Failed',
+          icon: '⚠',
+          bgColor: 'bg-red-500',
+          textColor: 'text-white'
+        };
+      default:
+        return {
+          text: 'Save Code',
+          icon: '💾',
+          bgColor: 'bg-blue-500',
+          textColor: 'text-white'
+        };
+    }
+  };
+
+  const statusConfig = getSaveStatusConfig();
   return (
     <div className="mt-4">
+      {/* Auto-save status indicator */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusConfig.bgColor} ${statusConfig.textColor}`}>
+            <span className="mr-1">{statusConfig.icon}</span>
+            {statusConfig.text}
+          </span>          {saveStatus === 'unsaved' && (
+            <span className="text-xs text-gray-500">
+              Auto-save in {countdown} second{countdown !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        
+        {saveStatus === 'error' && (
+          <button
+            onClick={handleSaveCode}
+            className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded"
+          >
+            Retry Save
+          </button>
+        )}
+      </div>
+
       <div className="flex space-x-4">
         <button
           onClick={handleRun}
@@ -39,10 +128,13 @@ const TestCaseResults = ({
           title={isPastDue ? "Submission deadline has passed" : ""}
         >
           {submitLoading ? "Submitting..." : isPastDue ? "Past Due Date" : "Submit Code"}
-        </button>
-
-        <button onClick={handleSaveCode} className="bg-blue-500 text-white px-4 py-2 rounded">
-          Save Codez
+        </button>        <button 
+          onClick={handleSaveCode} 
+          disabled={saveStatus === 'saving'}
+          className={`px-4 py-2 rounded-lg shadow-md transition-all duration-200 flex items-center space-x-2 ${statusConfig.bgColor} ${statusConfig.textColor} hover:opacity-90 disabled:opacity-50`}
+        >
+          <span>{statusConfig.icon}</span>
+          <span>{saveStatus === 'saving' ? 'Saving...' : 'Save Code'}</span>
         </button>
       </div>
 

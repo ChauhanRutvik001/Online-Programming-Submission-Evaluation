@@ -320,20 +320,66 @@ export const saveCode = async (req, res) => {
       .json({ success: false, message: "Unauthorized access" });
   }
 
+  // Validate input
+  if (!problemId || !codeByLanguage) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Problem ID and code are required" });
+  }
+
+  // Validate that codeByLanguage is an object
+  if (typeof codeByLanguage !== 'object' || Array.isArray(codeByLanguage)) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid code format" });
+  }
+
   try {
+    // Check if there's an existing code record
+    const existingCode = await Code.findOne({ userId, problemId });
+    
+    // If no changes, don't update
+    if (existingCode && JSON.stringify(existingCode.codeByLanguage) === JSON.stringify(codeByLanguage)) {
+      return res
+        .status(200)
+        .json({ 
+          success: true, 
+          message: "No changes detected", 
+          code: existingCode,
+          isNoChange: true 
+        });
+    }
+
     const code = await Code.findOneAndUpdate(
       { userId, problemId },
-      { codeByLanguage, updatedAt: new Date() },
-      { new: true, upsert: true }
+      { 
+        codeByLanguage, 
+        updatedAt: new Date() 
+      },
+      { 
+        new: true, 
+        upsert: true,
+        runValidators: true 
+      }
     );
-    // console.log(code);
+
     res
       .status(200)
-      .json({ success: true, message: "Code saved successfully", code });
+      .json({ 
+        success: true, 
+        message: "Code saved successfully", 
+        code,
+        timestamp: new Date().toISOString()
+      });
   } catch (error) {
+    console.error("Error saving code:", error);
     res
       .status(500)
-      .json({ success: false, message: "Error saving code", error });
+      .json({ 
+        success: false, 
+        message: "Error saving code", 
+        error: error.message 
+      });
   }
 };
 

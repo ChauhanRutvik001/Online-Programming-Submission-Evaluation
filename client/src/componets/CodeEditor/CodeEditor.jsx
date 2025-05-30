@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axiosInstance from "../../utils/axiosInstance";
 import ScoreAndLanguageSelector from "./ScoreAndLanguageSelector";
 import CodeEditorArea from "./CodeEditorArea";
@@ -43,11 +43,15 @@ int main() {
   const [activeTestCaseIndex, setActiveTestCaseIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [runLoading, setRunLoading] = useState(false);
-  const [submitLoading, setSubmitLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [submitLoading, setSubmitLoading] = useState(false);  const [error, setError] = useState(null);
   const previousLanguageRef = useRef(language);
   const [theme, setTheme] = useState("vs-dark"); // Default theme
-
+  
+  // Auto-save functionality state
+  const [saveStatus, setSaveStatus] = useState("saved"); // 'saved', 'saving', 'unsaved', 'error'
+  const [lastSavedCode, setLastSavedCode] = useState({});
+  const autoSaveTimeoutRef = useRef(null);
+  const saveInProgressRef = useRef(false);
   useEffect(() => {
     const fetchSavedCode = async () => {
       try {
@@ -56,6 +60,8 @@ int main() {
         });
         if (response.data.success) {
           setCodeByLanguage(response.data.code);
+          setLastSavedCode(response.data.code);
+          setSaveStatus("saved");
         }
       } catch (error) {
         console.error("Error fetching saved code:", error);
@@ -64,12 +70,144 @@ int main() {
 
     fetchSavedCode();
   }, [userId, problem._id]);
+  // Auto-save function with debouncing and better error handling
+  const autoSaveCode = useCallback(async (codeToSave) => {
+    if (saveInProgressRef.current) return;
+    
+    // Check if code has actually changed
+    const hasChanged = Object.keys(codeToSave).some(lang => 
+      codeToSave[lang] !== lastSavedCode[lang]
+    );
+    
+    if (!hasChanged) return;
+
+    saveInProgressRef.current = true;
+    setSaveStatus("saving");
+
+    try {
+      const response = await axiosInstance.post("/compile/saveCode", {
+        problemId: problem._id,
+        codeByLanguage: codeToSave,
+      });
+
+      console.log("Auto-save response:", response.data);
+      
+      // Handle no-change response
+      if (response.data.isNoChange) {
+        setLastSavedCode(codeToSave);
+        setSaveStatus("saved");
+        return;
+      }
+      
+      setLastSavedCode(codeToSave);
+      setSaveStatus("saved");
+      
+      // Optional: Show subtle success indication
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Auto-saved at:', response.data.timestamp);
+      }
+    } catch (error) {
+      console.error("Auto-save error:", error);
+      setSaveStatus("error");
+      
+      // Retry logic for network errors
+      if (error.code === 'NETWORK_ERROR' || error.response?.status >= 500) {
+        setTimeout(() => {
+          if (saveStatus === 'error') {
+            autoSaveCode(codeToSave);
+          }
+        }, 10000); // Retry after 10 seconds
+      }
+    } finally {
+      saveInProgressRef.current = false;
+    }
+  }, [problem._id, lastSavedCode, saveStatus]);
+
+  // Effect to handle auto-save with debouncing
+  useEffect(() => {
+    // Clear existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Check if code has changed
+    const hasChanged = Object.keys(codeByLanguage).some(lang => 
+      codeByLanguage[lang] !== lastSavedCode[lang]
+    );
+
+    if (hasChanged) {
+      setSaveStatus("unsaved");
+      
+      // Set new timeout for auto-save (5 seconds)
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveCode(codeByLanguage);
+      }, 5000);
+    }
+
+    // Cleanup function
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [codeByLanguage, autoSaveCode, lastSavedCode]);
+  // Cleanup timeout on unmount and handle page unload
+  useEffect(() => {
+    // Handle page unload to save any pending changes
+    const handleBeforeUnload = async (event) => {
+      const hasUnsavedChanges = Object.keys(codeByLanguage).some(lang => 
+        codeByLanguage[lang] !== lastSavedCode[lang]
+      );
+      
+      if (hasUnsavedChanges && !saveInProgressRef.current) {
+        // Try to save immediately (note: may not complete in time)
+        try {
+          navigator.sendBeacon('/api/v1/compile/saveCode', JSON.stringify({
+            problemId: problem._id,
+            codeByLanguage,
+          }));
+        } catch (error) {
+          console.warn('Failed to save on page unload:', error);
+        }
+        
+        // Show warning to user
+        event.preventDefault();
+        event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return event.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [codeByLanguage, lastSavedCode, problem._id]);
 
   useEffect(() => {
     previousLanguageRef.current = language;
   }, [language]);
-
-  const handleLanguageChange = (newLanguage) => {
+  const handleLanguageChange = async (newLanguage) => {
+    // Save current code before switching languages
+    if (saveStatus === 'unsaved' || saveStatus === 'error') {
+      try {
+        setSaveStatus("saving");
+        await axiosInstance.post("/compile/saveCode", {
+          problemId: problem._id,
+          codeByLanguage,
+        });
+        setLastSavedCode(codeByLanguage);
+        setSaveStatus("saved");
+      } catch (error) {
+        console.error("Error saving before language switch:", error);
+        setSaveStatus("error");
+        // Continue with language change even if save fails
+      }
+    }
+    
     setLanguage(newLanguage);
   };
 
@@ -229,7 +367,6 @@ int main() {
   //     setAssignLoading(false);
   //   }
   // };
-
   const handleSubmit = async () => {
     setIsLoading(true);
     setSubmitLoading(true);
@@ -238,6 +375,22 @@ int main() {
     setAssignLoading(true);
 
     try {
+      // Auto-save before submitting to ensure no code is lost
+      if (saveStatus === 'unsaved' || saveStatus === 'error') {
+        setSaveStatus("saving");
+        try {
+          await axiosInstance.post("/compile/saveCode", {
+            problemId: problem._id,
+            codeByLanguage,
+          });
+          setLastSavedCode(codeByLanguage);
+          setSaveStatus("saved");
+        } catch (saveError) {
+          console.warn("Failed to save before submit:", saveError);
+          // Continue with submission even if save fails
+        }
+      }
+
       const compilePayload = {
         code: codeByLanguage[language],
         language,
@@ -276,16 +429,26 @@ int main() {
       setAssignLoading(false);
     }
   };
-
   const handleSaveCode = async () => {
+    // Clear auto-save timeout since we're manually saving
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    setSaveStatus("saving");
+    
     try {
       await axiosInstance.post("/compile/saveCode", {
         problemId: problem._id,
         codeByLanguage,
       });
+      
+      setLastSavedCode(codeByLanguage);
+      setSaveStatus("saved");
       toast.success("Code saved successfully!");
     } catch (error) {
       console.error("Error saving code:", error);
+      setSaveStatus("error");
       toast.error("Failed to save code. Please try again.");
     }
   };
@@ -315,6 +478,7 @@ int main() {
         handleSaveCode={handleSaveCode}
         error={error}
         isPastDue={isPastDue}
+        saveStatus={saveStatus}
       />
 
       {assignLoading && (

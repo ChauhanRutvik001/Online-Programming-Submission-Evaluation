@@ -2,19 +2,18 @@ import User from '../models/user.js';
 import Batch from '../models/batch.js';
 import Contest from '../models/contest.js';
 import Submission from '../models/submission.js';
+import Problem from '../models/problem.js';
 
 const adminBatchController = {
     getDashboardStats: async (req, res) => {
-      try {
-        // Get count of students, faculty, batches, and contests
-        const [studentCount, facultyCount, batchCount, contestCount, contests] = await Promise.all([
+      try {        // Get count of students, faculty, batches, and problems
+        const [studentCount, facultyCount, batchCount, problemCount, recentProblems] = await Promise.all([
           User.countDocuments({ role: 'student' }),
           User.countDocuments({ role: 'faculty' }),
           Batch.countDocuments(),
-          Contest.countDocuments(),
-          Contest.find().sort({ createdAt: -1 }).limit(10).populate('created_by', 'username')
+          Problem.countDocuments(),
+          Problem.find().sort({ createdAt: -1 }).limit(3).populate('createdBy', 'username')
         ]);
-        
         // Get recent activity (submissions, new users, contest creations)
         const [recentSubmissions, recentUsers, recentBatches] = await Promise.all([
           Submission.find()
@@ -58,13 +57,12 @@ const adminBatchController = {
             name: batch.name,
             action: 'batch created',
             timestamp: batch.createdAt
-          })),
-          ...contests.map(contest => ({
-            id: contest._id,
+          })),          ...recentProblems.map(problem => ({
+            id: problem._id,
             userType: 'faculty',
-            name: contest.created_by ? contest.created_by.username : 'Unknown Faculty',
-            action: 'created contest',
-            timestamp: contest.createdAt
+            name: problem.createdBy ? problem.createdBy.username : 'Unknown Faculty',
+            action: 'created problem',
+            timestamp: problem.createdAt
           }))
         ]
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
@@ -75,7 +73,7 @@ const adminBatchController = {
           studentCount,
           facultyCount,
           batchCount,
-          contestCount,
+          problemCount,
           recentActivity
         });
       } catch (error) {
@@ -573,6 +571,54 @@ const adminBatchController = {
         });
       }
     },
+      getBatchStudentsPaginated: async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    if (!batchId) {
+      return res.status(400).json({
+        success: false,
+        message: "Batch ID is required"
+      });
+    }
+
+    // Find the batch to get student IDs
+    const batch = await Batch.findById(batchId).select('students');
+    if (!batch) {
+      return res.status(404).json({
+        success: false,
+        message: "Batch not found"
+      });
+    }
+
+    const totalStudents = batch.students.length;
+    const totalPages = Math.ceil(totalStudents / limit);
+
+    // Paginate students using User collection
+    const students = await User.find({ _id: { $in: batch.students } })
+      .select('username id batch semester branch email')
+      .skip(skip)
+      .limit(limit);
+
+    return res.status(200).json({
+      success: true,
+      students,
+      totalStudents,
+      totalPages,
+      currentPage: page
+    });
+  } catch (error) {
+    console.error("Error fetching paginated students for batch:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching students for the batch",
+      error: error.message
+    });
+  }
+},
 };
 
 export default adminBatchController;

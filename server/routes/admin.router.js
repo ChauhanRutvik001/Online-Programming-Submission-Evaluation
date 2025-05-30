@@ -20,6 +20,7 @@ router.get("/batches", isAdmin, adminController.getAllBatche); // Used for batch
 
 // User editing endpoints
 router.post("/editFaculty/:userID", isAdmin, adminController.editfaculty); // Used for faculty editing (not directly visible in current components)
-router.post("/editStudent/:userID", isAdmin, adminController.editstudent); // Used for student editing (not directly visible in current components)
+router.post("/editStudent/:userID", isAdmin, adminController.editstudent); 
+router.get("/problems",isAdmin, adminController.getAllProblems); // Used by: AdminProblems.jsx (line 20) - for fetching all problems
 
 export default router;

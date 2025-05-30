@@ -31,44 +31,47 @@ const adminController = {
     }
   },
   getFaculty: async (req, res) => {
-  const { page = 1, limit = 10, branch, batch, sort, search } = req.body;
+    const { page = 1, limit = 10, branch, batch, sort, search } = req.body;
 
-  try {
-    const skip = (page - 1) * limit;
-    const query = { role: "faculty", isApproved: true };
-    if (branch) query.branch = branch;
-    if (batch) query.batch = batch;
-    if (search) query.$or = [
-        { username: { $regex: search, $options: "i" } },
-        { branch: { $regex: search, $options: "i" } },
-        { batch: { $regex: search, $options: "i" } }
-      ];
+    try {
+      const skip = (page - 1) * limit;
+      const query = { role: "faculty", isApproved: true };
+      if (branch) query.branch = branch;
+      if (batch) query.batch = batch;
+      if (search)
+        query.$or = [
+          { username: { $regex: search, $options: "i" } },
+          { branch: { $regex: search, $options: "i" } },
+          { batch: { $regex: search, $options: "i" } },
+        ];
 
-    let sortOption = { createdAt: -1 };
-    if (sort === "oldest") sortOption = { createdAt: 1 };
+      let sortOption = { createdAt: -1 };
+      if (sort === "oldest") sortOption = { createdAt: 1 };
 
-    const facultys = await User.find(query)
-      .select("username branch email batch createdAt id")
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limit);
+      const facultys = await User.find(query)
+        .select("username branch email batch createdAt id")
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limit);
 
-    const totalFaculty = await User.countDocuments(query);
-    const totalPages = Math.ceil(totalFaculty / limit);
+      const totalFaculty = await User.countDocuments(query);
+      const totalPages = Math.ceil(totalFaculty / limit);
 
-    res.status(200).json({
-      success: true,
-      message: "Faculty fetched successfully.",
-      facultys,
-      totalPages,
-      currentPage: page,
-      totalFaculty,
-    });
-  } catch (error) {
-    console.error("Error in fetching faculty:", error);
-    res.status(500).json({ success: false, message: "Internal server error." });
-  }
-},
+      res.status(200).json({
+        success: true,
+        message: "Faculty fetched successfully.",
+        facultys,
+        totalPages,
+        currentPage: page,
+        totalFaculty,
+      });
+    } catch (error) {
+      console.error("Error in fetching faculty:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error." });
+    }
+  },
   deleteFaculty: async (req, res) => {
     try {
       const { facultyId } = req.body;
@@ -140,7 +143,7 @@ const adminController = {
         role: "faculty",
         isApproved: true, // Auto-approve since admin is creating
         firstTimeLogin: true, // User should change password on first login
-      });      // Save the new faculty
+      }); // Save the new faculty
       await newFaculty.save();
 
       // Send welcome notification
@@ -392,50 +395,51 @@ const adminController = {
       });
     }
   },
- getStudents: async (req, res) => {
-  const { page = 1, limit = 10, branch, batch, sort, search } = req.body;
+  getStudents: async (req, res) => {
+    const { page = 1, limit = 10, branch, batch, sort, search } = req.body;
 
-  try {
-    const skip = (page - 1) * limit;
-    const query = { role: "student", isApproved: true };
-    if (branch) query.branch = branch;
-    if (batch) query.batch = batch;
-     if (search) {
-      query.$or = [
-        { username: { $regex: search, $options: "i" } },
-        { branch: { $regex: search, $options: "i" } },
-        { batch: { $regex: search, $options: "i" } }
-      ];
+    try {
+      const skip = (page - 1) * limit;
+      const query = { role: "student", isApproved: true };
+      if (branch) query.branch = branch;
+      if (batch) query.batch = batch;
+      if (search) {
+        query.$or = [
+          { username: { $regex: search, $options: "i" } },
+          { branch: { $regex: search, $options: "i" } },
+          { batch: { $regex: search, $options: "i" } },
+        ];
+      }
+
+      let sortOption = { createdAt: -1 };
+      if (sort === "oldest") sortOption = { createdAt: 1 };
+
+      const students = await User.find(query)
+        .select("username batch branch semester id createdAt facultyId")
+        .populate("facultyId", "username email")
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limit);
+
+      const totalStudents = await User.countDocuments(query);
+      const totalPages = Math.ceil(totalStudents / limit);
+
+      res.status(200).json({
+        success: true,
+        message: "Students fetched successfully.",
+        students,
+        totalPages,
+        currentPage: page,
+        totalStudents,
+      });
+    } catch (error) {
+      console.error("Error in fetching students:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error." });
     }
-
-    let sortOption = { createdAt: -1 };
-    if (sort === "oldest") sortOption = { createdAt: 1 };
-
-    const students = await User.find(query)
-      .select("username batch branch semester id createdAt facultyId")
-      .populate("facultyId", "username email")
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limit);
-
-    const totalStudents = await User.countDocuments(query);
-    const totalPages = Math.ceil(totalStudents / limit);
-
-    res.status(200).json({
-      success: true,
-      message: "Students fetched successfully.",
-      students,
-      totalPages,
-      currentPage: page,
-      totalStudents,
-    });
-  } catch (error) {
-    console.error("Error in fetching students:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Internal server error." });
-  }
-},  removeStudent: async (req, res) => {
+  },
+  removeStudent: async (req, res) => {
     const { userId } = req.body;
 
     if (!userId) {
@@ -445,7 +449,7 @@ const adminController = {
     }
 
     const session = await mongoose.startSession();
-    
+
     try {
       await session.withTransaction(async () => {
         // Check if the user exists and is a student
@@ -466,9 +470,14 @@ const adminController = {
             const bucket = new GridFSBucket(mongoose.connection.db, {
               bucketName: "uploads",
             });
-            await bucket.delete(new mongoose.Types.ObjectId(user.profile.avatar));
+            await bucket.delete(
+              new mongoose.Types.ObjectId(user.profile.avatar)
+            );
           } catch (gridfsError) {
-            console.warn(`Failed to delete profile picture for user ${userId}:`, gridfsError.message);
+            console.warn(
+              `Failed to delete profile picture for user ${userId}:`,
+              gridfsError.message
+            );
             // Continue with deletion even if profile picture deletion fails
           }
         }
@@ -1019,7 +1028,7 @@ const adminController = {
         role: "student",
         isApproved: true, // Auto-approve since admin is creating
         firstTimeLogin: true, // Student should change password on first login
-      });      // Save the new student
+      }); // Save the new student
       await newStudent.save();
 
       // Send welcome notification
@@ -1031,7 +1040,11 @@ const adminController = {
             "Welcome to Online Programming Submission & Evaluation",
             `Hello ${newStudent.username}, your student account has been created successfully. Use your ID as password for first login.`,
             "account",
-            { accountType: "student", batch: newStudent.batch, semester: newStudent.semester }
+            {
+              accountType: "student",
+              batch: newStudent.batch,
+              semester: newStudent.semester,
+            }
           );
         }
       } catch (notifError) {
@@ -1058,212 +1071,282 @@ const adminController = {
     }
   },
   getAllBranches: async (req, res) => {
-  const branches = await User.distinct("branch", { branch: { $ne: null } });
-  res.json(branches);
-},
+    const branches = await User.distinct("branch", { branch: { $ne: null } });
+    res.json(branches);
+  },
   getAllBatche: async (req, res) => {
-  const batches = await User.distinct("batch", { batch: { $ne: null } });
-  res.json(batches);
-},
-editfaculty: async (req, res) => {
-  const { _id, username, email, id } = req.body;
-  if (!_id) return res.status(400).json({ success: false, message: "Missing faculty ID." });
-  try {
-    const updated = await User.findByIdAndUpdate(
-      _id,
-      { username, email, id },
-      { new: true }
-    );
-    if (!updated) return res.status(404).json({ success: false, message: "Faculty not found." });
-    res.json({ success: true, message: "Faculty updated.", faculty: updated });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Internal server error." });
-  }
-},
+    const batches = await User.distinct("batch", { batch: { $ne: null } });
+    res.json(batches);
+  },
+  editfaculty: async (req, res) => {
+    const { _id, username, email, id } = req.body;
+    if (!_id)
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing faculty ID." });
+    try {
+      const updated = await User.findByIdAndUpdate(
+        _id,
+        { username, email, id },
+        { new: true }
+      );
+      if (!updated)
+        return res
+          .status(404)
+          .json({ success: false, message: "Faculty not found." });
+      res.json({
+        success: true,
+        message: "Faculty updated.",
+        faculty: updated,
+      });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error." });
+    }
+  },
 
-editstudent: async (req, res) => {
-  const { _id, username, id, batch } = req.body;
-  if (!_id) return res.status(400).json({ success: false, message: "Missing student ID." });
-  try {
-    const updated = await User.findByIdAndUpdate(
-      _id,
-      { username, id, batch },
-      { new: true }
-    );
-    if (!updated) return res.status(404).json({ success: false, message: "Student not found." });
-    res.json({ success: true, message: "Student updated.", student: updated });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Internal server error." });
-  }
-},
+  editstudent: async (req, res) => {
+    const { _id, username, id, batch } = req.body;
+    if (!_id)
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing student ID." });
+    try {
+      const updated = await User.findByIdAndUpdate(
+        _id,
+        { username, id, batch },
+        { new: true }
+      );
+      if (!updated)
+        return res
+          .status(404)
+          .json({ success: false, message: "Student not found." });
+      res.json({
+        success: true,
+        message: "Student updated.",
+        student: updated,
+      });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error." });
+    }
+  },
 
-removeFaculty: async (req, res) => {
-  const { facultyId } = req.body;
+  removeFaculty: async (req, res) => {
+    const { facultyId } = req.body;
 
-  if (!facultyId) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Missing Faculty ID." });
-  }
+    if (!facultyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing Faculty ID." });
+    }
 
-  const session = await mongoose.startSession();
-  
-  try {
-    await session.withTransaction(async () => {
-      // Check if the faculty exists
-      const faculty = await User.findById(facultyId).session(session);
-      if (!faculty) {
-        throw new Error("Faculty not found.");
-      }
+    const session = await mongoose.startSession();
 
-      if (faculty.role !== "faculty") {
-        throw new Error("User is not a faculty member.");
-      }
-
-      // 1. Remove profile picture from GridFS if exists
-      if (faculty.profile?.avatar) {
-        try {
-          const bucket = new GridFSBucket(mongoose.connection.db, {
-            bucketName: "uploads",
-          });
-          await bucket.delete(new mongoose.Types.ObjectId(faculty.profile.avatar));
-        } catch (gridfsError) {
-          console.warn(`Failed to delete profile picture for faculty ${facultyId}:`, gridfsError.message);
-          // Continue with deletion even if profile picture deletion fails
+    try {
+      await session.withTransaction(async () => {
+        // Check if the faculty exists
+        const faculty = await User.findById(facultyId).session(session);
+        if (!faculty) {
+          throw new Error("Faculty not found.");
         }
-      }
 
-      // 2. Remove faculty from all batches' faculty field and set to null
-      await Batch.updateMany(
-        { faculty: facultyId },
-        { $unset: { faculty: 1 } },
-        { session }
-      );
+        if (faculty.role !== "faculty") {
+          throw new Error("User is not a faculty member.");
+        }
 
-      // 3. Update contests created by this faculty - transfer ownership or delete
-      const facultyContests = await Contest.find({ created_by: facultyId }).session(session);
-      
-      // Option 1: Delete contests created by faculty (if no admin should inherit them)
-      await Contest.deleteMany({ created_by: facultyId }, { session });
-      
-      // Option 2: Transfer to admin (uncomment if preferred)
-      // const adminUser = await User.findOne({ role: "admin" }).session(session);
-      // if (adminUser) {
-      //   await Contest.updateMany(
-      //     { created_by: facultyId },
-      //     { created_by: adminUser._id },
-      //     { session }
-      //   );
-      // }
+        // 1. Remove profile picture from GridFS if exists
+        if (faculty.profile?.avatar) {
+          try {
+            const bucket = new GridFSBucket(mongoose.connection.db, {
+              bucketName: "uploads",
+            });
+            await bucket.delete(
+              new mongoose.Types.ObjectId(faculty.profile.avatar)
+            );
+          } catch (gridfsError) {
+            console.warn(
+              `Failed to delete profile picture for faculty ${facultyId}:`,
+              gridfsError.message
+            );
+            // Continue with deletion even if profile picture deletion fails
+          }
+        }
 
-      // 4. Update problems created by this faculty
-      const facultyProblems = await Problem.find({ createdBy: facultyId }).session(session);
-      
-      // Option 1: Delete problems created by faculty
-      await Problem.deleteMany({ createdBy: facultyId }, { session });
-      
-      // Option 2: Transfer to admin (uncomment if preferred)
-      // if (adminUser) {
-      //   await Problem.updateMany(
-      //     { createdBy: facultyId },
-      //     { createdBy: adminUser._id },
-      //     { session }
-      //   );
-      // }
+        // 2. Remove faculty from all batches' faculty field and set to null
+        await Batch.updateMany(
+          { faculty: facultyId },
+          { $unset: { faculty: 1 } },
+          { session }
+        );
 
-      // 5. Remove faculty submissions and codes (if any)
-      await Submission.deleteMany({ user_id: facultyId }, { session });
-      await Code.deleteMany({ userId: facultyId }, { session });
+        // 3. Update contests created by this faculty - transfer ownership or delete
+        const facultyContests = await Contest.find({
+          created_by: facultyId,
+        }).session(session);
 
-      // 6. Finally, remove the faculty user
-      await User.deleteOne({ _id: facultyId }, { session });
-    });
+        // Option 1: Delete contests created by faculty (if no admin should inherit them)
+        await Contest.deleteMany({ created_by: facultyId }, { session });
 
-    return res.status(200).json({
+        // Option 2: Transfer to admin (uncomment if preferred)
+        // const adminUser = await User.findOne({ role: "admin" }).session(session);
+        // if (adminUser) {
+        //   await Contest.updateMany(
+        //     { created_by: facultyId },
+        //     { created_by: adminUser._id },
+        //     { session }
+        //   );
+        // }
+
+        // 4. Update problems created by this faculty
+        const facultyProblems = await Problem.find({
+          createdBy: facultyId,
+        }).session(session);
+
+        // Option 1: Delete problems created by faculty
+        await Problem.deleteMany({ createdBy: facultyId }, { session });
+
+        // Option 2: Transfer to admin (uncomment if preferred)
+        // if (adminUser) {
+        //   await Problem.updateMany(
+        //     { createdBy: facultyId },
+        //     { createdBy: adminUser._id },
+        //     { session }
+        //   );
+        // }
+
+        // 5. Remove faculty submissions and codes (if any)
+        await Submission.deleteMany({ user_id: facultyId }, { session });
+        await Code.deleteMany({ userId: facultyId }, { session });
+
+        // 6. Finally, remove the faculty user
+        await User.deleteOne({ _id: facultyId }, { session });
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Faculty and all related data have been successfully removed.",
+      });
+    } catch (error) {
+      console.error("Error in removing faculty:", error.message);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Internal server error.",
+      });
+    } finally {
+      await session.endSession();
+    }
+  },
+
+  removeBatch: async (req, res) => {
+    const { batchId } = req.body;
+
+    if (!batchId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing Batch ID." });
+    }
+
+    const session = await mongoose.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        // Check if the batch exists
+        const batch = await Batch.findById(batchId).session(session);
+        if (!batch) {
+          throw new Error("Batch not found.");
+        }
+
+        const batchName = batch.name;
+
+        // 1. Remove batch from problems' assignedBatches array
+        await Problem.updateMany(
+          { assignedBatches: batchId },
+          { $pull: { assignedBatches: batchId } },
+          { session }
+        );
+
+        // 2. Update submissions that reference this batch
+        // Option 1: Delete submissions related to this batch
+        await Submission.deleteMany({ batch_id: batchId }, { session });
+
+        // Option 2: Set batch_id to null (uncomment if preferred)
+        // await Submission.updateMany(
+        //   { batch_id: batchId },
+        //   { $unset: { batch_id: 1 } },
+        //   { session }
+        // );
+
+        // 3. Update users (students) - remove batch reference
+        await User.updateMany(
+          { batch: batchId },
+          { $unset: { batch: 1 } },
+          { session }
+        );
+
+        // 4. Handle contests that might reference this batch indirectly
+        // Remove batch-specific contest associations if any exist
+        const contestsWithBatchStudents = await Contest.find({
+          assignedStudents: { $in: batch.students },
+        }).session(session);
+
+        // 5. Finally, remove the batch
+        await Batch.deleteOne({ _id: batchId }, { session });
+      });
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Batch and all related references have been successfully removed.",
+      });
+    } catch (error) {
+      console.error("Error in removing batch:", error.message);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Internal server error.",
+      });
+    } finally {
+      await session.endSession();
+    }
+  },
+
+  getAllProblems: async (req, res) => {
+    try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 7;
+    const skip = (page - 1) * limit;
+
+    const [problems, total] = await Promise.all([
+      Problem.find()
+        .populate("createdBy", "username")
+        .populate("assignedBatches", "name")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Problem.countDocuments()
+    ]);
+    const submissionCount=await Promise.all(
+      problems.map(async (problem) => {
+        const count = await Submission.countDocuments({ problem_id: problem._id });
+        return { ...problem, count };
+      })
+    );
+    res.json({
       success: true,
-      message: "Faculty and all related data have been successfully removed.",
+      problems:submissionCount,
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page
     });
+    
   } catch (error) {
-    console.error("Error in removing faculty:", error.message);
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Internal server error.",
-    });
-  } finally {
-    await session.endSession();
+    res.status(500).json({ success: false, message: "Failed to fetch problems." });
   }
-},
+  },
 
-removeBatch: async (req, res) => {
-  const { batchId } = req.body;
-
-  if (!batchId) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Missing Batch ID." });
-  }
-
-  const session = await mongoose.startSession();
-  
-  try {
-    await session.withTransaction(async () => {
-      // Check if the batch exists
-      const batch = await Batch.findById(batchId).session(session);
-      if (!batch) {
-        throw new Error("Batch not found.");
-      }
-
-      const batchName = batch.name;
-
-      // 1. Remove batch from problems' assignedBatches array
-      await Problem.updateMany(
-        { assignedBatches: batchId },
-        { $pull: { assignedBatches: batchId } },
-        { session }
-      );
-
-      // 2. Update submissions that reference this batch
-      // Option 1: Delete submissions related to this batch
-      await Submission.deleteMany({ batch_id: batchId }, { session });
-      
-      // Option 2: Set batch_id to null (uncomment if preferred)
-      // await Submission.updateMany(
-      //   { batch_id: batchId },
-      //   { $unset: { batch_id: 1 } },
-      //   { session }
-      // );
-
-      // 3. Update users (students) - remove batch reference
-      await User.updateMany(
-        { batch: batchId },
-        { $unset: { batch: 1 } },
-        { session }
-      );
-
-      // 4. Handle contests that might reference this batch indirectly
-      // Remove batch-specific contest associations if any exist
-      const contestsWithBatchStudents = await Contest.find({
-        assignedStudents: { $in: batch.students }
-      }).session(session);
-
-      // 5. Finally, remove the batch
-      await Batch.deleteOne({ _id: batchId }, { session });
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Batch and all related references have been successfully removed.",
-    });
-  } catch (error) {
-    console.error("Error in removing batch:", error.message);
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Internal server error.",
-    });
-  } finally {
-    await session.endSession();
-  }
-},
 };
 
 export default adminController;
