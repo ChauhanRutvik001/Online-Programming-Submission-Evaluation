@@ -99,31 +99,28 @@ const CustomTestCase = ({ language, code }) => {
       return result.status?.description || "Unknown";
     }
   };
-
   return (
-    <div className="mt-6 bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white flex items-center">
-          <Terminal className="mr-2 text-blue-400" size={20} />
-          Custom Test Cases
-        </h3>
+        <div className="flex items-center space-x-2">
+          <Terminal className="text-blue-400" size={18} />
+          <h4 className="text-md font-medium text-white">Test Cases</h4>
+        </div>
         <button
           onClick={addCustomTest}
-          className="flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition-colors"
+          className="flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition-colors"
         >
-          <Plus size={16} className="mr-1" />
+          <Plus size={14} className="mr-1" />
           Add Test
         </button>
-      </div>
-
-      <div className="space-y-4">
+      </div>      <div className="space-y-3">
         {customTests.map((test, index) => (
-          <div key={test.id} className="bg-gray-900 rounded-lg p-4 border border-gray-600">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-md font-medium text-white">Test Case {index + 1}</h4>
+          <div key={test.id} className="bg-gray-900 rounded-lg p-3 border border-gray-600">
+            <div className="flex items-center justify-between mb-2">
+              <h5 className="text-sm font-medium text-white">Test Case {index + 1}</h5>
               <div className="flex items-center space-x-2">
                 {test.result && (
-                  <div className="flex items-center space-x-1 text-sm">
+                  <div className="flex items-center space-x-1 text-xs">
                     {getStatusIcon(test.result)}
                     <span className={`${
                       test.result.error ? 'text-red-400' :
@@ -132,14 +129,15 @@ const CustomTestCase = ({ language, code }) => {
                       {getStatusText(test.result)}
                     </span>
                     {test.result.time && (
-                      <span className="text-gray-400 ml-2 flex items-center">
-                        <Clock size={12} className="mr-1" />
+                      <span className="text-gray-400 ml-1 flex items-center">
+                        <Clock size={10} className="mr-0.5" />
                         {test.result.time}s
                       </span>
-                    )}                    {test.result.memory && (
-                      <span className="text-gray-400 ml-2 flex items-center">
-                        <HardDrive size={12} className="mr-1" />
-                        {(test.result.memory / 1024).toFixed(2)}MB
+                    )}
+                    {test.result.memory && (
+                      <span className="text-gray-400 ml-1 flex items-center">
+                        <HardDrive size={10} className="mr-0.5" />
+                        {(test.result.memory / 1024).toFixed(1)}MB
                       </span>
                     )}
                   </div>
@@ -147,53 +145,51 @@ const CustomTestCase = ({ language, code }) => {
                 <button
                   onClick={() => runCustomTest(test.id)}
                   disabled={test.isRunning}
-                  className={`flex items-center px-3 py-1 rounded-md text-sm transition-colors ${
+                  className={`flex items-center px-2 py-1 rounded text-xs transition-colors ${
                     test.isRunning 
                       ? "bg-gray-600 text-gray-400 cursor-not-allowed" 
                       : "bg-green-600 hover:bg-green-700 text-white"
                   }`}
                 >
-                  <Play size={14} className="mr-1" />
+                  <Play size={12} className="mr-1" />
                   {test.isRunning ? "Running..." : "Run"}
                 </button>
                 {customTests.length > 1 && (
                   <button
                     onClick={() => removeCustomTest(test.id)}
-                    className="flex items-center px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm transition-colors"
+                    className="flex items-center px-1.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs transition-colors"
                   >
-                    <X size={14} />
+                    <X size={12} />
                   </button>
                 )}
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            </div>            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Input Section */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-xs font-medium text-gray-300 mb-1">
                   Input:
                 </label>
                 <textarea
                   value={test.input}
                   onChange={(e) => updateTestInput(test.id, e.target.value)}
                   placeholder="Enter your custom input here..."
-                  className="w-full h-32 p-3 bg-gray-700 border border-gray-600 rounded-md text-white text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-24 p-2 bg-gray-700 border border-gray-600 rounded text-white text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
               {/* Output Section */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-xs font-medium text-gray-300 mb-1">
                   Output:
                 </label>
-                <div className="w-full h-32 p-3 bg-gray-700 border border-gray-600 rounded-md text-white text-sm font-mono overflow-auto">
+                <div className="w-full h-24 p-2 bg-gray-700 border border-gray-600 rounded text-white text-xs font-mono overflow-auto">
                   {test.isRunning ? (
                     <div className="flex items-center justify-center h-full">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-                      <span className="ml-2 text-gray-400">Running...</span>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                      <span className="ml-2 text-gray-400 text-xs">Running...</span>
                     </div>
                   ) : test.output ? (
-                    <pre className="whitespace-pre-wrap text-sm">
+                    <pre className="whitespace-pre-wrap text-xs">
                       {test.result?.error ? (
                         <span className="text-red-400">{test.output}</span>
                       ) : (
@@ -201,17 +197,16 @@ const CustomTestCase = ({ language, code }) => {
                       )}
                     </pre>
                   ) : (
-                    <span className="text-gray-500 italic">No output yet. Click 'Run' to execute.</span>
+                    <span className="text-gray-500 italic text-xs">No output yet. Click 'Run' to execute.</span>
                   )}
                 </div>
               </div>
             </div>
           </div>
         ))}
-      </div>      <div className="mt-4 p-3 bg-blue-900/20 border border-blue-800/30 rounded-lg">
-        <p className="text-sm text-blue-200">
-          <strong>💡 Tip:</strong> Use custom test cases to debug your code with specific inputs. 
-          This helps you understand how your solution behaves with different data before submitting.
+      </div>      <div className="mt-3 p-2 bg-blue-900/20 border border-blue-800/30 rounded">
+        <p className="text-xs text-blue-200">
+          <strong>💡 Tip:</strong> Use custom test cases to debug your code with specific inputs before submitting.
         </p>
       </div>
     </div>

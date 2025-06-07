@@ -45,10 +45,10 @@ int main() {
   });
 
   const [results, setResults] = useState(null);
-  const [activeTestCaseIndex, setActiveTestCaseIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeTestCaseIndex, setActiveTestCaseIndex] = useState(0);  const [isLoading, setIsLoading] = useState(false);
   const [runLoading, setRunLoading] = useState(false);
-  const [submitLoading, setSubmitLoading] = useState(false);  const [error, setError] = useState(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [apiKeyError, setApiKeyError] = useState(null); // Separate state for API key errors
   const previousLanguageRef = useRef(language);
   const [theme, setTheme] = useState("vs-dark"); // Default theme
@@ -56,6 +56,7 @@ int main() {
   // Auto-save functionality state
   const [saveStatus, setSaveStatus] = useState("saved"); // 'saved', 'saving', 'unsaved', 'error'
   const [lastSavedCode, setLastSavedCode] = useState({});
+  const [isCustomTestOpen, setIsCustomTestOpen] = useState(false);
   const autoSaveTimeoutRef = useRef(null);
   const saveInProgressRef = useRef(false);
   useEffect(() => {
@@ -226,7 +227,13 @@ int main() {
 
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme); // Update theme state
+  };  const handleClearResults = () => {
+    setResults(null);
+    setError(null);
+    setApiKeyError(null);
+    setActiveTestCaseIndex(0);
   };
+
   const handleRun = async () => {
     setIsLoading(true);
     setRunLoading(true);
@@ -457,22 +464,37 @@ int main() {
       setSaveStatus("error");
       toast.error("Failed to save code. Please try again.");
     }
-  };
-  return (
+  };  return (
     <div className="code-editor bg-gray-900 p-6 shadow-lg">
+      {/* API Usage Stats */}
       <ApiUsageStats />
+      
+      {/* API Key Error Display - Priority Position */}
+      {apiKeyError && (
+        <div className="mb-6">
+          <ErrorDisplay
+            error={apiKeyError}
+            onGoToProfile={() => navigate('/profile?tab=apikeys')}
+          />
+        </div>
+      )}
+
+      {/* Language and Score Selector */}
       <ScoreAndLanguageSelector
         language={language}
         handleLanguageChange={handleLanguageChange}
         score={problem.totalMarks}
       />
+
+      {/* Code Editor Area */}
       <CodeEditorArea
         language={language}
         code={codeByLanguage[language] || ""}
         handleEditorChange={handleEditorChange}
-        theme={theme} // Pass the theme to CodeEditorArea
-        handleThemeChange={handleThemeChange} // Pass the theme change handler
-      />      <TestCaseResults
+        theme={theme}
+        handleThemeChange={handleThemeChange}
+      />      {/* Test Case Results */}
+      <TestCaseResults
         results={results}
         activeTestCaseIndex={activeTestCaseIndex}
         setActiveTestCaseIndex={setActiveTestCaseIndex}
@@ -482,24 +504,59 @@ int main() {
         handleRun={handleRun}
         handleSubmit={handleSubmit}
         handleSaveCode={handleSaveCode}
+        handleClearResults={handleClearResults}
         error={error}
         apiKeyError={apiKeyError}
         isPastDue={isPastDue}
         saveStatus={saveStatus}
       />
 
-      <CustomTestCase 
-        language={language}
-        code={codeByLanguage[language] || ""}
-      />{/* API Key Error Display */}
-      {apiKeyError && (
-        <div className="mt-4">
-          <ErrorDisplay
-            error={apiKeyError}
-            onGoToProfile={() => navigate('/profile?tab=apikeys')}
-          />
+      {/* Custom Test Cases - Collapsible */}
+      <div className="mt-6">
+        <button
+          onClick={() => setIsCustomTestOpen(!isCustomTestOpen)}
+          className="flex items-center justify-between w-full p-4 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 transition-colors duration-200"
+        >
+          <div className="flex items-center space-x-2">
+            <div className="p-2 bg-blue-600 rounded-lg">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-white">Custom Test Cases</h3>
+              <p className="text-sm text-gray-400">Test your code with custom inputs</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-400">
+              {isCustomTestOpen ? 'Hide' : 'Show'}
+            </span>
+            <svg 
+              className={`w-5 h-5 text-gray-400 transform transition-transform duration-200 ${
+                isCustomTestOpen ? 'rotate-180' : ''
+              }`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </button>
+
+        {/* Collapsible Custom Test Content */}
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isCustomTestOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
+        }`}>
+          <div className="pt-4">
+            <CustomTestCase 
+              language={language}
+              code={codeByLanguage[language] || ""}
+            />
+          </div>
         </div>
-      )}
+      </div>
 
       {assignLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">

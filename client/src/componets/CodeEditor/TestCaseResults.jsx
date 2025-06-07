@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { X } from "lucide-react";
 
 const TestCaseResults = ({
   results,
@@ -11,6 +12,7 @@ const TestCaseResults = ({
   handleRun,
   handleSubmit,
   handleSaveCode,
+  handleClearResults,
   error,
   apiKeyError,
   isPastDue,
@@ -137,28 +139,45 @@ const TestCaseResults = ({
           className={`px-4 py-2 rounded-lg shadow-md transition-all duration-200 flex items-center space-x-2 ${statusConfig.bgColor} ${statusConfig.textColor} hover:opacity-90 disabled:opacity-50`}
         >
           <span>{statusConfig.icon}</span>
-          <span>{saveStatus === 'saving' ? 'Saving...' : 'Save Code'}</span>        </button>      </div>
-
-      {error && !apiKeyError && (
-        <div className="mt-4 p-4 bg-red-800 text-red-200 rounded-lg shadow-lg max-w-full overflow-auto">
+          <span>{saveStatus === 'saving' ? 'Saving...' : 'Save Code'}</span>        </button>      </div>      {error && !apiKeyError && (
+        <div className="mt-4 p-4 bg-red-800 text-red-200 rounded-lg shadow-lg max-w-full overflow-auto relative">
+          <button
+            onClick={handleClearResults}
+            className="absolute top-2 right-2 text-red-200 hover:text-white transition-colors"
+            title="Close error message"
+          >
+            <X size={18} />
+          </button>
           <strong>Error:</strong> {error}
         </div>
-      )}      {hasResults && !error && !apiKeyError ? (
+      )}{hasResults && !error && !apiKeyError ? (
         <div className="mt-6">
-          <div className="flex space-x-4">
-            {results.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setActiveTestCaseIndex(index)}
-                className={`px-3 py-2 rounded-lg shadow-md transition-all duration-200 ${
-                  activeTestCaseIndex === index
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                }`}
-              >
-                Case {index + 1}
-              </button>
-            ))}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex space-x-4">
+              {results.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setActiveTestCaseIndex(index)}
+                  className={`px-3 py-2 rounded-lg shadow-md transition-all duration-200 ${
+                    activeTestCaseIndex === index
+                      ? "bg-green-500 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  Case {index + 1}
+                </button>
+              ))}
+            </div>
+            
+            {/* Close/Clear Results Button */}
+            <button
+              onClick={handleClearResults}
+              className="flex items-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-md transition-all duration-200"
+              title="Close test case results"
+            >
+              <X size={16} className="mr-1" />
+              Close Results
+            </button>
           </div>
 
           {currentTestCase && (
