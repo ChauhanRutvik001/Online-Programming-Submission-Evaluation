@@ -59,7 +59,8 @@ const problemSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Creator is required"],
-    },    totalMarks: {
+    },
+    totalMarks: {
       type: Number,
       required: [true, "Total marks are required"],
       min: 0,
@@ -68,10 +69,12 @@ const problemSchema = new Schema(
     assignedBatches: [
       { type: Schema.Types.ObjectId, ref: "Batch", default: [] },
     ], // Batches assigned to the problem
-    dueDate: {
-      type: Date,
-      required: false,
-    },
+    batchDueDates: [
+      {
+        batch: { type: mongoose.Schema.Types.ObjectId, ref: "Batch" },
+        dueDate: { type: Date },
+      },
+    ],
   },
   {
     timestamps: true,

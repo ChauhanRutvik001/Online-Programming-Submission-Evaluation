@@ -9,12 +9,12 @@ const BatchAssignedStudents = () => {
   const [batches, setBatches] = useState([]);
   const [selectedBatchIds, setSelectedBatchIds] = useState([]);
   const [assignedBatchIds, setAssignedBatchIds] = useState([]);
-  const [dueDate, setDueDate] = useState("");
+  const [batchDueDates, setBatchDueDates] = useState([]); // [{ batchId, dueDate }]
   const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch faculty's batches
+  // Fetch faculty's batches and assigned batches/due dates for this problem
   useEffect(() => {
     const fetchBatches = async () => {
       setLoading(true);
@@ -32,22 +32,22 @@ const BatchAssignedStudents = () => {
       }
     };
 
-    // Fetch assigned batches for this problem
     const fetchProblemData = async () => {
       try {
-        // First get the problem to get its due date
+        // Get the problem to get its batchDueDates
         const problemResponse = await axiosInstance.get(`/problems/${problemId}`);
-        if (problemResponse.data.dueDate) {
-          setDueDate(new Date(problemResponse.data.dueDate).toISOString().substring(0, 16));
-        }
-        
-        // Then get the assigned batches
-        const batchesResponse = await axiosInstance.get(`/problems/${problemId}/batches`);
-        if (batchesResponse.data.success) {
-          const assignedBatches = batchesResponse.data.batches || [];
-          setAssignedBatchIds(assignedBatches.map(batch => batch._id));
-          setSelectedBatchIds(assignedBatches.map(batch => batch._id));
-        }
+        const problem = problemResponse.data.problem || problemResponse.data;
+        // batchDueDates: [{ batch, dueDate }]
+        const batchDueDatesArr = (problem.batchDueDates || []).map(bd => ({
+          batchId: bd.batch,
+          dueDate: bd.dueDate ? new Date(bd.dueDate).toISOString().substring(0, 16) : ""
+        }));
+        setBatchDueDates(batchDueDatesArr);
+
+        // Get the assigned batches
+        const assignedBatchIdsArr = batchDueDatesArr.map(bd => bd.batchId);
+        setAssignedBatchIds(assignedBatchIdsArr);
+        setSelectedBatchIds(assignedBatchIdsArr);
       } catch (err) {
         setError("Failed to load problem data: " + err.message);
       }
@@ -63,61 +63,77 @@ const BatchAssignedStudents = () => {
       setSelectedBatchIds(selectedBatchIds.filter(id => id !== batchId));
     } else {
       setSelectedBatchIds([...selectedBatchIds, batchId]);
+      // If not already in batchDueDates, add with empty dueDate
+      if (!batchDueDates.some(b => b.batchId === batchId)) {
+        setBatchDueDates([...batchDueDates, { batchId, dueDate: "" }]);
+      }
     }
   };
-  
-  // Handle date change
-  const handleDateChange = (e) => {
-    setDueDate(e.target.value);
+
+  // Handle due date change for a batch
+  const handleBatchDueDateChange = (batchId, newDueDate) => {
+    setBatchDueDates(prev =>
+      prev.some(b => b.batchId === batchId)
+        ? prev.map(b =>
+            b.batchId === batchId ? { ...b, dueDate: newDueDate } : b
+          )
+        : [...prev, { batchId, dueDate: newDueDate }]
+    );
   };
-  
+
   // Save all assignment changes
   const handleSaveChanges = async () => {
     const batchesToAssign = selectedBatchIds.filter(
       id => !assignedBatchIds.includes(id)
     );
-    
     const batchesToUnassign = assignedBatchIds.filter(
       id => !selectedBatchIds.includes(id)
     );
-    
-    if (batchesToAssign.length === 0 && batchesToUnassign.length === 0 && dueDate === "") {
+
+    if (
+      batchesToAssign.length === 0 &&
+      batchesToUnassign.length === 0 &&
+      selectedBatchIds.every(batchId => {
+        const due = batchDueDates.find(b => b.batchId === batchId)?.dueDate || "";
+        return !due;
+      })
+    ) {
       toast.info("No changes to save");
       return;
     }
-    
+
     setProcessing(true);
-    
+
     try {
-      // Process batch assignments if needed
-      if (batchesToAssign.length > 0) {
+      // Assign batches with their due dates
+      if (batchesToAssign.length > 0 || batchDueDates.length > 0) {
+        // Only send selected batches with their due dates
+        const batchDueDatesToSend = batchDueDates
+          .filter(b => selectedBatchIds.includes(b.batchId))
+          .map(b => ({
+            batchId: b.batchId,
+            dueDate: b.dueDate || null
+          }));
+
         await axiosInstance.post(`/problems/${problemId}/assignBatches`, {
-          batchIds: batchesToAssign,
-          dueDate: dueDate || null
+          batchDueDates: batchDueDatesToSend
         });
-        
-        // Update assigned batches
+
         setAssignedBatchIds([...assignedBatchIds, ...batchesToAssign]);
       }
-      
-      // Process batch unassignments if needed
+
+      // Unassign batches if needed
       if (batchesToUnassign.length > 0) {
         await axiosInstance.post(`/problems/${problemId}/unassign-batches`, {
           batchIds: batchesToUnassign
         });
-        
-        // Update assigned batches
+
         setAssignedBatchIds(assignedBatchIds.filter(id => !batchesToUnassign.includes(id)));
       }
-        // Update due date if it's changed
-      if (dueDate) {
-        await axiosInstance.put(`/problems/${problemId}`, {
-          dueDate: dueDate
-        });
-      }
-      
+
       toast.success("Assignment changes saved successfully!");
-      setError(null);    } catch (error) {
+      setError(null);
+    } catch (error) {
       const errorMsg = error.response?.data?.message || error.message || "Unknown error";
       console.error("Assignment error:", error);
       toast.error(`Failed to save assignment changes: ${errorMsg}`);
@@ -137,7 +153,7 @@ const BatchAssignedStudents = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="relative min-h-screen bg-gray-900 text-white p-6">
       <h1 className="text-2xl font-bold mb-6 pt-20 text-center">
@@ -145,7 +161,7 @@ const BatchAssignedStudents = () => {
       </h1>
 
       {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
-      
+
       {/* Loading overlay for processing actions */}
       {processing && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
@@ -187,54 +203,59 @@ const BatchAssignedStudents = () => {
         </button>
       </div>
 
-      {/* Due Date Section */}
+      {/* Batch selection section with per-batch due date */}
       <div className="mb-8 bg-gray-800 rounded-lg p-4">
-        <h2 className="text-xl font-semibold mb-4 text-blue-400">1. Set Due Date (Optional)</h2>
-        <div className="flex items-center">
-          <input
-            type="datetime-local"
-            value={dueDate}
-            onChange={handleDateChange}
-            className="bg-gray-700 text-white px-4 py-2 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="ml-4 text-gray-400">
-            {dueDate ? (
-              <>Due on: {new Date(dueDate).toLocaleString()}</>
-            ) : (
-              <>No due date set. Students can submit anytime.</>
-            )}
-          </p>
-        </div>
-      </div>
-
-      {/* Batch selection section */}
-      <div className="mb-8 bg-gray-800 rounded-lg p-4">
-        <h2 className="text-xl font-semibold mb-4 text-blue-400">2. Select Batches to Assign</h2>
-        
+        <h2 className="text-xl font-semibold mb-4 text-blue-400">1. Select Batches and Set Due Dates</h2>
         {batches.length === 0 ? (
           <p className="text-gray-400">No batches found. Create batches to assign problems to students.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {batches.map((batch) => (
-              <div 
-                key={batch._id}
-                className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                  selectedBatchIds.includes(batch._id)
-                    ? "border-blue-500 bg-blue-900/30"
-                    : "border-gray-700 bg-gray-800/50 hover:bg-gray-700/50"
-                }`}
-                onClick={() => handleBatchSelect(batch._id)}
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">{batch.name}</h3>
-                  <span className="px-2 py-1 text-sm rounded-full bg-blue-500/20 text-blue-300">
-                    {batch.students?.length || 0} Students
-                  </span>
+            {batches.map((batch) => {
+              const isSelected = selectedBatchIds.includes(batch._id);
+              const dueDateValue =
+                batchDueDates.find(b => b.batchId === batch._id)?.dueDate || "";
+              return (
+                <div
+                  key={batch._id}
+                  className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                    isSelected
+                      ? "border-blue-500 bg-blue-900/30"
+                      : "border-gray-700 bg-gray-800/50 hover:bg-gray-700/50"
+                  }`}
+                  onClick={() => handleBatchSelect(batch._id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">{batch.name}</h3>
+                    <span className="px-2 py-1 text-sm rounded-full bg-blue-500/20 text-blue-300">
+                      {batch.students?.length || 0} Students
+                    </span>
+                  </div>
+                  <p className="text-gray-400 text-sm mt-2">{batch.subject || "No subject"}</p>
+                  <p className="text-gray-400 text-sm mt-1">{batch.description || "No description"}</p>
+                  {isSelected && (
+                    <div className="mt-4">
+                      <label className="block text-gray-300 mb-1 text-sm">
+                        Due Date for this Batch (optional)
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={dueDateValue}
+                        onChange={e =>
+                          handleBatchDueDateChange(batch._id, e.target.value)
+                        }
+                        className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600"
+                        onClick={e => e.stopPropagation()}
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        {dueDateValue
+                          ? `Due on: ${new Date(dueDateValue).toLocaleString()}`
+                          : "No due date set for this batch."}
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <p className="text-gray-400 text-sm mt-2">{batch.subject || "No subject"}</p>
-                <p className="text-gray-400 text-sm mt-1">{batch.description || "No description"}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -277,9 +298,8 @@ const BatchAssignedStudents = () => {
           <div className="px-4 py-2 bg-gray-700/50 rounded-lg">
             <p className="text-sm text-gray-400">Changes to Save</p>
             <p className="text-xl font-semibold text-amber-400">
-              {selectedBatchIds.filter(id => !assignedBatchIds.includes(id)).length + 
-               assignedBatchIds.filter(id => !selectedBatchIds.includes(id)).length +
-               (dueDate ? 1 : 0)}
+              {selectedBatchIds.filter(id => !assignedBatchIds.includes(id)).length +
+                assignedBatchIds.filter(id => !selectedBatchIds.includes(id)).length}
             </p>
           </div>
         </div>

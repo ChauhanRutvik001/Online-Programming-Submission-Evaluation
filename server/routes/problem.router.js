@@ -15,7 +15,8 @@ import {
   unassignBatches,
   getProblemByIdForUpdate,
   getProblemBatches,
-  getProblemsByBatch
+  getProblemsByBatch,
+  getRecentDueProblems
 } from '../controllers/problem.controller.js';
 import { isAdminOrFaculty, isAuthorized } from '../middlewares/auth.js';
 
@@ -39,7 +40,7 @@ router.post('/:id/assignBatches', isAdminOrFaculty, assignProblemToBatches); // 
 router.post('/:id/unassign-batches', isAdminOrFaculty, unassignBatches); // Used by: Problem/BatchAssignedStudents.jsx (line 105) - Unassign batches from problem
 router.get('/:id/batches', isAdminOrFaculty, getProblemBatches); // Used by: Problem/BatchAssignedStudents.jsx (line 45) - Get batches assigned to problem
 router.get('/batch/:batchId', getProblemsByBatch); // Used by: Problem/BatchProblems.jsx (line 24) - Get problems by batch for students
-
+router.get('/recent-due-problems', isAuthorized, getRecentDueProblems)
 // Public routes (All authenticated users)
 router.get('/', getProblems); // Used for problem listing (not directly visible in current components)
 router.get('/:id', getProblemById); // Used by: Problem/ProblemShow.jsx (line 42), Problem/BatchAssignedStudents.jsx (line 39) - Get problem details

@@ -5,6 +5,60 @@ import user from "../models/user.js";
 import Batch from "../models/batch.js";
 import mongoose from "mongoose";
 
+// Get recent due problems for a student (top 5 soonest due, with batchId)
+export const getRecentDueProblems = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    // Find all batches the student is in
+    const batches = await Batch.find({ students: studentId, isActive: true });
+
+    // Collect all assigned problems and their batch context
+    let problemsWithBatch = [];
+    for (const batch of batches) {
+      // Get all assigned problems for this batch
+      const problems = await Problem.find({ _id: { $in: batch.assignedProblems } })
+        .select("_id title difficulty createdAt batchDueDates");
+
+      // For each problem, extract the due date for this batch
+      problems.forEach(problem => {
+        const entry = (problem.batchDueDates || []).find(
+          (b) => b.batch?.toString() === batch._id.toString()
+        );
+        if (entry && entry.dueDate) {
+          problemsWithBatch.push({
+            _id: problem._id,
+            title: problem.title,
+            difficulty: problem.difficulty,
+            createdAt: problem.createdAt,
+            dueDate: entry.dueDate,
+            batchId: batch._id, // include batchId for frontend navigation
+          });
+        }
+      });
+    }
+
+    // Filter to only upcoming due dates
+    const now = new Date();
+    problemsWithBatch = problemsWithBatch
+      .filter(p => p.dueDate && new Date(p.dueDate) >= now)
+      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+      .slice(0, 5); // Top 5 soonest due
+
+    return res.status(200).json({
+      success: true,
+      problems: problemsWithBatch,
+    });
+  } catch (error) {
+    console.error("Error fetching recent due problems:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch recent due problems",
+      error: error.message,
+    });
+  }
+};
+
 // Create a new problem
 export const createProblem = async (req, res) => {
   const {
@@ -95,7 +149,7 @@ export const getProblems = async (req, res) => {
     let problems;
     const { isAdmin, id: userId } = req.user;
 
-    if (isAdmin === "admin") {
+    if (isAdmin === "faculty" || isAdmin === "admin") {
       problems = await Problem.find({}).sort({ createdAt: -1 });
     } else if (isAdmin === "faculty") {
       problems = await Problem.find({ createdBy: userId }).sort({
@@ -412,7 +466,7 @@ export const getProblemById = async (req, res) => {
     console.log("req.user", req.user);
 
     // Admins have unrestricted access
-    if (isAdmin === "admin") {
+    if (isAdmin === "faculty" || isAdmin === "admin") {
       return res.json(problem);
     }
 
@@ -590,10 +644,10 @@ export const deleteProblem = async (req, res) => {
 // Assign problem to batches
 export const assignProblemToBatches = async (req, res) => {
   const { id } = req.params; // Problem ID
-  const { batchIds, dueDate } = req.body; // Array of batch IDs and optional due date
+  const { batchDueDates } = req.body; // Array of { batchId, dueDate }
 
-  if (!Array.isArray(batchIds) || batchIds.length === 0) {
-    return res.status(400).json({ message: "No batch IDs provided." });
+  if (!Array.isArray(batchDueDates) || batchDueDates.length === 0) {
+    return res.status(400).json({ message: "No batch due dates provided." });
   }
 
   try {
@@ -603,33 +657,50 @@ export const assignProblemToBatches = async (req, res) => {
       return res.status(404).json({ message: "Problem not found" });
     }
 
-    // Check authorization - only the creator or admin can assign
+    // Check authorization - only faculty or admin can assign
     const userId = req.user.id;
     const userRole = req.user.isAdmin;
-
-    if (problem.createdBy.toString() !== userId.toString() && userRole !== "admin") {
+    console.log("userRole", userRole);
+    if (userRole !== "admin" && userRole !== "faculty") {
       return res.status(403).json({ message: "Unauthorized to assign this problem to batches" });
     }
 
+    // Extract batchIds for permission check
+    const batchIds = batchDueDates.map(b => b.batchId);
+
     // Verify all batches exist and are accessible to this faculty
-    const batches = await Batch.find({ 
+    const batches = await Batch.find({
       _id: { $in: batchIds },
       $or: [
         { faculty: userId },
         { createdBy: userId }
       ]
     });
-    
-    if (batches.length !== batchIds.length) {
-      return res.status(400).json({ 
-        message: "Some batches don't exist or you don't have permission to assign to them." 
-      });
-    }    // Add batches to assignedBatches if not already there
-    for (const batchId of batchIds) {
-      if (!problem.assignedBatches.includes(batchId)) {
+
+    const foundBatchIds = batches.map(b => b._id.toString());
+    const missingBatchIds = batchIds.filter(id => !foundBatchIds.includes(id));
+    if (missingBatchIds.length > 0) {
+      return res.status(400).json({
+        message: "Some batches don't exist or you don't have permission to assign to them.",
+        missingBatchIds
+      }); 
+    }
+
+    // Add batches to assignedBatches if not already there, and update batchDueDates
+    for (const { batchId, dueDate } of batchDueDates) {
+      // Add to assignedBatches if not present
+      if (!problem.assignedBatches.map(b => b.toString()).includes(batchId)) {
         problem.assignedBatches.push(batchId);
       }
-      
+
+      // Update or add due date for this batch
+      const idx = problem.batchDueDates.findIndex(b => b.batch.toString() === batchId);
+      if (idx > -1) {
+        problem.batchDueDates[idx].dueDate = new Date(dueDate);
+      } else {
+        problem.batchDueDates.push({ batch: batchId, dueDate: new Date(dueDate) });
+      }
+
       // Update the batch to include this problem in its assignedProblems array
       await Batch.findByIdAndUpdate(
         batchId,
@@ -638,16 +709,15 @@ export const assignProblemToBatches = async (req, res) => {
       );
     }
 
-    // Update due date if provided
-    if (dueDate) {
-      problem.dueDate = new Date(dueDate);
-    }    await problem.save();    // Save the problem with the updated batch assignments and due date
+    await problem.save(); // Save the problem with the updated batch assignments and due dates
 
     // Send notifications to students in the batches
     try {
       const { notificationService } = await import("../app.js");
       if (notificationService) {
         for (const batch of batches) {
+          // Find the due date for this batch
+          const dueDateObj = problem.batchDueDates.find(b => b.batch.toString() === batch._id.toString());
           // Send notification to each student in the batch
           for (const studentId of batch.students) {
             await notificationService.createNotification(
@@ -655,28 +725,28 @@ export const assignProblemToBatches = async (req, res) => {
               "New Problem Assigned",
               `A new problem "${problem.title}" has been assigned to your batch ${batch.name}.`,
               "problem",
-              { 
+              {
                 problemId: problem._id.toString(),
                 problemTitle: problem.title,
                 batchId: batch._id.toString(),
                 batchName: batch.name,
-                dueDate: problem.dueDate
+                dueDate: dueDateObj ? dueDateObj.dueDate : null
               }
             );
           }
-          
+
           // Send notification to the faculty of the batch
           await notificationService.createNotification(
             batch.faculty.toString(),
             "Problem Assigned to Your Batch",
             `Problem "${problem.title}" has been assigned to your batch ${batch.name}.`,
             "problem",
-            { 
+            {
               problemId: problem._id.toString(),
               problemTitle: problem.title,
               batchId: batch._id.toString(),
               batchName: batch.name,
-              dueDate: problem.dueDate
+              dueDate: dueDateObj ? dueDateObj.dueDate : null
             }
           );
         }
@@ -687,9 +757,9 @@ export const assignProblemToBatches = async (req, res) => {
 
     const totalStudentCount = batches.reduce((count, batch) => count + batch.students.length, 0);
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: `Problem assigned to ${batches.length} batches with access for ${totalStudentCount} students.`,
-      problem 
+      problem
     });
   } catch (error) {
     console.error("Error assigning problem to batches:", error);

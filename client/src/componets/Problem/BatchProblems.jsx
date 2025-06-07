@@ -44,6 +44,8 @@ const BatchProblems = () => {
       year: "numeric",
       month: "short",
       day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -53,6 +55,15 @@ const BatchProblems = () => {
     const now = new Date();
     const due = new Date(dueDate);
     return now > due;
+  };
+
+  // Get due date for this batch from batchDueDates array
+  const getBatchDueDate = (problem, batchId) => {
+    if (!problem.batchDueDates) return null;
+    const entry = problem.batchDueDates.find(
+      (b) => b.batch === batchId || b.batchId === batchId
+    );
+    return entry ? entry.dueDate : null;
   };
 
   if (loading) {
@@ -131,73 +142,76 @@ const BatchProblems = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {problems.map((problem) => (
-              <div
-                key={problem._id}
-                className={`bg-gray-800 rounded-lg border overflow-hidden shadow-lg transition-transform duration-200 hover:transform hover:scale-[1.02] ${
-                  isPastDue(problem.dueDate)
-                    ? "border-red-900/50"
-                    : "border-gray-700"
-                }`}
-              >
-                <div className="p-5">
-                  <div className="flex justify-between items-start">
-                    <h3 className="text-lg font-semibold text-white mb-2 flex-1">
-                      {problem.title}
-                    </h3>
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        problem.difficulty === "Easy"
-                          ? "bg-green-900/50 text-green-400"
-                          : problem.difficulty === "Medium"
-                          ? "bg-yellow-900/50 text-yellow-400"
-                          : "bg-red-900/50 text-red-400"
-                      }`}
-                    >
-                      {problem.difficulty}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex items-center text-gray-400 text-sm">
-                    <User size={14} className="mr-1" />
-                    <span>
-                      By {problem.createdBy?.firstName || "Faculty"}{" "}
-                      {problem.createdBy?.lastName || ""}
-                    </span>
-                  </div>
-
-                  <div className="mt-2 flex items-center text-gray-400 text-sm">
-                    <CalendarDays size={14} className="mr-1" />
-                    <span>Created on {formatDate(problem.createdAt)}</span>
-                  </div>
-
-                  {problem.dueDate && (
-                    <div
-                      className={`mt-2 flex items-center text-sm ${
-                        isPastDue(problem.dueDate)
-                          ? "text-red-400"
-                          : "text-gray-400"
-                      }`}
-                    >
-                      <Clock size={14} className="mr-1" />
-                      <span>
-                        {isPastDue(problem.dueDate) ? "Was due on " : "Due by "}
-                        {formatDate(problem.dueDate)}
+            {problems.map((problem) => {
+              const dueDate = getBatchDueDate(problem, batchId);
+              return (
+                <div
+                  key={problem._id}
+                  className={`bg-gray-800 rounded-lg border overflow-hidden shadow-lg transition-transform duration-200 hover:transform hover:scale-[1.02] ${
+                    isPastDue(dueDate)
+                      ? "border-red-900/50"
+                      : "border-gray-700"
+                  }`}
+                >
+                  <div className="p-5">
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-lg font-semibold text-white mb-2 flex-1">
+                        {problem.title}
+                      </h3>
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          problem.difficulty === "Easy"
+                            ? "bg-green-900/50 text-green-400"
+                            : problem.difficulty === "Medium"
+                            ? "bg-yellow-900/50 text-yellow-400"
+                            : "bg-red-900/50 text-red-400"
+                        }`}
+                      >
+                        {problem.difficulty}
                       </span>
                     </div>
-                  )}
-                </div>
 
-                <div className="bg-gray-900 px-5 py-3 border-t border-gray-800">
-                  <Link
-                    to={`/problems/${problem._id}`}
-                    className="text-blue-400 hover:text-blue-300 text-sm font-medium transition flex items-center justify-center w-full"
-                  >
-                    Open Problem
-                  </Link>
+                    <div className="mt-3 flex items-center text-gray-400 text-sm">
+                      <User size={14} className="mr-1" />
+                      <span>
+                        By {problem.createdBy?.firstName || "Faculty"}{" "}
+                        {problem.createdBy?.lastName || ""}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 flex items-center text-gray-400 text-sm">
+                      <CalendarDays size={14} className="mr-1" />
+                      <span>Created on {formatDate(problem.createdAt)}</span>
+                    </div>
+
+                    {dueDate && (
+                      <div
+                        className={`mt-2 flex items-center text-sm ${
+                          isPastDue(dueDate)
+                            ? "text-red-400"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        <Clock size={14} className="mr-1" />
+                        <span>
+                          {isPastDue(dueDate) ? "Was due on " : "Due by "}
+                          {formatDate(dueDate)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-gray-900 px-5 py-3 border-t border-gray-800">
+                    <Link
+                      to={`/problems/${problem._id}/${batchId}`}
+                      className="text-blue-400 hover:text-blue-300 text-sm font-medium transition flex items-center justify-center w-full"
+                    >
+                      Open Problem
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

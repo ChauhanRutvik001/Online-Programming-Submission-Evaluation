@@ -57,7 +57,7 @@ const appRouter = createBrowserRouter([
       { path: "/pending-requests", element: <AdminPage /> },
       { path: "/problem-form", element: <ProblemForm /> },
       { path: "/problem-form/:id", element: <ProblemForm /> },
-      { path: "/problems/:id", element: <ProblemShow /> },
+      { path: "/problems/:id/:batchId", element: <ProblemShow /> },
       { path: "/profile", element: <Profile /> },
       { path: "/dashboard/:problemId", element: <Dashboard /> },
       { path: "/history", element: <History /> },

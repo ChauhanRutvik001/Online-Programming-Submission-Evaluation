@@ -1,6 +1,6 @@
-import Batch from '../models/batch.js';
-import Problem from '../models/problem.js';
-import Submission from '../models/submission.js';
+import Batch from "../models/batch.js";
+import Problem from "../models/problem.js";
+import Submission from "../models/submission.js";
 
 const studentBatchController = {
   // Get all batches that a student is part of (with server-side search & pagination)
@@ -8,11 +8,11 @@ const studentBatchController = {
     try {
       const studentId = req.user.id;
       const {
-        search = '',
+        search = "",
         page = 1,
         limit = 10,
-        sortBy = 'createdAt',
-        sortOrder = 'desc',
+        sortBy = "createdAt",
+        sortOrder = "desc",
       } = req.query;
       const skip = (parseInt(page) - 1) * parseInt(limit);
       // Build query
@@ -22,17 +22,17 @@ const studentBatchController = {
       };
       if (search) {
         query.$or = [
-          { name: { $regex: search, $options: 'i' } },
-          { subject: { $regex: search, $options: 'i' } },
+          { name: { $regex: search, $options: "i" } },
+          { subject: { $regex: search, $options: "i" } },
         ];
       }
       // Build sort
       const sortOptions = {};
-      sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+      sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
       // Query batches
       const batches = await Batch.find(query)
-        .populate('faculty', 'username email id')
-        .populate('students', 'username id')
+        .populate("faculty", "username email id")
+        .populate("students", "username id")
         .sort(sortOptions)
         .skip(skip)
         .limit(parseInt(limit));
@@ -49,51 +49,74 @@ const studentBatchController = {
       console.error("Error fetching student batches:", error);
       return res.status(500).json({
         success: false,
-        message: "An error occurred while fetching batches"
+        message: "An error occurred while fetching batches",
       });
     }
   },
-  
-  // Get specific batch details 
+
+  // Get specific batch details
   getBatchDetails: async (req, res) => {
     try {
       const { batchId } = req.params;
       const studentId = req.user.id;
-      
+
       // Find the batch and ensure the student is part of it
-      const batch = await Batch.findOne({ 
-        _id: batchId, 
+      const batch = await Batch.findOne({
+        _id: batchId,
         students: studentId,
-        isActive: true 
+        isActive: true,
       })
-        .populate('faculty', 'username email id')
-        .populate('students', 'username id email branch semester batch')
+        .populate("faculty", "username email id")
+        .populate("students", "username id email branch semester batch")
         .populate({
-          path: 'assignedProblems',
-          select: 'title difficulty createdAt dueDate', 
+          path: "assignedProblems",
+          select: "title difficulty createdAt batchDueDates",
           populate: {
-            path: 'createdBy',
-            select: 'username'
-          }
+            path: "createdBy",
+            select: "username",
+          },
         });
-        
+
       if (!batch) {
         return res.status(404).json({
           success: false,
-          message: "Batch not found or you don't have access to it"
+          message: "Batch not found or you don't have access to it",
         });
       }
-      
+      const assignedProblemsWithDueDate = batch.assignedProblems.map(
+        (problem) => {
+          let dueDate = null;
+          if (problem.batchDueDates && problem.batchDueDates.length > 0) {
+            const entry = problem.batchDueDates.find(
+              (b) => b.batch?.toString() === batchId
+            );
+            if (entry) {
+              dueDate = entry.dueDate;
+            }
+          }
+          return {
+            _id: problem._id,
+            title: problem.title,
+            difficulty: problem.difficulty,
+            createdAt: problem.createdAt,
+            dueDate,
+            createdBy: problem.createdBy,
+          };
+        }
+      );
       return res.status(200).json({
         success: true,
-        batch
+        batch:{
+          ...batch.toObject(),
+          assignedProblems: assignedProblemsWithDueDate,  
+        }
       });
     } catch (error) {
       console.error("Error fetching batch details:", error);
       return res.status(500).json({
         success: false,
         message: "An error occurred while fetching batch details",
-        error: error.message
+        error: error.message,
       });
     }
   },
@@ -104,73 +127,340 @@ const studentBatchController = {
       const { batchId } = req.params;
       const studentId = req.user.id;
       const {
-        search = '',
+        search = "",
         page = 1,
         limit = 10,
-        sortBy = 'createdAt',
-        sortOrder = 'desc'
+        sortBy = "createdAt",
+        sortOrder = "desc",
       } = req.query;
 
       // First verify the student has access to this batch
       const batch = await Batch.findOne({
         _id: batchId,
         students: studentId,
-        isActive: true
+        isActive: true,
       });
 
       if (!batch) {
         return res.status(404).json({
           success: false,
-          message: "Batch not found or you don't have access to it"
+          message: "Batch not found or you don't have access to it",
         });
       }
 
       // Build query for problems
       const query = {
-        _id: { $in: batch.assignedProblems }
+        _id: { $in: batch.assignedProblems },
       };
 
       if (search) {
         query.$or = [
-          { title: { $regex: search, $options: 'i' } },
-          { difficulty: { $regex: search, $options: 'i' } }
+          { title: { $regex: search, $options: "i" } },
+          { difficulty: { $regex: search, $options: "i" } },
         ];
       }
 
       // Build sort options
       const sortOptions = {};
-      sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+      sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
 
       // Get problems with pagination
       const skip = (parseInt(page) - 1) * parseInt(limit);
-      
+
       const [problems, totalProblems] = await Promise.all([
         Problem.find(query)
-          .select('_id title difficulty createdAt dueDate')
-          .populate('createdBy', 'username')
+          .select("_id title difficulty createdAt batchDueDates")
+          .populate("createdBy", "username")
           .sort(sortOptions)
           .skip(skip)
           .limit(parseInt(limit)),
-        Problem.countDocuments(query)
-      ]);      return res.status(200).json({
+        Problem.countDocuments(query),
+      ]);
+      const problemsWithDueDate = problems.map((problem) => {
+        let dueDate = null;
+        if (problem.batchDueDates && problem.batchDueDates.length > 0) {
+          const entry = problem.batchDueDates.find(
+            (b) => b.batch?.toString() === batchId
+          );
+          if (entry) {
+            dueDate = entry.dueDate;
+          }
+        }
+        return {
+          _id: problem._id,
+          title: problem.title,
+          difficulty: problem.difficulty,
+          createdAt: problem.createdAt,
+          dueDate, // per-batch due date
+          createdBy: problem.createdBy,
+        };
+      });
+      return res.status(200).json({
         success: true,
         problems,
         totalProblems,
         currentPage: parseInt(page),
-        totalPages: Math.ceil(totalProblems / parseInt(limit))
+        totalPages: Math.ceil(totalProblems / parseInt(limit)),
       });
     } catch (error) {
       console.error("Error fetching batch problems:", error);
       return res.status(500).json({
         success: false,
         message: "An error occurred while fetching problems",
-        error: error.message
+        error: error.message,
       });
     }
   },
 
   // Get batch progress analytics for students
-  getBatchProgress: async (req, res) => {
+//   getBatchProgress: async (req, res) => {
+//     try {
+//       const { batchId } = req.params;
+//       const studentId = req.user.id;
+
+//       // First verify the student has access to this batch
+//       const batch = await Batch.findOne({
+//         _id: batchId,
+//         students: studentId,
+//         isActive: true,
+//       }).populate("students", "username id email branch semester batch");
+
+//       if (!batch) {
+//         return res.status(404).json({
+//           success: false,
+//           message: "Batch not found or you don't have access to it",
+//         });
+//       }
+
+//       // Get all problems assigned to this batch
+// const problems = await Problem.find({
+//   _id: { $in: batch.assignedProblems }
+// }).select('_id title difficulty createdAt batchDueDates');
+
+//       // Get all student IDs in this batch
+//       const batchStudentIds = batch.students.map((student) => student._id);
+
+//       // Get all submissions for batch students on batch problems
+//       const submissions = await Submission.find({
+//         user_id: { $in: batchStudentIds },
+//         problem_id: { $in: batch.assignedProblems },
+//       })
+//         .populate("user_id", "username id")
+//         .populate("problem_id", "title difficulty");
+
+//       // Calculate progress statistics
+//       const progressStats = {
+//         totalStudents: batch.students.length,
+//         totalProblems: problems.length,
+//         submissionStats: {},
+//         problemStats: {},
+//         studentStats: {},
+//         overallProgress: {},
+//       };
+
+//       // Calculate per-problem statistics
+//       problems.forEach((problem) => {
+//         const problemSubmissions = submissions.filter(
+//           (sub) => sub.problem_id._id.toString() === problem._id.toString()
+//         );
+
+//         // Get highest marks per student for this problem
+//         const studentBestSubmissions = {};
+//         problemSubmissions.forEach((sub) => {
+//           const studentId = sub.user_id._id.toString();
+//           if (
+//             !studentBestSubmissions[studentId] ||
+//             sub.totalMarks > studentBestSubmissions[studentId].totalMarks
+//           ) {
+//             studentBestSubmissions[studentId] = sub;
+//           }
+//         });
+
+//         const bestSubmissions = Object.values(studentBestSubmissions);
+//         const studentsAttempted = bestSubmissions.length;
+//         const studentsCompleted = bestSubmissions.filter(
+//           (sub) =>
+//             sub.numberOfTestCasePass === sub.numberOfTestCase &&
+//             sub.numberOfTestCase > 0
+//         ).length;
+//         const studentsPartial = bestSubmissions.filter(
+//           (sub) =>
+//             sub.numberOfTestCasePass > 0 &&
+//             sub.numberOfTestCasePass < sub.numberOfTestCase
+//         ).length;
+
+//         progressStats.problemStats[problem._id] = {
+//           title: problem.title,
+//           difficulty: problem.difficulty,
+//           studentsAttempted,
+//           studentsCompleted,
+//           studentsPartial,
+//           completionRate:
+//             studentsAttempted > 0
+//               ? ((studentsCompleted / studentsAttempted) * 100).toFixed(1)
+//               : 0,
+//           attemptRate: (
+//             (studentsAttempted / progressStats.totalStudents) *
+//             100
+//           ).toFixed(1),
+//           averageScore:
+//             bestSubmissions.length > 0
+//               ? (
+//                   bestSubmissions.reduce((sum, sub) => {
+//                     const score =
+//                       sub.numberOfTestCase > 0
+//                         ? (sub.numberOfTestCasePass / sub.numberOfTestCase) *
+//                           100
+//                         : 0;
+//                     return sum + score;
+//                   }, 0) / bestSubmissions.length
+//                 ).toFixed(1)
+//               : 0,
+//         };
+//       }); // Calculate per-student statistics
+//       batch.students.forEach((student) => {
+//         const studentSubmissions = submissions.filter(
+//           (sub) => sub.user_id._id.toString() === student._id.toString()
+//         );
+
+//         // Get best submission per problem for this student
+//         const problemsAttempted = new Set();
+//         const problemsCompleted = new Set();
+//         let totalScore = 0;
+//         let problemsWithScores = 0;
+
+//         const studentBestByProblem = {};
+//         const problemDetails = {}; // Add detailed problem status for each student
+
+//         studentSubmissions.forEach((sub) => {
+//           const problemId = sub.problem_id._id.toString();
+//           if (
+//             !studentBestByProblem[problemId] ||
+//             sub.totalMarks > studentBestByProblem[problemId].totalMarks
+//           ) {
+//             studentBestByProblem[problemId] = sub;
+//           }
+//         });
+
+//         // Calculate problem details for this student
+//         problems.forEach((problem) => {
+//           const problemId = problem._id.toString();
+//           const bestSub = studentBestByProblem[problemId];
+
+//           if (bestSub) {
+//             problemsAttempted.add(problemId);
+//             const score =
+//               bestSub.numberOfTestCase > 0
+//                 ? (bestSub.numberOfTestCasePass / bestSub.numberOfTestCase) *
+//                   100
+//                 : 0;
+//             const isCompleted =
+//               bestSub.numberOfTestCasePass === bestSub.numberOfTestCase &&
+//               bestSub.numberOfTestCase > 0;
+
+//             if (isCompleted) {
+//               problemsCompleted.add(problemId);
+//             }
+
+//             if (bestSub.numberOfTestCase > 0) {
+//               totalScore += score;
+//               problemsWithScores++;
+//             }
+
+//             problemDetails[problemId] = {
+//               status: isCompleted ? "completed" : "attempted",
+//               score: score.toFixed(1),
+//               testCasesPassed: bestSub.numberOfTestCasePass,
+//               totalTestCases: bestSub.numberOfTestCase,
+//               submissionDate: bestSub.createdAt,
+//             };
+//           } else {
+//             problemDetails[problemId] = {
+//               status: "not_started",
+//               score: 0,
+//               testCasesPassed: 0,
+//               totalTestCases: 0,
+//               submissionDate: null,
+//             };
+//           }
+//         });
+
+//         progressStats.studentStats[student._id] = {
+//           username: student.username,
+//           problemsAttempted: problemsAttempted.size,
+//           problemsCompleted: problemsCompleted.size,
+//           completionRate:
+//             problemsAttempted.size > 0
+//               ? (
+//                   (problemsCompleted.size / problemsAttempted.size) *
+//                   100
+//                 ).toFixed(1)
+//               : 0,
+//           averageScore:
+//             problemsWithScores > 0
+//               ? (totalScore / problemsWithScores).toFixed(1)
+//               : 0,
+//           progressPercentage: (
+//             (problemsAttempted.size / progressStats.totalProblems) *
+//             100
+//           ).toFixed(1),
+//           problemDetails, // Add individual problem details
+//         };
+//       });
+
+//       // Calculate overall batch statistics
+//       const allStudentStats = Object.values(progressStats.studentStats);
+//       progressStats.overallProgress = {
+//         averageCompletionRate:
+//           allStudentStats.length > 0
+//             ? (
+//                 allStudentStats.reduce(
+//                   (sum, stat) => sum + parseFloat(stat.completionRate),
+//                   0
+//                 ) / allStudentStats.length
+//               ).toFixed(1)
+//             : 0,
+//         averageScore:
+//           allStudentStats.length > 0
+//             ? (
+//                 allStudentStats.reduce(
+//                   (sum, stat) => sum + parseFloat(stat.averageScore),
+//                   0
+//                 ) / allStudentStats.length
+//               ).toFixed(1)
+//             : 0,
+//         studentsActive: allStudentStats.filter(
+//           (stat) => stat.problemsAttempted > 0
+//         ).length,
+//         totalSubmissions: submissions.length,
+//         averageAttemptsPerStudent: (
+//           submissions.length / progressStats.totalStudents
+//         ).toFixed(1),
+//       };
+
+//       return res.status(200).json({
+//         success: true,
+//         batch: {
+//           _id: batch._id,
+//           name: batch.name,
+//           subject: batch.subject,
+//           branch: batch.branch,
+//           semester: batch.semester,
+//         },
+//         progressStats,
+//         problems,
+//       });
+//     } catch (error) {
+//       console.error("Error fetching batch progress:", error);
+//       return res.status(500).json({
+//         success: false,
+//         message: "An error occurred while fetching batch progress",
+//         error: error.message,
+//       });
+//     }
+//   },
+
+ getBatchProgress: async (req, res) => {
     try {
       const { batchId } = req.params;
       const studentId = req.user.id;
@@ -179,84 +469,128 @@ const studentBatchController = {
       const batch = await Batch.findOne({
         _id: batchId,
         students: studentId,
-        isActive: true
-      }).populate('students', 'username id email branch semester batch');
+        isActive: true,
+      }).populate("students", "username id email branch semester batch");
 
       if (!batch) {
         return res.status(404).json({
           success: false,
-          message: "Batch not found or you don't have access to it"
+          message: "Batch not found or you don't have access to it",
         });
       }
 
-      // Get all problems assigned to this batch
+      // Get all problems assigned to this batch, including batchDueDates
       const problems = await Problem.find({
         _id: { $in: batch.assignedProblems }
-      }).select('_id title difficulty createdAt dueDate');
+      }).select('_id title difficulty createdAt batchDueDates');
+
+      // CHANGED: Map problems to include only the due date for this batch
+      const problemsWithDueDate = problems.map(problem => {
+        let dueDate = null;
+        if (problem.batchDueDates && problem.batchDueDates.length > 0) {
+          const entry = problem.batchDueDates.find(
+            (b) => b.batch?.toString() === batchId
+          );
+          if (entry) {
+            dueDate = entry.dueDate;
+          }
+        }
+        return {
+          _id: problem._id,
+          title: problem.title,
+          difficulty: problem.difficulty,
+          createdAt: problem.createdAt,
+          dueDate, // per-batch due date
+        };
+      });
 
       // Get all student IDs in this batch
-      const batchStudentIds = batch.students.map(student => student._id);
+      const batchStudentIds = batch.students.map((student) => student._id);
 
       // Get all submissions for batch students on batch problems
       const submissions = await Submission.find({
         user_id: { $in: batchStudentIds },
-        problem_id: { $in: batch.assignedProblems }
-      }).populate('user_id', 'username id').populate('problem_id', 'title difficulty');
+        problem_id: { $in: batch.assignedProblems },
+      })
+        .populate("user_id", "username id")
+        .populate("problem_id", "title difficulty");
 
       // Calculate progress statistics
       const progressStats = {
         totalStudents: batch.students.length,
-        totalProblems: problems.length,
+        totalProblems: problemsWithDueDate.length,
         submissionStats: {},
         problemStats: {},
         studentStats: {},
-        overallProgress: {}
+        overallProgress: {},
       };
 
       // Calculate per-problem statistics
-      problems.forEach(problem => {
-        const problemSubmissions = submissions.filter(sub => 
-          sub.problem_id._id.toString() === problem._id.toString()
+      problemsWithDueDate.forEach((problem) => {
+        const problemSubmissions = submissions.filter(
+          (sub) => sub.problem_id._id.toString() === problem._id.toString()
         );
 
         // Get highest marks per student for this problem
         const studentBestSubmissions = {};
-        problemSubmissions.forEach(sub => {
+        problemSubmissions.forEach((sub) => {
           const studentId = sub.user_id._id.toString();
-          if (!studentBestSubmissions[studentId] || 
-              sub.totalMarks > studentBestSubmissions[studentId].totalMarks) {
+          if (
+            !studentBestSubmissions[studentId] ||
+            sub.totalMarks > studentBestSubmissions[studentId].totalMarks
+          ) {
             studentBestSubmissions[studentId] = sub;
           }
         });
 
         const bestSubmissions = Object.values(studentBestSubmissions);
         const studentsAttempted = bestSubmissions.length;
-        const studentsCompleted = bestSubmissions.filter(sub => 
-          sub.numberOfTestCasePass === sub.numberOfTestCase && sub.numberOfTestCase > 0
+        const studentsCompleted = bestSubmissions.filter(
+          (sub) =>
+            sub.numberOfTestCasePass === sub.numberOfTestCase &&
+            sub.numberOfTestCase > 0
         ).length;
-        const studentsPartial = bestSubmissions.filter(sub => 
-          sub.numberOfTestCasePass > 0 && sub.numberOfTestCasePass < sub.numberOfTestCase
+        const studentsPartial = bestSubmissions.filter(
+          (sub) =>
+            sub.numberOfTestCasePass > 0 &&
+            sub.numberOfTestCasePass < sub.numberOfTestCase
         ).length;
 
         progressStats.problemStats[problem._id] = {
           title: problem.title,
           difficulty: problem.difficulty,
+          dueDate: problem.dueDate, // include due date in stats
           studentsAttempted,
           studentsCompleted,
           studentsPartial,
-          completionRate: studentsAttempted > 0 ? (studentsCompleted / studentsAttempted * 100).toFixed(1) : 0,
-          attemptRate: (studentsAttempted / progressStats.totalStudents * 100).toFixed(1),
-          averageScore: bestSubmissions.length > 0 ? 
-            (bestSubmissions.reduce((sum, sub) => {
-              const score = sub.numberOfTestCase > 0 ? 
-                (sub.numberOfTestCasePass / sub.numberOfTestCase) * 100 : 0;
-              return sum + score;
-            }, 0) / bestSubmissions.length).toFixed(1) : 0
+          completionRate:
+            studentsAttempted > 0
+              ? ((studentsCompleted / studentsAttempted) * 100).toFixed(1)
+              : 0,
+          attemptRate: (
+            (studentsAttempted / progressStats.totalStudents) *
+            100
+          ).toFixed(1),
+          averageScore:
+            bestSubmissions.length > 0
+              ? (
+                  bestSubmissions.reduce((sum, sub) => {
+                    const score =
+                      sub.numberOfTestCase > 0
+                        ? (sub.numberOfTestCasePass / sub.numberOfTestCase) *
+                          100
+                        : 0;
+                    return sum + score;
+                  }, 0) / bestSubmissions.length
+                ).toFixed(1)
+              : 0,
         };
-      });      // Calculate per-student statistics
-      batch.students.forEach(student => {
-        const studentSubmissions = submissions.filter(sub => 
-          sub.user_id._id.toString() === student._id.toString()
+      });
+
+      // Calculate per-student statistics
+      batch.students.forEach((student) => {
+        const studentSubmissions = submissions.filter(
+          (sub) => sub.user_id._id.toString() === student._id.toString()
         );
 
         // Get best submission per problem for this student
@@ -268,48 +602,57 @@ const studentBatchController = {
         const studentBestByProblem = {};
         const problemDetails = {}; // Add detailed problem status for each student
 
-        studentSubmissions.forEach(sub => {
+        studentSubmissions.forEach((sub) => {
           const problemId = sub.problem_id._id.toString();
-          if (!studentBestByProblem[problemId] || 
-              sub.totalMarks > studentBestByProblem[problemId].totalMarks) {
+          if (
+            !studentBestByProblem[problemId] ||
+            sub.totalMarks > studentBestByProblem[problemId].totalMarks
+          ) {
             studentBestByProblem[problemId] = sub;
           }
         });
 
         // Calculate problem details for this student
-        problems.forEach(problem => {
+        problemsWithDueDate.forEach((problem) => {
           const problemId = problem._id.toString();
           const bestSub = studentBestByProblem[problemId];
-          
+
           if (bestSub) {
             problemsAttempted.add(problemId);
-            const score = bestSub.numberOfTestCase > 0 ? 
-              (bestSub.numberOfTestCasePass / bestSub.numberOfTestCase) * 100 : 0;
-            const isCompleted = bestSub.numberOfTestCasePass === bestSub.numberOfTestCase && bestSub.numberOfTestCase > 0;
-            
+            const score =
+              bestSub.numberOfTestCase > 0
+                ? (bestSub.numberOfTestCasePass / bestSub.numberOfTestCase) *
+                  100
+                : 0;
+            const isCompleted =
+              bestSub.numberOfTestCasePass === bestSub.numberOfTestCase &&
+              bestSub.numberOfTestCase > 0;
+
             if (isCompleted) {
               problemsCompleted.add(problemId);
             }
-            
+
             if (bestSub.numberOfTestCase > 0) {
               totalScore += score;
               problemsWithScores++;
             }
 
             problemDetails[problemId] = {
-              status: isCompleted ? 'completed' : 'attempted',
+              status: isCompleted ? "completed" : "attempted",
               score: score.toFixed(1),
               testCasesPassed: bestSub.numberOfTestCasePass,
               totalTestCases: bestSub.numberOfTestCase,
-              submissionDate: bestSub.createdAt
+              submissionDate: bestSub.createdAt,
+              dueDate: problem.dueDate, // include due date in details
             };
           } else {
             problemDetails[problemId] = {
-              status: 'not_started',
+              status: "not_started",
               score: 0,
               testCasesPassed: 0,
               totalTestCases: 0,
-              submissionDate: null
+              submissionDate: null,
+              dueDate: problem.dueDate, // include due date in details
             };
           }
         });
@@ -318,24 +661,53 @@ const studentBatchController = {
           username: student.username,
           problemsAttempted: problemsAttempted.size,
           problemsCompleted: problemsCompleted.size,
-          completionRate: problemsAttempted.size > 0 ? 
-            (problemsCompleted.size / problemsAttempted.size * 100).toFixed(1) : 0,
-          averageScore: problemsWithScores > 0 ? (totalScore / problemsWithScores).toFixed(1) : 0,
-          progressPercentage: (problemsAttempted.size / progressStats.totalProblems * 100).toFixed(1),
-          problemDetails // Add individual problem details
+          completionRate:
+            problemsAttempted.size > 0
+              ? (
+                  (problemsCompleted.size / problemsAttempted.size) *
+                  100
+                ).toFixed(1)
+              : 0,
+          averageScore:
+            problemsWithScores > 0
+              ? (totalScore / problemsWithScores).toFixed(1)
+              : 0,
+          progressPercentage: (
+            (problemsAttempted.size / progressStats.totalProblems) *
+            100
+          ).toFixed(1),
+          problemDetails, // Add individual problem details
         };
       });
 
       // Calculate overall batch statistics
       const allStudentStats = Object.values(progressStats.studentStats);
       progressStats.overallProgress = {
-        averageCompletionRate: allStudentStats.length > 0 ? 
-          (allStudentStats.reduce((sum, stat) => sum + parseFloat(stat.completionRate), 0) / allStudentStats.length).toFixed(1) : 0,
-        averageScore: allStudentStats.length > 0 ? 
-          (allStudentStats.reduce((sum, stat) => sum + parseFloat(stat.averageScore), 0) / allStudentStats.length).toFixed(1) : 0,
-        studentsActive: allStudentStats.filter(stat => stat.problemsAttempted > 0).length,
+        averageCompletionRate:
+          allStudentStats.length > 0
+            ? (
+                allStudentStats.reduce(
+                  (sum, stat) => sum + parseFloat(stat.completionRate),
+                  0
+                ) / allStudentStats.length
+              ).toFixed(1)
+            : 0,
+        averageScore:
+          allStudentStats.length > 0
+            ? (
+                allStudentStats.reduce(
+                  (sum, stat) => sum + parseFloat(stat.averageScore),
+                  0
+                ) / allStudentStats.length
+              ).toFixed(1)
+            : 0,
+        studentsActive: allStudentStats.filter(
+          (stat) => stat.problemsAttempted > 0
+        ).length,
         totalSubmissions: submissions.length,
-        averageAttemptsPerStudent: (submissions.length / progressStats.totalStudents).toFixed(1)
+        averageAttemptsPerStudent: (
+          submissions.length / progressStats.totalStudents
+        ).toFixed(1),
       };
 
       return res.status(200).json({
@@ -345,20 +717,22 @@ const studentBatchController = {
           name: batch.name,
           subject: batch.subject,
           branch: batch.branch,
-          semester: batch.semester
+          semester: batch.semester,
         },
         progressStats,
-        problems
+        problems: problemsWithDueDate, // return problems with due dates
       });
     } catch (error) {
       console.error("Error fetching batch progress:", error);
       return res.status(500).json({
         success: false,
         message: "An error occurred while fetching batch progress",
-        error: error.message
+        error: error.message,
       });
     }
-  }
+  },
+  
+  
 };
 
 export default studentBatchController;

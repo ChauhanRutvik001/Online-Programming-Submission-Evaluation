@@ -118,6 +118,15 @@ const BatchDetails = () => {
   const currentProblems = sortedProblems?.slice(indexOfFirstProblem, indexOfLastProblem);
   const totalProblemPages = Math.ceil((filteredProblems?.length || 0) / problemsPerPage);
 
+  // Helper to get due date for this batch
+  const getDueDateForBatch = (problem) => {
+    if (!problem.batchDueDates) return null;
+    const entry = problem.batchDueDates.find(
+      (b) => b.batch === batchId || b.batchId === batchId
+    );
+    return entry ? entry.dueDate : null;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 text-white">
@@ -253,7 +262,20 @@ const BatchDetails = () => {
                         <div className="text-sm text-gray-300">{problem.createdAt ? formatDate(problem.createdAt) : '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-300">{problem.dueDate ? formatDate(problem.dueDate) : '-'}</div>
+                        {(() => {
+                          const due = problem.dueDate || getDueDateForBatch(problem);
+                          if (!due) return <span className="text-gray-400">-</span>;
+                          const isPast = new Date(due) < new Date();
+                          return (
+                            <span
+                              className={`text-sm flex items-center gap-1 ${isPast ? "text-red-400" : "text-gray-300"}`}
+                              title={isPast ? `Due Passed: ${formatDate(due)}` : `Due: ${formatDate(due)}`}
+                            >
+                              <Calendar size={14} />
+                              {isPast ? "Due Passed" : formatDate(due)}
+                            </span>
+                          );
+                        })()}
                       </td>                      <td className="px-6 py-4 whitespace-nowrap hover:cursor-pointer" onClick={() => navigate(`/dashboard/${problem._id}?batchId=${batchId}`)}>
                         <div className="text-blue-400 hover:underline font-semibold text-left">Progress</div>
                       </td>

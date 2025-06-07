@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
-import Sidebar from "./Sidebar";
+import { FaUserGraduate } from "react-icons/fa"; // Add icon for header
 
 const STUDENTS_PER_PAGE = 5;
 
@@ -59,28 +59,45 @@ const SemesterStudentList = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white">
-      <nav className="w-full bg-gradient-to-b from-gray-800 via-grey-800 to-gray-800  px-4 flex items-center justify-between z-40">
-        {/* Hamburger for small screens */}
-      </nav>
-      <Sidebar />
-      <main className="flex-1 md:ml-60 flex flex-col items-center px-2 md:px-7 py-8 mt-16">
-        <div className="w-full max-w-5xl">
-          <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-blue-200">
+    <div className="relative min-h-screen bg-gray-900 text-white p-0 md:p-4">
+      {/* Header Section */}
+      <div className="py-6 mb-0 border-b border-blue-900">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center mt-14">
+            <div className="flex items-center mb-4 md:mb-0">
+              <FaUserGraduate className="h-8 w-8 mr-3 text-blue-300" />
+              <h1 className="text-3xl font-bold tracking-tight">
                 Semester {semesterId} - Students by Batch
               </h1>
-              <p className="text-blue-300 text-base">
-                Students are shown batch-wise, 5 per page.
-              </p>
             </div>
             <button
-              className="py-2 px-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-lg shadow-md hover:from-blue-600 hover:to-indigo-700 active:scale-95 transition transform duration-200"
+              className="py-2.5 px-6 flex items-center bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-200 active:scale-95"
               onClick={() => navigate(-1)}
             >
-              Back
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 mr-2"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Back to Dashboard
             </button>
+          </div>
+        </div>
+      </div>
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col items-center px-2 md:px-7 py-8">
+        <div className="w-full">
+          <div className="mb-8">
+            <p className="text-blue-300 text-base">
+              Students are shown batch-wise, 5 per page.
+            </p>
           </div>
           <div className="bg-gray-900 rounded-lg shadow-md p-4">
             {loading ? (

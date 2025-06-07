@@ -4,20 +4,12 @@ import axiosInstance from '../../utils/axiosInstance';
 import { toast } from 'react-toastify';
 import ConfirmationModal from '../ConfirmationModal';
 import {
-  FaUserPlus,
   FaLayerGroup,
-  FaUserTie,
-  FaUsers,
-  FaChalkboardTeacher,
-  FaHome,
 } from "react-icons/fa";
-import Sidebar from './Sidebar';
-
 
 const BatchDetails = () => {
   const { batchId } = useParams();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [batch, setBatch] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +51,6 @@ const BatchDetails = () => {
         });
       }
     } catch (error) {
-      console.error('Error fetching batch details:', error);
       toast.error('Failed to load batch details');
       navigate('/admin/batch/batches');
     } finally {
@@ -75,9 +66,7 @@ const BatchDetails = () => {
       if (response.data.success) {
         setFacultyList(response.data.facultys);
       }
-    } catch (error) {
-      console.error('Error fetching faculty:', error);
-    }
+    } catch (error) {}
   };
   const fetchAllStudents = async () => {
     try {
@@ -88,9 +77,7 @@ const BatchDetails = () => {
       if (response.data.success) {
         setAllStudents(response.data.students);
       }
-    } catch (error) {
-      console.error('Error fetching students:', error);
-    }
+    } catch (error) {}
   };
 
   const handleInputChange = (e) => {
@@ -144,7 +131,6 @@ const BatchDetails = () => {
         fetchBatchDetails();
       }
     } catch (error) {
-      console.error('Error removing student:', error);
       toast.error('Failed to remove student');
     } finally {
       setShowRemoveModal(false);
@@ -156,7 +142,6 @@ const BatchDetails = () => {
     try {
       // Update batch details
       const updateResponse = await axiosInstance.put(`/admin/batch/batches/${batchId}`, formData);
-      
       if (updateResponse.data.success) {
         // If there are students to add
         if (studentsToAdd.length > 0) {
@@ -164,13 +149,11 @@ const BatchDetails = () => {
             studentIds: studentsToAdd
           });
         }
-        
         toast.success('Batch updated successfully');
         setEditMode(false);
         fetchBatchDetails();
       }
     } catch (error) {
-      console.error('Error updating batch:', error);
       toast.error(error.response?.data?.message || 'Failed to update batch');
     } finally {
       setSaving(false);
@@ -194,8 +177,8 @@ const BatchDetails = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
-        <div className="spinner"></div>
+      <div className="flex justify-center items-center h-screen bg-gray-900">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-blue-500 border-opacity-75"></div>
         <p className="ml-3 text-white">Loading batch details...</p>
       </div>
     );
@@ -203,7 +186,7 @@ const BatchDetails = () => {
 
   if (!batch) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center">
         <div className="text-center py-10">
           <h2 className="text-2xl font-bold text-white">Batch not found</h2>
           <button
@@ -218,67 +201,48 @@ const BatchDetails = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white">
-      {/* Navbar */}
-      <nav className="w-full bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-800 shadow-lg px-4 py-4 flex items-center justify-between z-40">
-        {/* Hamburger for small screens */}
-      </nav>
-      <div className="flex gap-x-2 md:gap-x-0">
-      <Sidebar/>
-        {/* Sidebar for large screens */}
-        {/* Sidebar Drawer for small screens */}
-        {/* Main Content */}
-        <main className="flex-1 md:ml-60 flex flex-col items-center px-2 md:px-8 py-8">
-          {/* Heading after sidebar */}
-          <div className="w-full max-w-5xl flex flex-col gap-2 mb-6 mt-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-blue-200 flex items-center gap-2">
-                  <FaLayerGroup className="inline-block text-blue-400" /> {batch.name}
-                </h1>
-                <p className="text-blue-300 text-sm mt-1">
-                  Created: {new Date(batch.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleToggleEditMode}
-                  className={`px-4 py-2 rounded text-sm font-medium ${
-                    editMode
-                      ? 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  {editMode ? 'Cancel' : 'Edit Batch'}
-                </button>
-                {editMode && (
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header */}
+      <div className="py-6 mb-4 border-b border-blue-900">
+              <div className="container mx-auto px-4">
+                <div className="flex flex-col md:flex-row justify-between items-center mt-16 gap-4">
+                  <div className="flex items-center mb-4 md:mb-0">
+                    <FaLayerGroup className="h-8 w-8 mr-3 text-blue-300" />
+                    <h1 className="text-3xl font-bold tracking-tight">{batch.name}</h1>
+                  </div>
                   <button
-                    onClick={handleSaveChanges}
-                    disabled={saving}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium disabled:opacity-50"
-                  >
-                    {saving ? 'Saving...' : 'Save Changes'}
+                    className="py-2.5 px-6 flex items-center bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-200 active:scale-95"
+                    onClick={() => navigate(-1)}
+                  > 
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-2"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Back to List
                   </button>
-                )}
-                <button
-                  onClick={() => navigate('/admin/batch/batches')}
-                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-sm font-medium"
-                >
-                  Back to List
-                </button>
+                </div>
               </div>
             </div>
-            {/* Line after heading */}
-            <div className="border-b border-blue-900/60 w-full mt-2"></div>
-          </div>
-          <div className="w-full max-w-5xl bg-gray-900 rounded-lg shadow-md text-blue-100">
-            {/* Batch Details */}
-            <div className="p-6 border-b border-gray-800">
-              <h2 className="text-xl font-semibold mb-4 text-blue-200">Batch Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col items-center px-0 md:px-0 py-0">
+        <div className="w-full max-w-7xl mx-auto bg-gray-900 rounded-none shadow-none text-blue-100">
+          {/* Batch Details */}
+          <div className="p-8 border-b border-gray-800 w-full">
+            <h2 className="text-2xl font-bold mb-6 text-blue-200 tracking-wide border-l-4 border-blue-500 pl-4">Batch Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Info Card */}
+              <div className="col-span-2 space-y-6 bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-700">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-blue-200 mb-1">
+                    <label className="block text-base font-semibold text-blue-300 mb-1 uppercase tracking-wider">
                       Batch Name
                     </label>
                     {editMode ? (
@@ -287,64 +251,15 @@ const BatchDetails = () => {
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-800 text-blue-100"
+                        className="w-full px-3 py-2 border-2 border-blue-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-900 text-blue-100 text-base font-semibold"
                         required
                       />
                     ) : (
-                      <p className="text-blue-100">{batch.name}</p>
+                      <p className="text-blue-100 text-base font-semibold">{batch.name}</p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-blue-200 mb-1">
-                      Description
-                    </label>
-                    {editMode ? (
-                      <textarea
-                        name="description"
-                        value={formData.description}
-                        onChange={handleInputChange}
-                        rows="3"
-                        className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-800 text-blue-100"
-                      />
-                    ) : (
-                      <p className="text-blue-100">{batch.description || 'No description'}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-200 mb-1">
-                      Faculty
-                    </label>
-                    {editMode ? (
-                      <select
-                        name="facultyId"
-                        value={formData.facultyId}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-800 text-blue-100"
-                        required
-                      >
-                        <option value="">Select a faculty</option>
-                        {facultyList.map(faculty => (
-                          <option key={faculty._id} value={faculty._id} className="text-gray-900">
-                            {faculty.username} ({faculty.email})
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <p className="text-blue-100">
-                        {batch.faculty ? (
-                          <>
-                            {batch.faculty.username} <span className="text-blue-300">({batch.faculty.email})</span>
-                          </>
-                        ) : (
-                          'Not assigned'
-                        )}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-blue-200 mb-1">
+                    <label className="block text-base font-semibold text-blue-300 mb-1 uppercase tracking-wider">
                       Subject
                     </label>
                     {editMode ? (
@@ -353,168 +268,240 @@ const BatchDetails = () => {
                         name="subject"
                         value={formData.subject}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-800 text-blue-100"
+                        className="w-full px-3 py-2 border-2 border-blue-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-900 text-blue-100 text-base font-semibold"
                       />
                     ) : (
-                      <p className="text-blue-100">{batch.subject || 'Not specified'}</p>
+                      <p className="text-blue-100 text-base font-semibold">{batch.subject || 'Not specified'}</p>
                     )}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-blue-200 mb-1">
-                      Status
+                  <div className="md:col-span-2">
+                    <label className="block text-base font-semibold text-blue-300 mb-1 uppercase tracking-wider">
+                      Description
                     </label>
                     {editMode ? (
-                      <div className="flex items-center">
-                        <button
-                          type="button"
-                          onClick={handleToggleActive}
-                          className={`px-3 py-1 rounded-full text-sm ${
-                            formData.isActive
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {formData.isActive ? 'Active' : 'Inactive'}
-                        </button>
-                        <span className="ml-2 text-sm text-blue-300">
-                          (Click to toggle)
-                        </span>
-                      </div>
+                      <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={handleInputChange}
+                        rows="2"
+                        className="w-full px-3 py-2 border-2 border-blue-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-900 text-blue-100 text-base font-semibold"
+                      />
                     ) : (
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          batch.isActive
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {batch.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                      <p className="text-blue-100 text-base">{batch.description || 'No description'}</p>
                     )}
                   </div>
                 </div>
               </div>
-            </div>
-            {/* Students Section */}
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-blue-200">
-                  Students in Batch <span className="text-blue-300">({batch.students?.length || 0})</span>
-                </h2>
-              </div>
-              {/* Current Students List */}
-              {batch.students && batch.students.length > 0 ? (
-                <div className="mb-6">
-                  <div className="overflow-x-auto border border-gray-800 rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-800 bg-gray-900">
-                      <thead className="bg-gray-800">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-blue-200 uppercase tracking-wider">
-                            Name
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-blue-200 uppercase tracking-wider">
-                            ID
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-blue-200 uppercase tracking-wider">
-                            Batch
-                          </th>
-                          {editMode && (
-                            <th className="px-6 py-3 text-right text-xs font-medium text-blue-200 uppercase tracking-wider">
-                              Actions
-                            </th>
-                          )}
-                        </tr>
-                      </thead>
-                      <tbody className="bg-gray-900 divide-y divide-gray-800">
-                        {batch.students.map(student => (
-                          <tr key={student._id} className="hover:bg-gray-800">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-blue-100">{student.username}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-blue-300">{student.id}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-blue-300">{student.batch}</div>
-                            </td>
-                            {editMode && (
-                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button
-                                  onClick={() => handleRemoveStudent(student._id)}
-                                  className="text-red-400 hover:text-red-200"
-                                >
-                                  Remove
-                                </button>
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+              {/* Status & Faculty Card */}
+              <div className="space-y-6 bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-700 flex flex-col justify-between">
+                <div>
+                  <label className="block text-base font-semibold text-blue-300 mb-1 uppercase tracking-wider">
+                    Faculty
+                  </label>
+                  {editMode ? (
+                    <select
+                      name="facultyId"
+                      value={formData.facultyId}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border-2 border-blue-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-900 text-blue-100 text-base font-semibold"
+                      required
+                    >
+                      <option value="">Select a faculty</option>
+                      {facultyList.map(faculty => (
+                        <option key={faculty._id} value={faculty._id} className="text-gray-900">
+                          {faculty.username} ({faculty.email})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-blue-100 text-base font-semibold">
+                      {batch.faculty ? (
+                        <>
+                          {batch.faculty.username} <span className="text-blue-300">({batch.faculty.email})</span>
+                        </>
+                      ) : (
+                        'Not assigned'
+                      )}
+                    </p>
+                  )}
                 </div>
-              ) : (
-                <div className="bg-gray-800 p-6 text-center rounded-lg mb-6">
-                  <p className="text-blue-200">No students in this batch yet</p>
-                </div>
-              )}
-              {/* Add Students Section - Only visible in edit mode */}
-              {editMode && (
-                <div className="mt-8 border-t pt-6">
-                  <h3 className="text-lg font-medium mb-4">Add Students to Batch</h3>
-                  <div className="mb-4">
-                    <input
-                      type="text"
-                      value={filterTerm}
-                      onChange={(e) => setFilterTerm(e.target.value)}
-                      placeholder="Search students to add..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  {filteredAvailableStudents.length > 0 ? (
-                    <div className="border rounded-lg max-h-96 overflow-y-auto">
-                      <ul className="divide-y divide-gray-200">
-                        {filteredAvailableStudents.map(student => (
-                          <li key={student._id} className="p-4 hover:bg-gray-50">
-                            <div className="flex items-start">
-                              <input
-                                type="checkbox"
-                                id={`add-student-${student._id}`}
-                                checked={studentsToAdd.includes(student._id)}
-                                onChange={() => handleStudentSelection(student._id)}
-                                className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <label
-                                htmlFor={`add-student-${student._id}`}
-                                className="ml-3 cursor-pointer"
-                              >
-                                <div className="text-sm font-medium text-white-900">{student.username}</div>
-                                <div className="text-xs text-gray-500">
-                                  ID: {student.id} | Batch: {student.batch}
-                                </div>
-                              </label>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
+                <div>
+                  <label className="block text-base font-semibold text-blue-300 mb-1 uppercase tracking-wider">
+                    Status
+                  </label>
+                  {editMode ? (
+                    <div className="flex items-center">
+                      <button
+                        type="button"
+                        onClick={handleToggleActive}
+                        className={`px-5 py-1 rounded-full text-base font-bold shadow ${
+                          formData.isActive
+                            ? 'bg-green-200 text-green-900'
+                            : 'bg-red-200 text-red-900'
+                        }`}
+                      >
+                        {formData.isActive ? 'Active' : 'Inactive'}
+                      </button>
+                      <span className="ml-3 text-base text-blue-300">
+                        (Click to toggle)
+                      </span>
                     </div>
                   ) : (
-                    <div className="bg-gray-50 p-6 text-center rounded-lg">
-                      <p className="text-gray-500">
-                        {filterTerm 
-                          ? 'No matching students found' 
-                          : 'No more students available to add'}
-                      </p>
-                    </div>
+                    <span
+                      className={`px-5 py-1 rounded-full text-base font-bold shadow ${
+                        batch.isActive
+                          ? 'bg-green-200 text-green-900'
+                          : 'bg-red-200 text-red-900'
+                      }`}
+                    >
+                      {batch.isActive ? 'Active' : 'Inactive'}
+                    </span>
                   )}
+                </div>
+              </div>
+            </div>
+            {/* Edit/Save/Cancel Buttons */}
+            <div className="flex gap-4 mt-8 justify-end">
+              <button
+                onClick={handleToggleEditMode}
+                className={`px-8 py-3 rounded-lg text-base font-bold shadow ${
+                  editMode
+                    ? 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {editMode ? 'Cancel' : 'Edit Batch'}
+              </button>
+              {editMode && (
+                <button
+                  onClick={handleSaveChanges}
+                  disabled={saving}
+                  className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-base font-bold shadow disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              )}
+            </div>
+          </div>
+          {/* Students Section */}
+          <div className="p-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+              <h2 className="text-2xl font-bold text-blue-200 tracking-wide border-l-4 border-blue-500 pl-4">
+                Students in Batch <span className="text-blue-300">({batch.students?.length || 0})</span>
+              </h2>
+              {editMode && (
+                <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                  <input
+                    type="text"
+                    value={filterTerm}
+                    onChange={(e) => setFilterTerm(e.target.value)}
+                    placeholder="Search students to add..."
+                    className="w-full md:w-80 px-4 py-3 border-2 border-blue-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-blue-100 text-lg"
+                  />
                   {studentsToAdd.length > 0 && (
-                    <div className="mt-4 text-sm text-gray-600">
-                      {studentsToAdd.length} students selected to add
+                    <div className="flex items-center text-base text-blue-200">
+                      <span className="ml-2">{studentsToAdd.length} selected</span>
                     </div>
                   )}
                 </div>
               )}
             </div>
+            {/* Current Students List */}
+            {batch.students && batch.students.length > 0 ? (
+              <div className="mb-8">
+                <div className="overflow-x-auto border border-gray-800 rounded-xl shadow">
+                  <table className="min-w-full divide-y divide-gray-800 bg-gray-900">
+                    <thead className="bg-gray-800">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-base font-bold text-blue-200 uppercase tracking-wider">
+                          Name
+                        </th>
+                        <th className="px-6 py-4 text-left text-base font-bold text-blue-200 uppercase tracking-wider">
+                          ID
+                        </th>
+                        <th className="px-6 py-4 text-left text-base font-bold text-blue-200 uppercase tracking-wider">
+                          Batch
+                        </th>
+                        {editMode && (
+                          <th className="px-6 py-4 text-right text-base font-bold text-blue-200 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-gray-900 divide-y divide-gray-800">
+                      {batch.students.map(student => (
+                        <tr key={student._id} className="hover:bg-gray-800 transition">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-base font-semibold text-blue-100">{student.username}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-base text-blue-300">{student.id}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-base text-blue-300">{student.batch}</div>
+                          </td>
+                          {editMode && (
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-base font-semibold">
+                              <button
+                                onClick={() => handleRemoveStudent(student._id)}
+                                className="text-red-400 hover:text-red-200"
+                              >
+                                Remove
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-800 p-8 text-center rounded-xl mb-8 shadow">
+                <p className="text-blue-200 text-lg">No students in this batch yet</p>
+              </div>
+            )}
+            {/* Add Students Section - Only visible in edit mode */}
+            {editMode && (
+              <div className="mt-10 border-t pt-8">
+                <h3 className="text-xl font-bold mb-6 text-blue-200 tracking-wide border-l-4 border-blue-500 pl-4">Add Students to Batch</h3>
+                {filteredAvailableStudents.length > 0 ? (
+                  <div className="border rounded-xl max-h-96 overflow-y-auto bg-gray-900 shadow">
+                    <ul className="divide-y divide-gray-800">
+                      {filteredAvailableStudents.map(student => (
+                        <li key={student._id} className="p-4 hover:bg-gray-800 flex items-center gap-4">
+                          <input
+                            type="checkbox"
+                            id={`add-student-${student._id}`}
+                            checked={studentsToAdd.includes(student._id)}
+                            onChange={() => handleStudentSelection(student._id)}
+                            className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <label
+                            htmlFor={`add-student-${student._id}`}
+                            className="cursor-pointer flex-1"
+                          >
+                            <div className="text-base font-semibold text-blue-100">{student.username}</div>
+                            <div className="text-sm text-blue-300">
+                              ID: {student.id} | Batch: {student.batch}
+                            </div>
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="bg-gray-800 p-8 text-center rounded-xl shadow">
+                    <p className="text-blue-200 text-lg">
+                      {filterTerm 
+                        ? 'No matching students found' 
+                        : 'No more students available to add'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {/* Confirmation Modal for removing student */}
           {showRemoveModal && (
@@ -530,8 +517,8 @@ const BatchDetails = () => {
               }}
             />
           )}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };

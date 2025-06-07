@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
-import Sidebar from "./Sidebar";
+import { FaUserGraduate } from "react-icons/fa";
 
 const StudentInfo = () => {
   const navigate = useNavigate();
@@ -31,56 +31,72 @@ const StudentInfo = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white">
-      <nav className="w-full bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 px-4 flex items-center justify-between z-40"></nav>
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 md:ml-60 flex flex-col items-center px-2 md:px-8 py-8 mt-16">
-          <div className="w-full max-w-5xl">
-            <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-blue-200">Student Info</h1>
-                <p className="text-blue-300 text-base">
-                  Overview of all registered students, batch-wise and semester-wise.
-                </p>
-              </div>
-              <button
-                className="py-2 px-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-lg shadow-md hover:from-blue-600 hover:to-indigo-700 active:scale-95 transition transform duration-200"
-                onClick={() => navigate(-1)}
-              >
-                Back to Dashboard
-              </button>
-            </div>
-            <div className="bg-gray-900 rounded-lg shadow-md p-6">
-              {loading ? (
-                <div className="flex justify-center items-center min-h-[300px]">
-                  <div className="flex flex-col items-center">
-                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-75"></div>
-                    <p className="mt-4 text-blue-500 text-lg font-medium">
-                      Loading, please wait...
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <p className="text-xl font-medium">
-                    Total Students: <span className="text-yellow-400 font-bold">{totalStudents}</span>
+    <div className="relative min-h-screen bg-gray-900 text-white p-0 md:p-4">
+      {/* Header Section */}
+   <div className="py-6 mb-8 border-b border-blue-900">
+           <div className="container mx-auto px-4">
+             <div className="flex flex-col md:flex-row justify-between items-center mt-14">
+               <div className="flex items-center mb-4 md:mb-0">
+                 <FaUserGraduate className="h-8 w-8 mr-3 text-blue-300" />
+                 <h1 className="text-3xl font-bold tracking-tight">
+                   Student Info
+                 </h1>
+               </div>
+               <button
+                 className="py-2.5 px-6 flex items-center bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-200 active:scale-95"
+                 onClick={() => navigate(-1)}
+               >
+                 <svg
+                   xmlns="http://www.w3.org/2000/svg"
+                   className="h-5 w-5 mr-2"
+                   viewBox="0 0 20 20"
+                   fill="currentColor"
+                 >
+                   <path
+                     fillRule="evenodd"
+                     d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                     clipRule="evenodd"
+                   />
+                 </svg>
+                 Back to Dashboard
+               </button>
+             </div>
+           </div>
+         </div>
+   
+
+      {/* Main Content */}
+      <div className="w-full flex-grow">
+        <div className="w-full bg-gray-900 rounded-lg shadow-xl p-0" style={{ minHeight: "calc(100vh - 180px)" }}>
+          <div className="px-4 pb-8 pt-6">
+            {loading ? (
+              <div className="flex justify-center items-center min-h-[300px]">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-75"></div>
+                  <p className="mt-4 text-blue-500 text-lg font-medium">
+                    Loading, please wait...
                   </p>
-                  <BranchWiseCount branches={branchWiseCount} />
-                  <SemesterWiseCount
-                    semesters={semesterWiseCount}
-                    onSemesterClick={(semester) => navigate(`/students/semester/${semester}`)}
-                  />
-                  {error && (
-                    <div className="px-4 py-2 mb-4 bg-red-700 text-white rounded">
-                      {error}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-xl font-medium mb-4">
+                  Total Students: <span className="text-yellow-400 font-bold">{totalStudents}</span>
+                </p>
+                <BranchWiseCount branches={branchWiseCount} />
+                <SemesterWiseCount
+                  semesters={semesterWiseCount}
+                  onSemesterClick={(semester) => navigate(`/students/semester/${semester}`)}
+                />
+                {error && (
+                  <div className="px-4 py-2 mb-4 bg-red-700 text-white rounded">
+                    {error}
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

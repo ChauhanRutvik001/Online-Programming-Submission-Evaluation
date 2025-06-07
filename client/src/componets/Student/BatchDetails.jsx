@@ -1,10 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import axiosInstance from '../../utils/axiosInstance';
-import { toast } from 'react-toastify';
-import { Users, Book, Calendar, ChevronLeft, Clock, Code, AlertCircle, ArrowUpRight, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
-import { debounce } from 'lodash';
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useSelector } from "react-redux";
+import axiosInstance from "../../utils/axiosInstance";
+import { toast } from "react-toastify";
+import {
+  Users,
+  Book,
+  Calendar,
+  ChevronLeft,
+  Clock,
+  Code,
+  AlertCircle,
+  ArrowUpRight,
+  TrendingUp,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
+import { debounce } from "lodash";
 
 const StudentBatchDetails = () => {
   const { batchId } = useParams();
@@ -14,47 +26,73 @@ const StudentBatchDetails = () => {
   const [loading, setLoading] = useState(true);
   const [showClassmates, setShowClassmates] = useState(false);
   const [showProblems, setShowProblems] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [problems, setProblems] = useState([]);
   const [problemsLoading, setProblemsLoading] = useState(false);
   const [problemStatuses, setProblemStatuses] = useState({});
-  const fetchProblems = useCallback(async (searchQuery = '', pageNum = 1) => {
-    setProblemsLoading(true);
-    try {
-      const response = await axiosInstance.get(`/user/batches/${batchId}/problems`, {
-        params: {
-          search: searchQuery,
-          page: pageNum,
-          limit,
-          sortBy: 'createdAt',
-          sortOrder: 'desc'
-        }
-      });
-      if (response.data.success) {
-        setProblems(response.data.problems);
-        setTotalPages(Math.ceil(response.data.totalProblems / limit));
-      }      // Fetch completion status for problems
-      try {
-        const progressResponse = await axiosInstance.get(`/user/batches/${batchId}/progress`);
-        if (progressResponse.data.success && user && user._id) {
-          const userProgress = progressResponse.data.progressStats?.studentStats?.[user._id];
-          setProblemStatuses(userProgress?.problemDetails || {});
-        }
-      } catch (progressError) {
-        console.error('Error fetching problem progress:', progressError);
-        setProblemStatuses({});
-      }
 
-    } catch (error) {
-      console.error('Error fetching problems:', error);
-      toast.error('Failed to load problems');
-    } finally {
-      setProblemsLoading(false);
-    }
-  }, [batchId, limit]);
+  // Helper to get due date for this batch from batchDueDates
+  const getDueDateForBatch = (problem) => {
+    if (!problem.batchDueDates) return null;
+    const entry = problem.batchDueDates.find(
+      (b) => b.batch === batchId || b.batchId === batchId
+    );
+    return entry ? entry.dueDate : null;
+  };
+
+  const fetchProblems = useCallback(
+    async (searchQuery = "", pageNum = 1) => {
+      setProblemsLoading(true);
+      try {
+        const response = await axiosInstance.get(
+          `/user/batches/${batchId}/problems`,
+          {
+            params: {
+              search: searchQuery,
+              page: pageNum,
+              limit,
+              sortBy: "createdAt",
+              sortOrder: "desc",
+            },
+          }
+        );
+        if (response.data.success) {
+          // Map each problem to include dueDate for this batch
+          const mappedProblems = (response.data.problems || []).map(
+            (problem) => ({
+              ...problem,
+              dueDate: problem.dueDate || getDueDateForBatch(problem),
+            })
+          );
+          setProblems(mappedProblems);
+          setTotalPages(Math.ceil(response.data.totalProblems / limit));
+        }
+        // Fetch completion status for problems
+        try {
+          const progressResponse = await axiosInstance.get(
+            `/user/batches/${batchId}/progress`
+          );
+          if (progressResponse.data.success && user && user._id) {
+            const userProgress =
+              progressResponse.data.progressStats?.studentStats?.[user._id];
+            setProblemStatuses(userProgress?.problemDetails || {});
+          }
+        } catch (progressError) {
+          console.error("Error fetching problem progress:", progressError);
+          setProblemStatuses({});
+        }
+      } catch (error) {
+        console.error("Error fetching problems:", error);
+        toast.error("Failed to load problems");
+      } finally {
+        setProblemsLoading(false);
+      }
+    },
+    [batchId, limit]
+  );
 
   // Handle search input changes with debounce
   const debouncedSearch = useCallback(
@@ -83,61 +121,64 @@ const StudentBatchDetails = () => {
         const response = await axiosInstance.get(`/user/batches/${batchId}`);
         if (response.data.success) {
           setBatch(response.data.batch);
-          fetchProblems('', 1); // Initial problems load
+          fetchProblems("", 1); // Initial problems load
         }
       } catch (error) {
-        console.error('Error fetching batch details:', error);
-        toast.error('Failed to load batch details');
-        navigate('/student');
+        console.error("Error fetching batch details:", error);
+        toast.error("Failed to load batch details");
+        navigate("/student");
       } finally {
         setLoading(false);
       }
     };
 
     fetchBatchDetails();
+    // eslint-disable-next-line
   }, [batchId, navigate, fetchProblems]);
+
   const formatDate = (dateString) => {
-    if (!dateString) return '';
+    if (!dateString) return "";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
+
   // Helper function to get completion status icon and color
   const getCompletionIcon = (problemId) => {
     const status = problemStatuses[problemId];
     if (!status) {
       return {
         icon: <AlertCircle size={20} className="text-gray-400" />,
-        text: 'Not Started',
-        color: 'text-gray-400',
-        bgColor: 'bg-gray-900/30'
+        text: "Not Started",
+        color: "text-gray-400",
+        bgColor: "bg-gray-900/30",
       };
     }
 
     switch (status.status) {
-      case 'completed':
+      case "completed":
         return {
           icon: <CheckCircle size={20} className="text-green-400" />,
-          text: 'Completed',
-          color: 'text-green-400',
-          bgColor: 'bg-green-900/30'
+          text: "Completed",
+          color: "text-green-400",
+          bgColor: "bg-green-900/30",
         };
-      case 'attempted':
+      case "attempted":
         return {
           icon: <AlertCircle size={20} className="text-yellow-400" />,
-          text: 'In Progress',
-          color: 'text-yellow-400',
-          bgColor: 'bg-yellow-900/30'
+          text: "In Progress",
+          color: "text-yellow-400",
+          bgColor: "bg-yellow-900/30",
         };
       default:
         return {
           icon: <AlertCircle size={20} className="text-gray-400" />,
-          text: 'Not Started',
-          color: 'text-gray-400',
-          bgColor: 'bg-gray-900/30'
+          text: "Not Started",
+          color: "text-gray-400",
+          bgColor: "bg-gray-900/30",
         };
     }
   };
@@ -159,11 +200,17 @@ const StudentBatchDetails = () => {
       <div className="min-h-screen bg-gray-900 text-white">
         <div className="container mx-auto px-4 py-8 mt-16">
           <div className="bg-gray-800 rounded-lg shadow-lg p-6 text-center">
-            <h2 className="text-xl font-medium text-red-400 mb-2">Batch Not Found</h2>
+            <h2 className="text-xl font-medium text-red-400 mb-2">
+              Batch Not Found
+            </h2>
             <p className="text-gray-400 mb-4">
-              The batch you're looking for doesn't exist or you don't have access to it.
+              The batch you're looking for doesn't exist or you don't have
+              access to it.
             </p>
-            <Link to="/student" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+            <Link
+              to="/student"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+            >
               Return to Dashboard
             </Link>
           </div>
@@ -174,16 +221,17 @@ const StudentBatchDetails = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <main className="container mx-auto px-4 py-8">        {/* Back button */}
+      <main className="container mx-auto px-4 py-8">
+        {/* Back button */}
         <div className="mb-6 mt-16 flex items-center justify-between">
-          <button 
-            onClick={() => navigate('/student/batches')}
+          <button
+            onClick={() => navigate(-1)}
             className="flex items-center text-blue-400 hover:text-blue-300 transition"
           >
             <ChevronLeft size={20} />
             <span>Back to Dashboard</span>
           </button>
-          
+
           <Link
             to={`/student/batch/${batchId}/progress`}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-lg"
@@ -196,8 +244,10 @@ const StudentBatchDetails = () => {
         {/* Batch Header */}
         <div className="bg-gradient-to-r from-blue-800 to-indigo-900 rounded-xl p-6 shadow-lg mb-6">
           <h1 className="text-2xl font-bold mb-2">{batch.name}</h1>
-          {batch.description && <p className="text-blue-100 mb-3">{batch.description}</p>}
-          
+          {batch.description && (
+            <p className="text-blue-100 mb-3">{batch.description}</p>
+          )}
+
           <div className="flex flex-wrap gap-4 text-sm">
             {batch.subject && (
               <div className="flex items-center gap-1">
@@ -236,7 +286,9 @@ const StudentBatchDetails = () => {
                   {showProblems ? (
                     <>
                       <Code className="text-blue-400" />
-                      <h2 className="text-xl font-semibold">Assigned Problems</h2>
+                      <h2 className="text-xl font-semibold">
+                        Assigned Problems
+                      </h2>
                       <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full text-xs">
                         {batch.assignedProblems?.length || 0}
                       </span>
@@ -258,7 +310,7 @@ const StudentBatchDetails = () => {
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
                 >
-                  {showProblems ? 'Show Classmates' : 'Show Problems'}
+                  {showProblems ? "Show Classmates" : "Show Problems"}
                 </button>
               </div>
 
@@ -286,50 +338,91 @@ const StudentBatchDetails = () => {
                       <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
                     </div>
                   ) : problems.length > 0 ? (
-                    <>                      <div className="grid grid-cols-1 gap-4 mb-4">
-                        {problems.map(problem => {
-                          const completionStatus = getCompletionIcon(problem._id);
+                    <>
+                      <div className="grid grid-cols-1 gap-4 mb-4">
+                        {problems.map((problem) => {
+                          const completionStatus = getCompletionIcon(
+                            problem._id
+                          );
                           return (
-                            <div 
+                            <div
                               key={problem._id}
-                              onClick={() => navigate(`/problems/${problem._id}`)}
+                              onClick={() =>
+                                navigate(`/problems/${problem._id}/${batchId}`)
+                              }
                               className="p-4 bg-gray-750 rounded-lg border border-gray-700 hover:bg-gray-700 cursor-pointer transition-all relative group"
                             >
                               <div className="flex items-center gap-4">
                                 {/* Status Icon */}
-                                <div className={`flex items-center justify-center w-12 h-12 rounded-lg ${completionStatus.bgColor} border-2 border-current ${completionStatus.color} flex-shrink-0`}>
+                                <div
+                                  className={`flex items-center justify-center w-12 h-12 rounded-lg ${completionStatus.bgColor} border-2 border-current ${completionStatus.color} flex-shrink-0`}
+                                >
                                   {completionStatus.icon}
                                 </div>
-                                
+
                                 {/* Problem Details */}
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
                                     <h3 className="font-medium text-white group-hover:text-blue-400 transition-colors">
                                       {problem.title}
                                     </h3>
-                                    <ArrowUpRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <ArrowUpRight
+                                      size={16}
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                    />
                                   </div>
-                                  <div className={`text-sm mb-2 font-medium ${completionStatus.color}`}>
+                                  <div
+                                    className={`text-sm mb-2 font-medium ${completionStatus.color}`}
+                                  >
                                     {completionStatus.text}
-                                    {problemStatuses[problem._id]?.score !== undefined && 
-                                      ` - ${problemStatuses[problem._id].score}% score`
-                                    }
+                                    {problemStatuses[problem._id]?.score !==
+                                      undefined &&
+                                      ` - ${
+                                        problemStatuses[problem._id].score
+                                      }% score`}
                                   </div>
                                   <div className="flex justify-between items-center gap-4">
                                     <div className="flex items-center gap-2">
-                                      <span className={`px-2 py-0.5 text-xs rounded-full ${
-                                        problem.difficulty === 'Easy' ? 'bg-green-900/30 text-green-400' :
-                                        problem.difficulty === 'Medium' ? 'bg-yellow-900/30 text-yellow-400' :
-                                        'bg-red-900/30 text-red-400'
-                                      }`}>
+                                      <span
+                                        className={`px-2 py-0.5 text-xs rounded-full ${
+                                          problem.difficulty === "Easy"
+                                            ? "bg-green-900/30 text-green-400"
+                                            : problem.difficulty === "Medium"
+                                            ? "bg-yellow-900/30 text-yellow-400"
+                                            : "bg-red-900/30 text-red-400"
+                                        }`}
+                                      >
                                         {problem.difficulty}
                                       </span>
-                                      {problem.dueDate && (
-                                        <span className="text-xs text-gray-400 flex items-center gap-1" title={`Due: ${formatDate(problem.dueDate)}`}>
-                                          <Clock size={12} />
-                                          Due: {formatDate(problem.dueDate)}
-                                        </span>
-                                      )}
+                                      {(() => {
+                                        const due =
+                                          problem.dueDate ||
+                                          getDueDateForBatch(problem);
+                                        if (!due) return null;
+                                        const isPast =
+                                          new Date(due) < new Date();
+                                        return (
+                                          <span
+                                            className={`text-xs flex items-center gap-1 ${
+                                              isPast
+                                                ? "text-red-400"
+                                                : "text-gray-400"
+                                            }`}
+                                            title={
+                                              isPast
+                                                ? `Due Passed: ${formatDate(
+                                                    due
+                                                  )}`
+                                                : `Due: ${formatDate(due)}`
+                                            }
+                                          >
+                                            <Clock size={12} />
+                                            {isPast
+                                              ? "Due Passed"
+                                              : `Due: ${formatDate(due)}`}
+                                          </span>
+                                        );
+                                      })()}
                                     </div>
                                     {problem.createdBy && (
                                       <span className="text-xs text-gray-400">
@@ -346,7 +439,8 @@ const StudentBatchDetails = () => {
 
                       {/* Results count */}
                       <div className="text-sm text-gray-400 mb-4">
-                        Showing {problems.length} {searchTerm ? 'matching' : ''} problems {searchTerm ? `for "${searchTerm}"` : ''}
+                        Showing {problems.length} {searchTerm ? "matching" : ""}{" "}
+                        problems {searchTerm ? `for "${searchTerm}"` : ""}
                       </div>
 
                       {/* Pagination */}
@@ -368,7 +462,7 @@ const StudentBatchDetails = () => {
                           >
                             ‹
                           </button>
-                          
+
                           <div className="flex gap-1">
                             {Array.from({ length: totalPages }).map((_, i) => {
                               // Show first page, last page, current page, and pages around current
@@ -384,8 +478,8 @@ const StudentBatchDetails = () => {
                                     onClick={() => handlePageChange(i + 1)}
                                     className={`px-3 py-1 rounded min-w-[2.5rem] ${
                                       page === i + 1
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-700 text-white hover:bg-gray-600'
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-gray-700 text-white hover:bg-gray-600"
                                     }`}
                                   >
                                     {i + 1}
@@ -395,7 +489,14 @@ const StudentBatchDetails = () => {
                                 (i === 1 && page > 3) || // Show ellipsis after first page
                                 (i === totalPages - 2 && page < totalPages - 3) // Show ellipsis before last page
                               ) {
-                                return <span key={i} className="px-2 py-1 text-gray-500">...</span>;
+                                return (
+                                  <span
+                                    key={i}
+                                    className="px-2 py-1 text-gray-500"
+                                  >
+                                    ...
+                                  </span>
+                                );
                               }
                               return null;
                             })}
@@ -423,11 +524,14 @@ const StudentBatchDetails = () => {
                   ) : (
                     <div className="flex flex-col items-center justify-center py-12 bg-gray-750 rounded-lg">
                       <AlertCircle size={48} className="text-gray-600 mb-4" />
-                      <p className="text-gray-400">No problems have been assigned to this batch yet.</p>
+                      <p className="text-gray-400">
+                        No problems have been assigned to this batch yet.
+                      </p>
                     </div>
                   )}
                 </>
-              ) : (                <div className="mt-4 overflow-x-auto">
+              ) : (
+                <div className="mt-4 overflow-x-auto">
                   <table className="w-full text-left text-sm text-gray-400">
                     <thead className="bg-gray-700 text-gray-300">
                       <tr>
@@ -439,13 +543,18 @@ const StudentBatchDetails = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {batch.students.map(student => (
-                        <tr key={student._id} className="border-t border-gray-700 hover:bg-gray-750">
+                      {batch.students.map((student) => (
+                        <tr
+                          key={student._id}
+                          className="border-t border-gray-700 hover:bg-gray-750"
+                        >
                           <td className="px-4 py-2">{student.id}</td>
                           <td className="px-4 py-2">{student.username}</td>
-                          <td className="px-4 py-2">{student.branch || '-'}</td>
-                          <td className="px-4 py-2">{student.semester || '-'}</td>
-                          <td className="px-4 py-2">{student.batch || '-'}</td>
+                          <td className="px-4 py-2">{student.branch || "-"}</td>
+                          <td className="px-4 py-2">
+                            {student.semester || "-"}
+                          </td>
+                          <td className="px-4 py-2">{student.batch || "-"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -453,7 +562,7 @@ const StudentBatchDetails = () => {
                 </div>
               )}
             </div>
-          </div>          {/* End of Content Area */}
+          </div>
         </div>
       </main>
     </div>
