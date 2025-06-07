@@ -99,11 +99,42 @@ const userSchema = new Schema(
       location: {
         type: String,
       },
-    },
-    submissions: [
+    },    submissions: [
       {
         type: Schema.Types.ObjectId,
         ref: "Submission",
+      },
+    ],
+    apiKeys: [
+      {
+        key: {
+          type: String,
+          required: true,
+        },
+        name: {
+          type: String,
+          required: true,
+        },
+        dailyUsage: {
+          type: Number,
+          default: 0,
+        },
+        dailyLimit: {
+          type: Number,
+          default: 50,
+        },
+        lastResetDate: {
+          type: Date,
+          default: Date.now,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+        isActive: {
+          type: Boolean,
+          default: true,
+        },
       },
     ],
     sessionId: {

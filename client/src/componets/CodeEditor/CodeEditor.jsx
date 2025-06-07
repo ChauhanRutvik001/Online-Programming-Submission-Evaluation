@@ -3,16 +3,21 @@ import axiosInstance from "../../utils/axiosInstance";
 import ScoreAndLanguageSelector from "./ScoreAndLanguageSelector";
 import CodeEditorArea from "./CodeEditorArea";
 import TestCaseResults from "./TestCaseResults";
+import CustomTestCase from "./CustomTestCase";
+import ErrorDisplay from "../Common/ErrorDisplay";
+import ApiUsageStats from "../Problem/ApiUsageStats";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import { fetchHistory, setCurrentPage } from "../../redux/slices/historySlice";
 import { fetchSubmissions } from "../../redux/slices/submissionSlice";
+import { useNavigate } from "react-router-dom";
 
 const CodeEditor = ({ language, setLanguage, problem, onSubmission, isPastDue }) => {
   const user = useSelector((state) => state.app.user);
   const [assignLoading, setAssignLoading] = useState(false); // For button-specific loading
   const userId = user._id;
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const testcases = problem.testCases;
 
   // console.log(testcases[0]);
@@ -44,6 +49,7 @@ int main() {
   const [isLoading, setIsLoading] = useState(false);
   const [runLoading, setRunLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);  const [error, setError] = useState(null);
+  const [apiKeyError, setApiKeyError] = useState(null); // Separate state for API key errors
   const previousLanguageRef = useRef(language);
   const [theme, setTheme] = useState("vs-dark"); // Default theme
   
@@ -221,12 +227,12 @@ int main() {
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme); // Update theme state
   };
-
   const handleRun = async () => {
     setIsLoading(true);
     setRunLoading(true);
     setResults(null);
     setError(null);
+    setApiKeyError(null); // Clear previous API key errors
     setAssignLoading(true); // Start loading
 
     try {
@@ -249,11 +255,24 @@ int main() {
         setResults(testResults);
       }
     } catch (error) {
-      setError(
-        error.response?.data?.details || "Failed to run code. Please try again."
-      );
+      // Check if this is an API key related error
+      if (error.response?.data?.error && [
+        'api_keys_required', 
+        'no_active_keys', 
+        'daily_limit_exceeded',
+        'rate_limit_exceeded',
+        'api_key_invalid'
+      ].includes(error.response.data.error)) {
+        setApiKeyError(error.response.data);
+      } else {
+        setError(
+          error.response?.data?.message || 
+          error.response?.data?.details || 
+          "Failed to run code. Please try again."
+        );
+      }
     } finally {
-      setAssignLoading(false); // Start loading
+      setAssignLoading(false);
       setIsLoading(false);
       setRunLoading(false);
     }
@@ -340,38 +359,12 @@ int main() {
   //       totalMarks,
   //       testCaseResults,
   //     };
-
-  //     // Send the submission to the backend
-  //     const submissionResponse = await axiosInstance.post(
-  //       "/submissions",
-  //       submissionPayload
-  //     );
-  //     const savedSubmission = submissionResponse.data.submission;
-
-  //     console.log("Submission Saved Successfully:", savedSubmission);
-
-  //     // Trigger callback if provided
-  //     if (onSubmission) {
-  //       onSubmission(savedSubmission);
-  //     }
-  //   } catch (error) {
-  //     // Handle errors gracefully
-  //     const errorMessage =
-  //       error.response?.data?.details || "An error occurred. Please try again.";
-  //     console.error("Submission Error:", error);
-  //     setError(errorMessage);
-  //   } finally {
-  //     // Reset loading states
-  //     setIsLoading(false);
-  //     setSubmitLoading(false);
-  //     setAssignLoading(false);
-  //   }
-  // };
   const handleSubmit = async () => {
     setIsLoading(true);
     setSubmitLoading(true);
     setResults(null);
     setError(null);
+    setApiKeyError(null); // Clear previous API key errors
     setAssignLoading(true);
 
     try {
@@ -419,9 +412,22 @@ int main() {
         }
       }
     } catch (error) {
-      setError(
-        error.response?.data?.message || "An error occurred. Please try again."
-      );
+      // Check if this is an API key related error
+      if (error.response?.data?.error && [
+        'api_keys_required', 
+        'no_active_keys', 
+        'daily_limit_exceeded',
+        'rate_limit_exceeded',
+        'api_key_invalid'
+      ].includes(error.response.data.error)) {
+        setApiKeyError(error.response.data);
+      } else {
+        setError(
+          error.response?.data?.message || 
+          error.response?.data?.details || 
+          "An error occurred. Please try again."
+        );
+      }
       console.error("Submission Error:", error);
     } finally {
       setIsLoading(false);
@@ -452,9 +458,9 @@ int main() {
       toast.error("Failed to save code. Please try again.");
     }
   };
-
   return (
     <div className="code-editor bg-gray-900 p-6 shadow-lg">
+      <ApiUsageStats />
       <ScoreAndLanguageSelector
         language={language}
         handleLanguageChange={handleLanguageChange}
@@ -477,9 +483,23 @@ int main() {
         handleSubmit={handleSubmit}
         handleSaveCode={handleSaveCode}
         error={error}
+        apiKeyError={apiKeyError}
         isPastDue={isPastDue}
         saveStatus={saveStatus}
       />
+
+      <CustomTestCase 
+        language={language}
+        code={codeByLanguage[language] || ""}
+      />{/* API Key Error Display */}
+      {apiKeyError && (
+        <div className="mt-4">
+          <ErrorDisplay
+            error={apiKeyError}
+            onGoToProfile={() => navigate('/profile?tab=apikeys')}
+          />
+        </div>
+      )}
 
       {assignLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">

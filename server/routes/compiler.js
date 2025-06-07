@@ -24,6 +24,7 @@ import express from "express";
 import axios from "axios";
 import problem from "../models/problem.js";
 import submission from "../models/submission.js";
+import User from "../models/user.js";
 import { isAuthorized } from "../middlewares/auth.js";
 // We'll dynamically import batch model when needed to avoid circular dependencies
 
@@ -32,7 +33,121 @@ const router = express.Router();
 // Update Judge0 API base URL and token to use RapidAPI
 const JUDGE0_BASE_URL = "https://judge0-ce.p.rapidapi.com";
 const JUDGE0_API_HOST = "judge0-ce.p.rapidapi.com";
-const JUDGE0_API_KEY = "dbe32c7301msha8dfc9660bdf2bfp1bf391jsn29d2b4dbdae2";
+const JUDGE0_API_KEY = "dbe32c7301msha8dfc9660bdf2bfp1bf391jsn29d2b4dbdae2"; // Fallback system key
+
+// Function to get available user API key with detailed error information
+const getUserApiKey = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    if (!user || !user.apiKeys || user.apiKeys.length === 0) {
+      return { 
+        error: 'NO_API_KEYS',
+        message: 'No Judge0 API keys found. Please add your API keys in your profile to run code.',
+        key: null 
+      };
+    }
+
+    // Reset daily usage if it's a new day
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let needsUpdate = false;
+    user.apiKeys.forEach(apiKey => {
+      const lastReset = new Date(apiKey.lastResetDate);
+      lastReset.setHours(0, 0, 0, 0);
+      
+      if (today > lastReset) {
+        apiKey.dailyUsage = 0;
+        apiKey.lastResetDate = new Date();
+        needsUpdate = true;
+      }
+    });
+
+    if (needsUpdate) {
+      await user.save();
+    }
+
+    // Find an active API key with available quota
+    const availableKeys = user.apiKeys.filter(
+      key => key.isActive && key.dailyUsage < key.dailyLimit
+    );
+
+    if (availableKeys.length === 0) {
+      const activeKeys = user.apiKeys.filter(k => k.isActive);
+      const exhaustedKeys = user.apiKeys.filter(k => k.dailyUsage >= k.dailyLimit);
+      
+      console.log(`⚠️ No available user API keys for user ${userId}:`, {
+        totalKeys: user.apiKeys.length,
+        activeKeys: activeKeys.length,
+        exhaustedKeys: exhaustedKeys.length
+      });
+
+      if (activeKeys.length === 0) {
+        return {
+          error: 'NO_ACTIVE_KEYS',
+          message: 'All your API keys are inactive. Please activate at least one API key in your profile.',
+          key: null
+        };
+      } else {
+        const keyUsageInfo = activeKeys.map(key => ({
+          name: key.name,
+          usage: `${key.dailyUsage}/${key.dailyLimit}`,
+          remaining: key.dailyLimit - key.dailyUsage
+        }));
+
+        return {
+          error: 'LIMIT_EXCEEDED',
+          message: 'All your API keys have reached their daily limit. Please wait until tomorrow or add more API keys.',
+          keyUsageInfo,
+          key: null
+        };
+      }
+    }
+
+    // Select key with lowest usage (load balancing)
+    const selectedKey = availableKeys.reduce((min, key) => 
+      key.dailyUsage < min.dailyUsage ? key : min
+    );
+
+    console.log(`🎯 Selected API key with lowest usage:`, {
+      keyName: selectedKey.name,
+      usage: `${selectedKey.dailyUsage}/${selectedKey.dailyLimit}`,
+      availableKeys: availableKeys.length
+    });
+
+    return {
+      error: null,
+      key: selectedKey.key,
+      keyId: selectedKey._id,
+      userId: userId,
+      keyName: selectedKey.name,
+      usage: `${selectedKey.dailyUsage}/${selectedKey.dailyLimit}`
+    };
+  } catch (error) {
+    console.error("Error getting user API key:", error);
+    return {
+      error: 'SYSTEM_ERROR',
+      message: 'Failed to check API key availability. Please try again.',
+      key: null
+    };
+  }
+};
+
+// Function to increment API key usage
+const incrementApiKeyUsage = async (userId, keyId) => {
+  try {
+    const user = await User.findById(userId);
+    if (user && keyId) {
+      const apiKey = user.apiKeys.id(keyId);
+      if (apiKey) {
+        apiKey.dailyUsage += 1;
+        await user.save();
+      }
+    }
+  } catch (error) {
+    console.error("Error incrementing API key usage:", error);
+  }
+};
 
 const getLanguageId = (language) => {
   const languageMap = {
@@ -239,12 +354,72 @@ router.post("/run-code", isAuthorized, async (req, res) => {
       expected_output: encodeToBase64(testCase.outputs || ""), // Encode expected output to base64
       cpu_time_limit: testCase.cpu_time_limit || 2, // Default to 2 seconds if not provided
       memory_limit: testCase.memory_limit * 1024 || 128 * 1024, // Default to 128 MB if not provided
-    }));
-
-    // Add request tracking
+    }));    // Add request tracking
     console.log(`Processing request #${requestCounter} for user ${userId}`);
     queueStatus.pending--;
-    queueStatus.processing++;
+    queueStatus.processing++;    // Get user API key with strict enforcement - NO SYSTEM FALLBACK
+    const userApiResult = await getUserApiKey(userId);
+    
+    // Check for API key errors and return appropriate error responses
+    if (userApiResult.error) {
+      queueStatus.processing--;
+      
+      let errorCode;
+      let errorResponse = {
+        success: false,
+        error: userApiResult.error.toLowerCase(),
+        message: userApiResult.message
+      };
+
+      switch (userApiResult.error) {
+        case 'NO_API_KEYS':
+          errorCode = 'api_keys_required';
+          errorResponse.error = errorCode;
+          errorResponse.title = 'API Keys Required';
+          errorResponse.description = 'You need to add Judge0 API keys to run code.';
+          errorResponse.actionText = 'Add API Keys';
+          break;
+          
+        case 'NO_ACTIVE_KEYS':
+          errorCode = 'no_active_keys';
+          errorResponse.error = errorCode;
+          errorResponse.title = 'No Active API Keys';
+          errorResponse.description = 'All your API keys are inactive. Please activate at least one.';
+          errorResponse.actionText = 'Manage API Keys';
+          break;
+          
+        case 'LIMIT_EXCEEDED':
+          errorCode = 'daily_limit_exceeded';
+          errorResponse.error = errorCode;
+          errorResponse.title = 'Daily Limit Exceeded';
+          errorResponse.description = 'All your API keys have reached their daily limit.';
+          errorResponse.actionText = 'Add More Keys';
+          errorResponse.keyUsageInfo = userApiResult.keyUsageInfo;
+          break;
+          
+        default:
+          errorCode = 'api_key_invalid';
+          errorResponse.error = errorCode;
+          errorResponse.title = 'API Key Error';
+          errorResponse.description = 'There was an issue with your API keys.';
+          errorResponse.actionText = 'Check API Keys';
+          break;
+      }
+      
+      console.log(`❌ API key requirement not met for user ${userId}: ${errorCode}`);
+      return res.status(403).json(errorResponse);
+    }
+
+    // User has valid API key - proceed with execution
+    const apiKeyToUse = userApiResult.key;
+    const userKeyInfo = {
+      keyId: userApiResult.keyId,
+      userId: userApiResult.userId,
+      keyName: userApiResult.keyName,
+      usage: userApiResult.usage
+    };
+    
+    console.log(`✅ Using user API key: ${userKeyInfo.keyName} (${userKeyInfo.usage})`);
 
     // Update headers in API calls to use RapidAPI
     const submitToJudge0 = async (submission, retryCount = 3) => {
@@ -257,12 +432,14 @@ router.post("/run-code", isAuthorized, async (req, res) => {
               headers: {
                 "Content-Type": "application/json",
                 "x-rapidapi-host": JUDGE0_API_HOST,
-                "x-rapidapi-key": JUDGE0_API_KEY,
+                "x-rapidapi-key": apiKeyToUse,
                 "X-Request-ID": `${userId}-${requestCounter}-${i}`,
               },
               timeout: 10000, // 10 second timeout
-            }
-          );
+            }          );
+          
+          // Always increment usage count since we're always using user API key now
+          await incrementApiKeyUsage(userKeyInfo.userId, userKeyInfo.keyId);
 
           logServerInstance(response, "Submission");
           return response;
@@ -272,9 +449,7 @@ router.post("/run-code", isAuthorized, async (req, res) => {
           await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
         }
       }
-    };
-
-    // Modify your results fetching to include better error handling
+    };    // Modify your results fetching to include better error handling
     const fetchResults = async (token) => {
       let result = null;
       let retries = 0;
@@ -293,7 +468,7 @@ router.post("/run-code", isAuthorized, async (req, res) => {
             {
               headers: {
                 "x-rapidapi-host": JUDGE0_API_HOST,
-                "x-rapidapi-key": JUDGE0_API_KEY,
+                "x-rapidapi-key": apiKeyToUse,
                 "X-Request-ID": `${userId}-${requestCounter}-result-${retries}`,
               },
             }
@@ -496,18 +671,204 @@ router.post("/run-code", isAuthorized, async (req, res) => {
     });
 
     // Update queue status after processing
-    queueStatus.processing--;
-  } catch (error) {
+    queueStatus.processing--;  } catch (error) {
     // Update queue status on error
     queueStatus.processing--;
 
     console.error("Error during execution:", error);
-    res.status(error.response?.status || 500).json({
+    
+    // Handle specific API key related errors
+    let errorResponse = {
       success: false,
       message: "An error occurred while processing the code.",
       error: error.message || error,
       queueStatus,
+    };
+
+    // Check for RapidAPI/Judge0 specific errors
+    if (error.response) {
+      const status = error.response.status;
+      const errorData = error.response.data;
+      
+      if (status === 429) {
+        errorResponse.error = 'rate_limit_exceeded';
+        errorResponse.title = 'Rate Limit Exceeded';
+        errorResponse.message = 'Your API key has exceeded its rate limit. Please wait or add more API keys.';
+        errorResponse.description = 'The API key has too many requests in a short time period.';
+        errorResponse.actionText = 'Add More Keys';
+      } else if (status === 401 || status === 403) {
+        errorResponse.error = 'api_key_invalid';
+        errorResponse.title = 'Invalid API Key';
+        errorResponse.message = 'Your API key is invalid or has been deactivated.';
+        errorResponse.description = 'Please check your API key configuration in your profile.';
+        errorResponse.actionText = 'Update API Key';
+      } else if (errorData && errorData.error) {
+        // Handle other Judge0 specific errors
+        errorResponse.message = errorData.error;
+      }
+    }
+
+    res.status(error.response?.status || 500).json(errorResponse);
+  }
+});
+
+/**
+ * POST /compiler/compileandrun
+ * Simple code compilation and execution endpoint
+ * Provides detailed error handling for API key scenarios
+ * 
+ * REQUEST BODY:
+ * - code: Source code to execute
+ * - input: Input data for the program
+ * - lang: Language ID for Judge0 API
+ * 
+ * RESPONSE:
+ * - output: Program output (if successful)
+ * - error: Compilation or runtime errors
+ * - status: Execution status
+ * - keyUsed: Which API key was used (user key name or 'system')
+ * - remainingQuota: Usage information for the API key
+ */
+router.post("/compileandrun", isAuthorized, async (req, res) => {
+  try {
+    const { code, input, lang } = req.body;
+    const userId = req.user.id;    console.log("🚀 Compile and run request:", { userId, lang });
+
+    // Get user API key with strict enforcement - NO SYSTEM FALLBACK
+    const userApiResult = await getUserApiKey(userId);
+    
+    // Check for API key errors and return appropriate error responses
+    if (userApiResult.error) {
+      let errorCode;
+      let errorResponse = {
+        success: false,
+        error: userApiResult.error.toLowerCase(),
+        message: userApiResult.message
+      };
+
+      switch (userApiResult.error) {
+        case 'NO_API_KEYS':
+          errorCode = 'api_keys_required';
+          errorResponse.error = errorCode;
+          errorResponse.title = 'API Keys Required';
+          errorResponse.description = 'You need to add Judge0 API keys to run code.';
+          errorResponse.actionText = 'Add API Keys';
+          break;
+          
+        case 'NO_ACTIVE_KEYS':
+          errorCode = 'no_active_keys';
+          errorResponse.error = errorCode;
+          errorResponse.title = 'No Active API Keys';
+          errorResponse.description = 'All your API keys are inactive. Please activate at least one.';
+          errorResponse.actionText = 'Manage API Keys';
+          break;
+          
+        case 'LIMIT_EXCEEDED':
+          errorCode = 'daily_limit_exceeded';
+          errorResponse.error = errorCode;
+          errorResponse.title = 'Daily Limit Exceeded';
+          errorResponse.description = 'All your API keys have reached their daily limit.';
+          errorResponse.actionText = 'Add More Keys';
+          errorResponse.keyUsageInfo = userApiResult.keyUsageInfo;
+          break;
+          
+        default:
+          errorCode = 'api_key_invalid';
+          errorResponse.error = errorCode;
+          errorResponse.title = 'API Key Error';
+          errorResponse.description = 'There was an issue with your API keys.';
+          errorResponse.actionText = 'Check API Keys';
+          break;
+      }
+      
+      console.log(`❌ API key requirement not met for user ${userId}: ${errorCode}`);
+      return res.status(403).json(errorResponse);
+    }
+
+    // User has valid API key - proceed with execution
+    const apiKey = userApiResult.key;
+    const keyInfo = {
+      keyId: userApiResult.keyId,
+      userId: userApiResult.userId,
+      keyName: userApiResult.keyName,
+      usage: userApiResult.usage
+    };
+    
+    console.log(`✅ Using user API key: ${keyInfo.keyName} (${keyInfo.usage})`);
+
+    const url = `https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true&wait=true`;
+    const data = {
+      language_id: lang,
+      source_code: Buffer.from(code).toString("base64"),
+      stdin: Buffer.from(input).toString("base64"),
+    };
+
+    const options = {
+      method: "POST",
+      url: url,
+      headers: {
+        "content-type": "application/json",
+        "X-RapidAPI-Key": apiKey,
+        "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+      },
+      data: data,
+    };    console.log(`📡 Making Judge0 API request with user API key: ${keyInfo.keyName}`);
+    const response = await axios.request(options);
+
+    // Always increment usage since we're always using user API key now
+    await incrementApiKeyUsage(keyInfo.userId, keyInfo.keyId);
+
+    // Format the response
+    const result = {
+      output: response.data.stdout ? atob(response.data.stdout) : null,
+      error: response.data.stderr ? atob(response.data.stderr) : null,
+      compile_output: response.data.compile_output ? atob(response.data.compile_output) : null,
+      status: response.data.status?.description || "Unknown",
+      keyUsed: keyInfo.keyName,
+      remainingQuota: keyInfo.usage
+    };
+
+    console.log("✅ Compilation successful:", { 
+      status: result.status, 
+      keyUsed: result.keyUsed,
+      hasOutput: !!result.output,
+      hasError: !!result.error 
     });
+
+    res.json(result);  } catch (error) {
+    console.error("❌ Compilation error:", error.response?.data || error.message);
+    
+    // Handle specific API key related errors
+    let errorResponse = {
+      error: 'compilation_failed',
+      message: 'Failed to compile and run the code.',
+      details: error.response?.data?.error || error.message
+    };
+
+    // Check for RapidAPI/Judge0 specific errors
+    if (error.response) {
+      const status = error.response.status;
+      const errorData = error.response.data;
+      
+      if (status === 429) {
+        errorResponse.error = 'rate_limit_exceeded';
+        errorResponse.title = 'Rate Limit Exceeded';
+        errorResponse.message = 'Your API key has exceeded its rate limit. Please wait or add more API keys.';
+        errorResponse.description = 'The API key has too many requests in a short time period.';
+        errorResponse.actionText = 'Add More Keys';
+      } else if (status === 401 || status === 403) {
+        errorResponse.error = 'api_key_invalid';
+        errorResponse.title = 'Invalid API Key';
+        errorResponse.message = 'Your API key is invalid or has been deactivated.';
+        errorResponse.description = 'Please check your API key configuration in your profile.';
+        errorResponse.actionText = 'Update API Key';
+      } else if (errorData && errorData.error) {
+        // Handle other Judge0 specific errors
+        errorResponse.message = errorData.error;
+      }
+    }
+
+    res.status(error.response?.status || 500).json(errorResponse);
   }
 });
 
@@ -523,6 +884,199 @@ router.post("/run-code", isAuthorized, async (req, res) => {
  * - queueStatus: Object with pending and processing counts
  * - activeUsers: Number of users currently using the system
  */
+/**
+ * ROUTE: POST /custom-test
+ * 
+ * PURPOSE:
+ * Execute user's code with custom input provided by the user
+ * 
+ * FEATURES:
+ * - Allows users to test their code with custom input
+ * - Returns the output of the execution
+ * - Uses same API key rotation system as other routes
+ * - No test case comparison, just raw execution results
+ * 
+ * REQUEST BODY:
+ * - code: String (user's source code)
+ * - language: String (programming language)
+ * - input: String (custom input provided by user)
+ * 
+ * RESPONSE:
+ * - success: Boolean
+ * - result: Object with execution details (output, time, memory, etc.)
+ */
+router.post("/custom-test", isAuthorized, async (req, res) => {
+  const { code, language, input = "" } = req.body;
+  const userId = req.user.id;
+
+  // Input validation
+  if (!code?.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "Code is required"
+    });
+  }
+
+  if (!language) {
+    return res.status(400).json({
+      success: false,
+      message: "Programming language is required"
+    });
+  }
+
+  try {
+    console.log(`🔧 Custom test execution requested by user ${userId} for ${language}`);
+
+    // Check user API key availability
+    const userApiResult = await getUserApiKey(userId);
+    
+    if (userApiResult.error) {
+      // Structure error response based on error type
+      const errorResponse = {
+        success: false,
+        message: userApiResult.message,
+        suggestion: 'Please add your Judge0 API keys in your profile to run custom tests.'
+      };
+
+      let errorCode;
+      switch (userApiResult.error) {
+        case 'NO_API_KEYS':
+          errorCode = 'api_keys_required';
+          errorResponse.error = errorCode;
+          errorResponse.title = 'API Keys Required';
+          errorResponse.description = 'You need to add Judge0 API keys to run custom tests.';
+          errorResponse.actionText = 'Add API Keys';
+          break;
+          
+        case 'NO_ACTIVE_KEYS':
+          errorCode = 'no_active_keys';
+          errorResponse.error = errorCode;
+          errorResponse.title = 'No Active API Keys';
+          errorResponse.description = 'All your API keys are inactive. Please activate at least one.';
+          errorResponse.actionText = 'Manage API Keys';
+          break;
+          
+        case 'LIMIT_EXCEEDED':
+          errorCode = 'daily_limit_exceeded';
+          errorResponse.error = errorCode;
+          errorResponse.title = 'Daily Limit Exceeded';
+          errorResponse.description = 'All your API keys have reached their daily limit.';
+          errorResponse.actionText = 'Add More Keys';
+          errorResponse.keyUsageInfo = userApiResult.keyUsageInfo;
+          break;
+          
+        default:
+          errorCode = 'api_key_invalid';
+          errorResponse.error = errorCode;
+          errorResponse.title = 'API Key Error';
+          errorResponse.description = 'There was an issue with your API keys.';
+          errorResponse.actionText = 'Check API Keys';
+          break;
+      }
+      
+      console.log(`❌ API key requirement not met for custom test by user ${userId}: ${errorCode}`);
+      return res.status(403).json(errorResponse);
+    }
+
+    // User has valid API key - proceed with execution
+    const apiKey = userApiResult.key;
+    const keyInfo = {
+      keyId: userApiResult.keyId,
+      userId: userApiResult.userId,
+      keyName: userApiResult.keyName,
+      usage: userApiResult.usage
+    };
+    
+    console.log(`✅ Using user API key for custom test: ${keyInfo.keyName} (${keyInfo.usage})`);    // Get language ID for Judge0
+    const lang = getLanguageId(language);
+    if (!lang) {
+      return res.status(400).json({
+        success: false,
+        message: `Unsupported language: ${language}`
+      });
+    }
+
+    // Prepare submission data for Judge0
+    const submissionData = {
+      language_id: lang,
+      source_code: Buffer.from(code).toString("base64"),
+      stdin: Buffer.from(input).toString("base64"),
+    };
+
+    const options = {
+      method: "POST",
+      url: `${JUDGE0_BASE_URL}/submissions?base64_encoded=true&wait=true`,
+      headers: {
+        "content-type": "application/json",
+        "X-RapidAPI-Key": apiKey,
+        "X-RapidAPI-Host": JUDGE0_API_HOST,
+      },
+      data: submissionData,
+    };
+
+    console.log(`📡 Making Judge0 API request for custom test with user API key: ${keyInfo.keyName}`);
+    const response = await axios(options);
+    
+    // Always increment usage count since we're using user API key
+    await incrementApiKeyUsage(userApiResult.userId, userApiResult.keyId);
+
+    logServerInstance(response, "CustomTest");
+
+    if (response.data) {
+      const result = {
+        stdout: response.data.stdout ? Buffer.from(response.data.stdout, "base64").toString() : "",
+        stderr: response.data.stderr ? Buffer.from(response.data.stderr, "base64").toString() : "",
+        compile_output: response.data.compile_output ? Buffer.from(response.data.compile_output, "base64").toString() : "",
+        time: response.data.time || "0.00",
+        memory: response.data.memory || 0,
+        status: {
+          id: response.data.status?.id || 0,
+          description: response.data.status?.description || "Unknown"
+        }
+      };
+
+      // Check for compilation or runtime errors
+      if (result.compile_output && result.compile_output.trim()) {
+        result.error = `Compilation Error: ${result.compile_output}`;
+      } else if (result.stderr && result.stderr.trim()) {
+        result.error = `Runtime Error: ${result.stderr}`;
+      } else if (result.status.id !== 3) { // 3 is "Accepted" status
+        result.error = `Execution Error: ${result.status.description}`;
+      }
+
+      console.log(`✅ Custom test completed for user ${userId}`);
+      
+      return res.status(200).json({
+        success: true,
+        result: result,
+        message: "Custom test executed successfully"
+      });
+    } else {
+      throw new Error("Invalid response from Judge0 API");
+    }
+
+  } catch (error) {
+    console.error("Custom test execution error:", error);
+    
+    // Check if this is an API key related error
+    if (error.response?.data?.error && [
+      'api_keys_required', 
+      'no_active_keys', 
+      'daily_limit_exceeded',
+      'rate_limit_exceeded',
+      'api_key_invalid'
+    ].includes(error.response.data.error)) {
+      return res.status(403).json(error.response.data);
+    }
+    
+    return res.status(500).json({
+      success: false,
+      message: "Failed to execute custom test",
+      error: error.response?.data?.message || error.message
+    });
+  }
+});
+
 router.get("/queue-status", isAuthorized, (req, res) => {
   res.json({
     success: true,

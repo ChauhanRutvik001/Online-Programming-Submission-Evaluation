@@ -11,13 +11,15 @@ import {
   BookOpen,
   Code,
   Loader2,
+  Key,
 } from "lucide-react";
+import ApiKeyManagement from "./ApiKeyManagement";
 
-const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
+const ProfileRight = ({ formData, handleInputChange, handleSubmit, user, initialTab = "profile" }) => {
   const [isFormTouched, setIsFormTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contentReady, setContentReady] = useState(false);
-
+  const [activeTab, setActiveTab] = useState(initialTab); // "profile" or "apikeys"
   // Enable smooth transition on mount
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -25,6 +27,11 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Update active tab when initialTab prop changes
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   // Track form changes to enable/disable submit button
   useEffect(() => {
@@ -65,13 +72,40 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
       animationTimingFunction: 'ease-out',
     };
   };
-
   return (
     <div 
       className={`flex flex-col space-y-4 transition-opacity duration-500 ease-in-out ${
         contentReady ? "opacity-100" : "opacity-0"
       }`}
     >
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 bg-gray-800 p-1 rounded-lg">
+        <button
+          onClick={() => setActiveTab("profile")}
+          className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md transition-colors ${
+            activeTab === "profile"
+              ? "bg-blue-600 text-white"
+              : "text-gray-400 hover:text-white hover:bg-gray-700"
+          }`}
+        >
+          <User size={18} className="mr-2" />
+          Profile
+        </button>
+        <button
+          onClick={() => setActiveTab("apikeys")}
+          className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md transition-colors ${
+            activeTab === "apikeys"
+              ? "bg-blue-600 text-white"
+              : "text-gray-400 hover:text-white hover:bg-gray-700"
+          }`}
+        >
+          <Key size={18} className="mr-2" />
+          API Keys
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "profile" && (
       <div className="bg-gradient-to-br from-gray-900 to-gray-900 rounded-xl shadow-2xl p-8 border border-blue-900/30">
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
@@ -373,9 +407,12 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user }) => {
                 </>
               )}
             </button>
-          </div>
-        </form>
+          </div>        </form>
       </div>
+      )}
+
+      {/* API Keys Tab */}
+      {activeTab === "apikeys" && <ApiKeyManagement />}
     </div>
   );
 };

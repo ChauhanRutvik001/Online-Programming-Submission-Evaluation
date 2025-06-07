@@ -229,3 +229,315 @@ export const removeProfilePic = async (req, res) => {
     res.status(500).json({ message: "Server error." });
   }
 };
+
+// API Key Management Functions
+
+export const addApiKey = async (req, res) => {
+  try {
+    const { name, key } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized",
+        success: false,
+      });
+    }
+
+    if (!name?.trim() || !key?.trim()) {
+      return res.status(400).json({
+        message: "API key name and key are required",
+        success: false,
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    // Check if API key already exists
+    const existingKey = user.apiKeys.find((apiKey) => apiKey.key === key);
+    if (existingKey) {
+      return res.status(400).json({
+        message: "This API key is already added",
+        success: false,
+      });
+    }
+
+    // Add new API key
+    user.apiKeys.push({
+      name: name.trim(),
+      key: key.trim(),
+      dailyUsage: 0,
+      dailyLimit: 50,
+      lastResetDate: new Date(),
+      isActive: true,
+    });
+
+    await user.save();
+
+    return res.status(201).json({
+      message: "API key added successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error adding API key:", error);
+    return res.status(500).json({
+      message: "Server error. Please try again later.",
+      success: false,
+    });
+  }
+};
+
+export const getApiKeys = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized",
+        success: false,
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }    // Return API keys - optionally expose full key value for editing
+    const { showFull } = req.query;
+    const apiKeys = user.apiKeys.map((apiKey) => ({
+      id: apiKey._id,
+      name: apiKey.name,
+      key: showFull === 'true' ? apiKey.key : `${apiKey.key.substring(0, 8)}...${apiKey.key.slice(-4)}`, // Mask key unless showFull is requested
+      dailyUsage: apiKey.dailyUsage,
+      dailyLimit: apiKey.dailyLimit,
+      lastResetDate: apiKey.lastResetDate,
+      isActive: apiKey.isActive,
+      createdAt: apiKey.createdAt,
+    }));
+
+    return res.status(200).json({
+      message: "API keys fetched successfully",
+      apiKeys,
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error fetching API keys:", error);
+    return res.status(500).json({
+      message: "Server error. Please try again later.",
+      success: false,
+    });
+  }
+};
+
+export const updateApiKey = async (req, res) => {
+  try {
+    const { apiKeyId } = req.params;
+    const { name, isActive, key } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized",
+        success: false,
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    const apiKey = user.apiKeys.id(apiKeyId);
+    if (!apiKey) {
+      return res.status(404).json({
+        message: "API key not found",
+        success: false,
+      });
+    }
+
+    // Update fields if provided
+    if (name !== undefined) {
+      if (!name.trim()) {
+        return res.status(400).json({
+          message: "API key name cannot be empty",
+          success: false,
+        });
+      }
+      apiKey.name = name.trim();
+    }
+
+    if (key !== undefined) {
+      if (!key.trim()) {
+        return res.status(400).json({
+          message: "API key value cannot be empty",
+          success: false,
+        });
+      }
+      
+      // Check if the new key already exists (excluding current key)
+      const existingKey = user.apiKeys.find((otherKey) => 
+        otherKey.key === key.trim() && otherKey._id.toString() !== apiKeyId
+      );
+      if (existingKey) {
+        return res.status(400).json({
+          message: "This API key already exists",
+          success: false,
+        });
+      }
+      
+      apiKey.key = key.trim();
+      // Reset usage when key is changed
+      apiKey.dailyUsage = 0;
+      apiKey.lastResetDate = new Date();
+    }
+
+    if (isActive !== undefined) {
+      apiKey.isActive = Boolean(isActive);
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "API key updated successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error updating API key:", error);
+    return res.status(500).json({
+      message: "Server error. Please try again later.",
+      success: false,
+    });
+  }
+};
+
+export const deleteApiKey = async (req, res) => {
+  try {
+    const { apiKeyId } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized",
+        success: false,
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    const apiKey = user.apiKeys.id(apiKeyId);
+    if (!apiKey) {
+      return res.status(404).json({
+        message: "API key not found",
+        success: false,
+      });
+    }
+
+    // Remove the API key
+    user.apiKeys.pull(apiKeyId);
+    await user.save();
+
+    return res.status(200).json({
+      message: "API key deleted successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error deleting API key:", error);
+    return res.status(500).json({
+      message: "Server error. Please try again later.",
+      success: false,
+    });
+  }
+};
+
+export const getApiKeyUsage = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized",
+        success: false,
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    // Reset daily usage if it's a new day
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let needsUpdate = false;
+    user.apiKeys.forEach((apiKey) => {
+      const lastReset = new Date(apiKey.lastResetDate);
+      lastReset.setHours(0, 0, 0, 0);
+
+      if (today > lastReset) {
+        apiKey.dailyUsage = 0;
+        apiKey.lastResetDate = new Date();
+        needsUpdate = true;
+      }
+    });
+
+    if (needsUpdate) {
+      await user.save();
+    }
+
+    // Calculate usage statistics
+    const activeKeys = user.apiKeys.filter((key) => key.isActive);
+    const totalUsage = activeKeys.reduce(
+      (sum, key) => sum + key.dailyUsage,
+      0
+    );
+    const totalLimit = activeKeys.reduce(
+      (sum, key) => sum + key.dailyLimit,
+      0
+    );
+    const usagePercentage =
+      totalLimit > 0 ? Math.round((totalUsage / totalLimit) * 100) : 0;
+
+    const usage = {
+      totalUsage,
+      totalLimit,
+      usagePercentage,
+      activeKeys: activeKeys.length,
+      totalKeys: user.apiKeys.length,
+      availableQuota: totalLimit - totalUsage,
+      resetTime: "00:00 UTC",
+    };
+
+    return res.status(200).json({
+      message: "Usage statistics fetched successfully",
+      usage,
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error fetching API usage:", error);
+    return res.status(500).json({
+      message: "Server error. Please try again later.",
+      success: false,
+    });
+  }
+};

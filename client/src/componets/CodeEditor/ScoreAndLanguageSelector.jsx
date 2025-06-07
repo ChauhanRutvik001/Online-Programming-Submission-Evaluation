@@ -3,7 +3,7 @@ import React from "react";
 
 const ScoreAndLanguageSelector = ({ language, handleLanguageChange, score }) => {
   return (
-    <div className="flex justify-between items-center mb-4 mt-10">
+    <div className="flex justify-between items-center mb-4">
       <span className="bg-blue-500 px-3 text-white py-2 rounded-lg shadow-md">
         Score: {score}
       </span>

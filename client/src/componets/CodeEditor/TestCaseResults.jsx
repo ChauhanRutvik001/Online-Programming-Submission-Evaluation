@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const TestCaseResults = ({
   results,
@@ -11,10 +12,12 @@ const TestCaseResults = ({
   handleSubmit,
   handleSaveCode,
   error,
+  apiKeyError,
   isPastDue,
   saveStatus,
 }) => {
   const [countdown, setCountdown] = useState(5);
+  const navigate = useNavigate();
 
   // Countdown timer for auto-save
   useEffect(() => {
@@ -134,17 +137,13 @@ const TestCaseResults = ({
           className={`px-4 py-2 rounded-lg shadow-md transition-all duration-200 flex items-center space-x-2 ${statusConfig.bgColor} ${statusConfig.textColor} hover:opacity-90 disabled:opacity-50`}
         >
           <span>{statusConfig.icon}</span>
-          <span>{saveStatus === 'saving' ? 'Saving...' : 'Save Code'}</span>
-        </button>
-      </div>
+          <span>{saveStatus === 'saving' ? 'Saving...' : 'Save Code'}</span>        </button>      </div>
 
-      {error && (
+      {error && !apiKeyError && (
         <div className="mt-4 p-4 bg-red-800 text-red-200 rounded-lg shadow-lg max-w-full overflow-auto">
           <strong>Error:</strong> {error}
         </div>
-      )}
-
-      {hasResults && !error ? (
+      )}      {hasResults && !error && !apiKeyError ? (
         <div className="mt-6">
           <div className="flex space-x-4">
             {results.map((_, index) => (
@@ -198,7 +197,7 @@ const TestCaseResults = ({
           )}
         </div>
       ) : (
-        !error && (
+        !error && !apiKeyError && (
           <div className="mt-4 text-gray-500">
             {/* No results available */}
           </div>

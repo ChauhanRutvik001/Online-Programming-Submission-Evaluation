@@ -45,10 +45,14 @@ const Profile = () => {
   const user = useSelector((state) => state.app.user);
   const imageUrl = useSelector((state) => state.app.imageUrl);
   const reduxDispatch = useDispatch();
-  const submissions = useSelector((state) => state.submissions.submissions);
-  const location = useLocation();
+  const submissions = useSelector((state) => state.submissions.submissions);  const location = useLocation();
   const isCached = isPageCached(location.pathname);
   const [rightColumnKey, setRightColumnKey] = useState("submissions");
+
+  // Get initial tab from URL params
+  const searchParams = new URLSearchParams(location.search);
+  const tabParam = searchParams.get('tab');
+  const initialTab = tabParam === 'apikeys' ? 'apikeys' : 'profile';
 
   useEffect(() => {
     // Only signal navigation start if we're not already cached
@@ -159,15 +163,14 @@ const Profile = () => {
               isEditing={isEditing}
               imageUrl={imageUrl || "https://via.placeholder.com/150"} // Placeholder image
             />
-          </div>
-
-          <div className="md:col-span-3">
-            {isEditing ? (
+          </div>          <div className="md:col-span-3">
+            {isEditing || initialTab === 'apikeys' ? (
               <ProfileRight
                 formData={formData}
                 handleInputChange={handleInputChange}
                 handleSubmit={handleSubmit}
                 user={user || {}} // Provide an empty object as fallback
+                initialTab={initialTab}
               />
             ) : (
               <div>

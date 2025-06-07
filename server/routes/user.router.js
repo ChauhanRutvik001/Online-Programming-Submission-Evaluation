@@ -4,6 +4,11 @@ import {
   uploadProfilePic,
   getProfilePic,
   removeProfilePic,
+  addApiKey,
+  getApiKeys,
+  updateApiKey,
+  deleteApiKey,
+  getApiKeyUsage,
 } from "../controllers/user.controller.js";
 import { isAuthorized } from "../middlewares/auth.js";
 import studentBatchController from "../controllers/student.batch.controller.js";
@@ -25,5 +30,12 @@ router.get('/my-batches', isAuthorized, studentBatchController.getMyBatches); //
 router.get('/batches/:batchId', isAuthorized, studentBatchController.getBatchDetails); // Used by: Student/BatchDetails.jsx (line 71)
 router.get('/batches/:batchId/problems', isAuthorized, studentBatchController.getBatchProblems); // Used by: Student/BatchDetails.jsx (line 26)
 router.get('/batches/:batchId/progress', isAuthorized, studentBatchController.getBatchProgress); // Used by: Student/BatchProgress.jsx (line 38)
+
+// API Key management endpoints
+router.post('/api-keys', isAuthorized, addApiKey); // Add new API key
+router.get('/api-keys', isAuthorized, getApiKeys); // Get all API keys for user
+router.put('/api-keys/:apiKeyId', isAuthorized, updateApiKey); // Update API key (name, active status)
+router.delete('/api-keys/:apiKeyId', isAuthorized, deleteApiKey); // Delete API key
+router.get('/api-keys/usage', isAuthorized, getApiKeyUsage); // Get usage statistics
 
 export default router;

@@ -4,13 +4,11 @@ import Header from "./Header";
 
 const Layout = () => {
   const location = useLocation();
-
   // Specify the routes where the Header should not appear
-  const noHeaderRoutes = ["/problems/:id","/"];
-
+  const noHeaderRoutes = ["/problems/:id", "/problems/:id/:batchId", "/"];
   // Check if the current route matches any of the noHeaderRoutes
   const isNoHeaderRoute = noHeaderRoutes.some((route) => {
-    const routePattern = new RegExp(`^${route.replace(":id", "[^/]+")}$`);
+    const routePattern = new RegExp(`^${route.replace(/:id/g, "[^/]+").replace(/:batchId/g, "[^/]+")}$`);
     return routePattern.test(location.pathname);
   });
 
