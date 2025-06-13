@@ -25,6 +25,8 @@ import axios from "axios";
 import problem from "../models/problem.js";
 import submission from "../models/submission.js";
 import User from "../models/user.js";
+import AdminApiKey from "../models/adminApiKeys.js";
+import SystemSettings from "../models/systemSettings.js";
 import { isAuthorized } from "../middlewares/auth.js";
 // We'll dynamically import batch model when needed to avoid circular dependencies
 
@@ -34,6 +36,126 @@ const router = express.Router();
 const JUDGE0_BASE_URL = "https://judge0-ce.p.rapidapi.com";
 const JUDGE0_API_HOST = "judge0-ce.p.rapidapi.com";
 const JUDGE0_API_KEY = "dbe32c7301msha8dfc9660bdf2bfp1bf391jsn29d2b4dbdae2"; // Fallback system key
+
+// Function to get available admin API key
+const getAdminApiKey = async () => {
+  try {
+    const adminKeys = await AdminApiKey.find();
+    if (!adminKeys || adminKeys.length === 0) {
+      return { 
+        error: 'NO_ADMIN_KEYS',
+        message: 'No admin API keys configured. Please add admin API keys.',
+        key: null 
+      };
+    }
+
+    // Reset daily usage if it's a new day
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let needsUpdate = false;
+    adminKeys.forEach(apiKey => {
+      const lastReset = new Date(apiKey.lastResetDate);
+      lastReset.setHours(0, 0, 0, 0);
+      
+      if (today > lastReset) {
+        apiKey.dailyUsage = 0;
+        apiKey.lastResetDate = new Date();
+        needsUpdate = true;
+      }
+    });
+
+    if (needsUpdate) {
+      await Promise.all(adminKeys.map(key => key.save()));
+    }
+
+    // Find an active API key with available quota
+    const availableKeys = adminKeys.filter(
+      key => key.isActive && key.dailyUsage < key.dailyLimit
+    );
+
+    if (availableKeys.length === 0) {
+      const activeKeys = adminKeys.filter(k => k.isActive);
+      
+      console.log(`⚠️ No available admin API keys:`, {
+        totalKeys: adminKeys.length,
+        activeKeys: activeKeys.length,
+      });
+
+      if (activeKeys.length === 0) {
+        return {
+          error: 'NO_ACTIVE_ADMIN_KEYS',
+          message: 'All admin API keys are inactive.',
+          key: null
+        };
+      } else {
+        return {
+          error: 'ADMIN_LIMIT_EXCEEDED',
+          message: 'All admin API keys have reached their daily limit.',
+          key: null
+        };
+      }
+    }
+
+    // Select key with lowest usage (load balancing)
+    const selectedKey = availableKeys.reduce((min, key) => 
+      key.dailyUsage < min.dailyUsage ? key : min
+    );
+
+    console.log(`🎯 Selected admin API key:`, {
+      keyName: selectedKey.name,
+      usage: `${selectedKey.dailyUsage}/${selectedKey.dailyLimit}`,
+      availableKeys: availableKeys.length
+    });    return {
+      error: null,
+      key: selectedKey.key,
+      keyId: selectedKey._id,
+      keyName: selectedKey.name,
+      usage: `${selectedKey.dailyUsage}/${selectedKey.dailyLimit}`,
+      isAdminKey: true
+    };
+  } catch (error) {
+    console.error("Error getting admin API key:", error);
+    return {
+      error: 'SYSTEM_ERROR',
+      message: 'Failed to check admin API key availability.',
+      key: null
+    };
+  }
+};
+
+// Function to check if admin API keys should be used
+const shouldUseAdminKeys = async () => {
+  try {
+    const setting = await SystemSettings.findOne({ settingName: 'useAdminApiKeys' });
+    return setting ? Boolean(setting.settingValue) : false;
+  } catch (error) {
+    console.error("Error checking admin API key mode:", error);
+    return false;
+  }
+};
+
+// Function to get API key (either admin or user based on system setting)
+const getApiKey = async (userId) => {
+  try {
+    const useAdminKeys = await shouldUseAdminKeys();
+    
+    if (useAdminKeys) {
+      console.log(`🔧 Using admin API keys for user ${userId}`);
+      return await getAdminApiKey();
+    } else {
+      console.log(`👤 Using user API keys for user ${userId}`);
+      return await getUserApiKey(userId);
+    }
+  } catch (error) {
+    console.error("Error determining API key source:", error);
+    return {
+      error: 'SYSTEM_ERROR',
+      message: 'Failed to determine API key source.',
+      key: null
+    };
+  }
+};
 
 // Function to get available user API key with detailed error information
 const getUserApiKey = async (userId) => {
@@ -113,9 +235,7 @@ const getUserApiKey = async (userId) => {
       keyName: selectedKey.name,
       usage: `${selectedKey.dailyUsage}/${selectedKey.dailyLimit}`,
       availableKeys: availableKeys.length
-    });
-
-    return {
+    });    return {
       error: null,
       key: selectedKey.key,
       keyId: selectedKey._id,
@@ -134,14 +254,26 @@ const getUserApiKey = async (userId) => {
 };
 
 // Function to increment API key usage
-const incrementApiKeyUsage = async (userId, keyId) => {
+const incrementApiKeyUsage = async (userId, keyId, isAdminKey = false) => {
   try {
-    const user = await User.findById(userId);
-    if (user && keyId) {
-      const apiKey = user.apiKeys.id(keyId);
-      if (apiKey) {
-        apiKey.dailyUsage += 1;
-        await user.save();
+    if (isAdminKey) {
+      // Increment admin API key usage
+      const adminKey = await AdminApiKey.findById(keyId);
+      if (adminKey) {
+        adminKey.dailyUsage += 1;
+        await adminKey.save();
+        console.log(`📈 Incremented admin API key usage: ${adminKey.name} (${adminKey.dailyUsage}/${adminKey.dailyLimit})`);
+      }
+    } else {
+      // Increment user API key usage
+      const user = await User.findById(userId);
+      if (user && keyId) {
+        const apiKey = user.apiKeys.id(keyId);
+        if (apiKey) {
+          apiKey.dailyUsage += 1;
+          await user.save();
+          console.log(`📈 Incremented user API key usage: ${apiKey.name} (${apiKey.dailyUsage}/${apiKey.dailyLimit})`);
+        }
       }
     }
   } catch (error) {
@@ -357,8 +489,8 @@ router.post("/run-code", isAuthorized, async (req, res) => {
     }));    // Add request tracking
     console.log(`Processing request #${requestCounter} for user ${userId}`);
     queueStatus.pending--;
-    queueStatus.processing++;    // Get user API key with strict enforcement - NO SYSTEM FALLBACK
-    const userApiResult = await getUserApiKey(userId);
+    queueStatus.processing++;    // Get API key (either admin or user based on system setting)
+    const userApiResult = await getApiKey(userId);
     
     // Check for API key errors and return appropriate error responses
     if (userApiResult.error) {
@@ -419,7 +551,7 @@ router.post("/run-code", isAuthorized, async (req, res) => {
       usage: userApiResult.usage
     };
     
-    console.log(`✅ Using user API key: ${userKeyInfo.keyName} (${userKeyInfo.usage})`);
+    console.log(`✅ Using ${userApiResult.isAdminKey ? 'admin' : 'user'} API key: ${userKeyInfo.keyName} (${userKeyInfo.usage})`);
 
     // Update headers in API calls to use RapidAPI
     const submitToJudge0 = async (submission, retryCount = 3) => {
@@ -437,9 +569,8 @@ router.post("/run-code", isAuthorized, async (req, res) => {
               },
               timeout: 10000, // 10 second timeout
             }          );
-          
-          // Always increment usage count since we're always using user API key now
-          await incrementApiKeyUsage(userKeyInfo.userId, userKeyInfo.keyId);
+            // Increment usage count for the appropriate API key type
+          await incrementApiKeyUsage(userKeyInfo.userId, userKeyInfo.keyId, userApiResult.isAdminKey);
 
           logServerInstance(response, "Submission");
           return response;
@@ -734,8 +865,8 @@ router.post("/compileandrun", isAuthorized, async (req, res) => {
     const { code, input, lang } = req.body;
     const userId = req.user.id;    console.log("🚀 Compile and run request:", { userId, lang });
 
-    // Get user API key with strict enforcement - NO SYSTEM FALLBACK
-    const userApiResult = await getUserApiKey(userId);
+    // Get API key (either admin or user based on system setting)
+    const userApiResult = await getApiKey(userId);
     
     // Check for API key errors and return appropriate error responses
     if (userApiResult.error) {
@@ -812,11 +943,11 @@ router.post("/compileandrun", isAuthorized, async (req, res) => {
         "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
       },
       data: data,
-    };    console.log(`📡 Making Judge0 API request with user API key: ${keyInfo.keyName}`);
+    };    console.log(`📡 Making Judge0 API request with ${userApiResult.isAdminKey ? 'admin' : 'user'} API key: ${keyInfo.keyName}`);
     const response = await axios.request(options);
 
-    // Always increment usage since we're always using user API key now
-    await incrementApiKeyUsage(keyInfo.userId, keyInfo.keyId);
+    // Increment usage for the appropriate API key type
+    await incrementApiKeyUsage(keyInfo.userId, keyInfo.keyId, userApiResult.isAdminKey);
 
     // Format the response
     const result = {
@@ -924,11 +1055,10 @@ router.post("/custom-test", isAuthorized, async (req, res) => {
     });
   }
 
-  try {
-    console.log(`🔧 Custom test execution requested by user ${userId} for ${language}`);
+  try {    console.log(`🔧 Custom test execution requested by user ${userId} for ${language}`);
 
-    // Check user API key availability
-    const userApiResult = await getUserApiKey(userId);
+    // Check API key availability (either admin or user based on system setting)
+    const userApiResult = await getApiKey(userId);
     
     if (userApiResult.error) {
       // Structure error response based on error type
@@ -987,7 +1117,7 @@ router.post("/custom-test", isAuthorized, async (req, res) => {
       usage: userApiResult.usage
     };
     
-    console.log(`✅ Using user API key for custom test: ${keyInfo.keyName} (${keyInfo.usage})`);    // Get language ID for Judge0
+    console.log(`✅ Using ${userApiResult.isAdminKey ? 'admin' : 'user'} API key for custom test: ${keyInfo.keyName} (${keyInfo.usage})`);    // Get language ID for Judge0
     const lang = getLanguageId(language);
     if (!lang) {
       return res.status(400).json({
@@ -1012,13 +1142,11 @@ router.post("/custom-test", isAuthorized, async (req, res) => {
         "X-RapidAPI-Host": JUDGE0_API_HOST,
       },
       data: submissionData,
-    };
-
-    console.log(`📡 Making Judge0 API request for custom test with user API key: ${keyInfo.keyName}`);
+    };    console.log(`📡 Making Judge0 API request for custom test with ${userApiResult.isAdminKey ? 'admin' : 'user'} API key: ${keyInfo.keyName}`);
     const response = await axios(options);
     
-    // Always increment usage count since we're using user API key
-    await incrementApiKeyUsage(userApiResult.userId, userApiResult.keyId);
+    // Increment usage count for the appropriate API key type
+    await incrementApiKeyUsage(userApiResult.userId, userApiResult.keyId, userApiResult.isAdminKey);
 
     logServerInstance(response, "CustomTest");
 

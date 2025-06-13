@@ -7,10 +7,12 @@ import { fetchProfilePicThunk } from "./redux/userSlice";
 import Body from "./componets/Body";
 import { LoaderPinwheel } from "lucide-react";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import Browse from "./componets/Browse";
 
 const App = () => {
   const dispatch = useDispatch();
   const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -28,13 +30,15 @@ const App = () => {
       } catch (error) {
         console.error("Error checking authentication:", error);
         setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     checkAuth();
   }, [dispatch]);
 
-  if (isAuthenticated === null) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center w-full h-screen bg-gradient-to-br from-gray-900 to-gray-950 text-white">
         <LoaderPinwheel size={60} className="animate-spin text-blue-400" />
@@ -44,10 +48,11 @@ const App = () => {
       </div>
     );
   }
+
   return (
     <div>
       <NotificationProvider>
-        <Body />
+        <Body isAuthenticated={isAuthenticated} />
         <Toaster />
       </NotificationProvider>
     </div>

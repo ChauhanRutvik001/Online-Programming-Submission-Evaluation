@@ -10,125 +10,254 @@ const BatchAssignedStudents = () => {
   const [selectedBatchIds, setSelectedBatchIds] = useState([]);
   const [assignedBatchIds, setAssignedBatchIds] = useState([]);
   const [batchDueDates, setBatchDueDates] = useState([]); // [{ batchId, dueDate }]
+  const [originalBatchDueDates, setOriginalBatchDueDates] = useState([]); // Keep track of original values
   const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Get current date-time formatted for datetime-local input min attribute
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    return now.toISOString().slice(0, 16);
+  };
+  
+
   // Fetch faculty's batches and assigned batches/due dates for this problem
   useEffect(() => {
-    const fetchBatches = async () => {
+    let isMounted = true;
+    
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await axiosInstance.get("/faculty/my-batches");
-        if (response.data.success) {
-          setBatches(response.data.batches || []);
+        // First fetch the batches
+        const batchResponse = await axiosInstance.get("/faculty/my-batches");
+        
+        if (!isMounted) return;
+        
+        if (batchResponse.data.success) {
+          const loadedBatches = batchResponse.data.batches || [];
+          setBatches(loadedBatches);
+          
+          // Now fetch problem data AFTER we have the batches
+          try {
+            const problemResponse = await axiosInstance.get(`/problems/${problemId}`);
+            const problem = problemResponse.data.problem || problemResponse.data;
+            
+            if (!isMounted) return;
+            
+            console.log("Problem data:", problem);
+            
+            // Store all batch IDs from our loaded batches for later comparison
+            const myBatchIds = loadedBatches.map(batch => batch._id);
+            
+            // Get all batchDueDates from the problem
+            const allBatchDueDatesArr = (problem.batchDueDates || []).map(bd => {
+              const batchId = typeof bd.batch === 'object' ? bd.batch._id : bd.batch;
+              const dueDate = bd.dueDate ? new Date(bd.dueDate).toISOString().substring(0, 16) : "";
+              
+              return {
+                batchId,
+                dueDate
+              };
+            });
+            
+            // Only keep batch due dates for batches that belong to the current faculty
+            const myBatchDueDatesArr = allBatchDueDatesArr.filter(bd => 
+              myBatchIds.includes(bd.batchId)
+            );
+            
+            // Save the filtered batch due dates
+            setBatchDueDates(myBatchDueDatesArr);
+            
+            // IMPORTANT: Also save the original values for comparison later
+            setOriginalBatchDueDates([...myBatchDueDatesArr]);
+            
+            // Extract batch IDs from due dates to set assigned batches
+            const myAssignedBatchIdsArr = myBatchDueDatesArr.map(bd => bd.batchId);
+            
+            // Set both assigned and selected batch IDs
+            setAssignedBatchIds(myAssignedBatchIdsArr);
+            setSelectedBatchIds(myAssignedBatchIdsArr);
+            
+          } catch (err) {
+            if (isMounted) {
+              setError("Failed to load problem data: " + err.message);
+              console.error("Error loading problem data:", err);
+            }
+          }
         } else {
-          setError("Failed to load batches");
+          if (isMounted) {
+            setError("Failed to load batches");
+          }
         }
       } catch (err) {
-        setError("Failed to load batches: " + err.message);
+        if (isMounted) {
+          setError("Failed to load batches: " + err.message);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    const fetchProblemData = async () => {
-      try {
-        // Get the problem to get its batchDueDates
-        const problemResponse = await axiosInstance.get(`/problems/${problemId}`);
-        const problem = problemResponse.data.problem || problemResponse.data;
-        // batchDueDates: [{ batch, dueDate }]
-        const batchDueDatesArr = (problem.batchDueDates || []).map(bd => ({
-          batchId: bd.batch,
-          dueDate: bd.dueDate ? new Date(bd.dueDate).toISOString().substring(0, 16) : ""
-        }));
-        setBatchDueDates(batchDueDatesArr);
-
-        // Get the assigned batches
-        const assignedBatchIdsArr = batchDueDatesArr.map(bd => bd.batchId);
-        setAssignedBatchIds(assignedBatchIdsArr);
-        setSelectedBatchIds(assignedBatchIdsArr);
-      } catch (err) {
-        setError("Failed to load problem data: " + err.message);
-      }
+    fetchData();
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
     };
-
-    fetchBatches();
-    fetchProblemData();
   }, [problemId]);
 
   // Handle batch selection
   const handleBatchSelect = (batchId) => {
     if (selectedBatchIds.includes(batchId)) {
+      // Deselecting a batch
       setSelectedBatchIds(selectedBatchIds.filter(id => id !== batchId));
     } else {
+      // Selecting a batch
+      // First check if this batch exists in our loaded batches (meaning we have permission)
+      const batchExists = batches.some(batch => batch._id === batchId);
+      if (!batchExists) {
+        toast.error("You don't have permission to assign this batch");
+        return;
+      }
+      
       setSelectedBatchIds([...selectedBatchIds, batchId]);
-      // If not already in batchDueDates, add with empty dueDate
+      
+      // IMPORTANT: Only add it if it doesn't already exist, and don't set an empty string
       if (!batchDueDates.some(b => b.batchId === batchId)) {
-        setBatchDueDates([...batchDueDates, { batchId, dueDate: "" }]);
+        // Set dueDate to null explicitly, not empty string
+        setBatchDueDates(prev => [...prev, { batchId, dueDate: null }]);
       }
     }
   };
 
   // Handle due date change for a batch
   const handleBatchDueDateChange = (batchId, newDueDate) => {
+    // If newDueDate is empty string, set it to null explicitly
+    const valueToSet = newDueDate === "" ? null : newDueDate;
+    
+    // Only validate if we have an actual date
+    if (valueToSet) {
+      const selectedDate = new Date(valueToSet);
+      const currentDate = new Date();
+      
+      if (selectedDate < currentDate) {
+        toast.error("Due date cannot be in the past");
+        return;
+      }
+    }
+    
+    console.log(`Setting due date for batch ${batchId}:`, {
+      oldValue: batchDueDates.find(b => b.batchId === batchId)?.dueDate || "none",
+      newValue: valueToSet,
+      originalValue: originalBatchDueDates.find(b => b.batchId === batchId)?.dueDate || "none"
+    });
+    
     setBatchDueDates(prev =>
       prev.some(b => b.batchId === batchId)
         ? prev.map(b =>
-            b.batchId === batchId ? { ...b, dueDate: newDueDate } : b
+            b.batchId === batchId ? { ...b, dueDate: valueToSet } : b
           )
-        : [...prev, { batchId, dueDate: newDueDate }]
+        : [...prev, { batchId, dueDate: valueToSet }]
     );
   };
 
   // Save all assignment changes
   const handleSaveChanges = async () => {
+    // Validate that all selected batches are in our loaded batches (meaning we have permission)
+    const validBatchIds = batches.map(batch => batch._id);
+    const invalidBatchIds = selectedBatchIds.filter(id => !validBatchIds.includes(id));
+    
+    if (invalidBatchIds.length > 0) {
+      toast.error("You don't have permission to assign some selected batches");
+      setError("Permission denied for some batches. Please refresh and try again.");
+      return;
+    }
+
+    // Find batches to assign (new selections)
     const batchesToAssign = selectedBatchIds.filter(
       id => !assignedBatchIds.includes(id)
     );
+    
+    // Find batches to unassign (removed selections)
     const batchesToUnassign = assignedBatchIds.filter(
       id => !selectedBatchIds.includes(id)
     );
-
-    if (
-      batchesToAssign.length === 0 &&
-      batchesToUnassign.length === 0 &&
-      selectedBatchIds.every(batchId => {
-        const due = batchDueDates.find(b => b.batchId === batchId)?.dueDate || "";
-        return !due;
-      })
-    ) {
-      toast.info("No changes to save");
+    
+    // Find batches with changed due dates by comparing with ORIGINAL values
+    const batchesWithChangedDueDates = selectedBatchIds.filter(batchId => {
+      // Get the current due date from our state
+      const currentDueDate = batchDueDates.find(b => b.batchId === batchId)?.dueDate || "";
+      
+      // Get the ORIGINAL due date from when the component first loaded
+      const originalDueDate = originalBatchDueDates.find(b => b.batchId === batchId)?.dueDate || "";
+      
+      console.log(`Comparing dates for batch ${batchId}:`, {
+        currentDueDate,
+        originalDueDate,
+        isDifferent: currentDueDate !== originalDueDate
+      });
+      
+      // Return true if the date has changed
+      return currentDueDate !== originalDueDate;
+    });
+    
+    // If nothing has changed, show a message and return
+    if (batchesToAssign.length === 0 && batchesToUnassign.length === 0 && batchesWithChangedDueDates.length === 0) {
+      toast("No changes to save", {
+        icon: "ℹ️",
+        style: {
+          background: '#3b82f6',
+          color: '#fff',
+        }
+      });
       return;
     }
 
     setProcessing(true);
+    console.log("Changes to save:", {
+      batchesToAssign,
+      batchesToUnassign,
+      batchesWithChangedDueDates
+    });
 
     try {
-      // Assign batches with their due dates
-      if (batchesToAssign.length > 0 || batchDueDates.length > 0) {
-        // Only send selected batches with their due dates
-        const batchDueDatesToSend = batchDueDates
-          .filter(b => selectedBatchIds.includes(b.batchId))
-          .map(b => ({
-            batchId: b.batchId,
-            dueDate: b.dueDate || null
-          }));
+      // Only send batches that need to be assigned or have changed due dates
+      if (batchesToAssign.length > 0 || batchesWithChangedDueDates.length > 0) {
+        // Only send the batches that are new or have changed due dates
+        const batchesToUpdate = [...batchesToAssign, ...batchesWithChangedDueDates]
+          .filter((id, index, self) => self.indexOf(id) === index); // Remove duplicates
+        
+        // Create the batch due dates array for only changed items
+        const batchDueDatesToSend = batchesToUpdate
+          .filter(batchId => validBatchIds.includes(batchId))
+          .map(batchId => {
+            const dueDateEntry = batchDueDates.find(b => b.batchId === batchId);
+            return {
+              batchId: batchId,
+              // Only send a date if one is explicitly set and valid
+              dueDate: dueDateEntry?.dueDate && dueDateEntry.dueDate !== "" 
+                ? new Date(dueDateEntry.dueDate).toISOString() 
+                : null
+            };
+          });
 
+        console.log("Sending updates for batches:", batchDueDatesToSend);
+        
         await axiosInstance.post(`/problems/${problemId}/assignBatches`, {
           batchDueDates: batchDueDatesToSend
         });
-
-        setAssignedBatchIds([...assignedBatchIds, ...batchesToAssign]);
       }
 
       // Unassign batches if needed
       if (batchesToUnassign.length > 0) {
+        console.log("Unassigning batches:", batchesToUnassign);
+        
         await axiosInstance.post(`/problems/${problemId}/unassign-batches`, {
           batchIds: batchesToUnassign
         });
-
-        setAssignedBatchIds(assignedBatchIds.filter(id => !batchesToUnassign.includes(id)));
       }
 
       toast.success("Assignment changes saved successfully!");
@@ -138,10 +267,66 @@ const BatchAssignedStudents = () => {
       console.error("Assignment error:", error);
       toast.error(`Failed to save assignment changes: ${errorMsg}`);
       setError(`Failed to save changes: ${errorMsg}`);
+      
+      // If there's an error about missing batches, log more details
+      if (error.response?.data?.missingBatchIds) {
+        console.error("Missing batch IDs:", error.response.data.missingBatchIds);
+      }
     } finally {
-      setProcessing(false);
+      // Refresh the data to ensure everything is in sync
+      const refreshData = async () => {
+        try {
+          // Get the problem to get its batchDueDates
+          const problemResponse = await axiosInstance.get(`/problems/${problemId}`);
+          const problem = problemResponse.data.problem || problemResponse.data;
+          
+          // Use the current batches from state to ensure we have them
+          const currentBatches = batches;
+          const myBatchIds = currentBatches.map(batch => batch._id);
+          
+          // Get all batchDueDates from the problem
+          const allBatchDueDatesArr = (problem.batchDueDates || []).map(bd => ({
+            batchId: typeof bd.batch === 'object' ? bd.batch._id : bd.batch,
+            dueDate: bd.dueDate ? new Date(bd.dueDate).toISOString().substring(0, 16) : ""
+          }));
+          
+          // Only keep batch due dates for batches that belong to the current faculty
+          const myBatchDueDatesArr = allBatchDueDatesArr.filter(bd => 
+            myBatchIds.includes(bd.batchId)
+          );
+          
+          // Update state
+          setBatchDueDates(myBatchDueDatesArr);
+          // IMPORTANT: Also update original dates after save
+          setOriginalBatchDueDates([...myBatchDueDatesArr]);
+          
+          const myAssignedBatchIdsArr = myBatchDueDatesArr.map(bd => bd.batchId);
+          setAssignedBatchIds(myAssignedBatchIdsArr);
+          setSelectedBatchIds(myAssignedBatchIdsArr);
+        } catch (err) {
+          console.error("Failed to refresh problem data:", err);
+        } finally {
+          setProcessing(false);
+        }
+      };
+      
+      refreshData();
     }
   };
+
+  // Add this new function to your component
+  const handleClearDueDate = (e, batchId) => {
+    e.stopPropagation();
+    e.preventDefault();
+    console.log(`Clearing due date for batch ${batchId}`);
+    
+    // Explicitly set to null
+    setBatchDueDates(prev =>
+      prev.map(b => 
+        b.batchId === batchId ? { ...b, dueDate: null } : b
+      )
+    );
+  }
 
   if (loading) {
     return (
@@ -183,7 +368,7 @@ const BatchAssignedStudents = () => {
               <path
                 className="opacity-75"
                 fill="currentColor"
-                d="M4 12a8 8 0 018-8v8H4z"
+                d="M4 12a8 8 0 0 1-8-8v8H4z"
               ></path>
             </svg>
             <p className="text-white text-lg font-semibold">
@@ -212,8 +397,15 @@ const BatchAssignedStudents = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {batches.map((batch) => {
               const isSelected = selectedBatchIds.includes(batch._id);
-              const dueDateValue =
-                batchDueDates.find(b => b.batchId === batch._id)?.dueDate || "";
+              const batchDueDate = batchDueDates.find(b => b.batchId === batch._id);
+              
+              // IMPORTANT: Only use the due date if it's a valid date string, otherwise null
+              const dueDateValue = batchDueDate?.dueDate && batchDueDate.dueDate.trim() !== "" 
+                ? batchDueDate.dueDate 
+                : null;
+              
+              const isAssigned = assignedBatchIds.includes(batch._id);
+              
               return (
                 <div
                   key={batch._id}
@@ -226,26 +418,59 @@ const BatchAssignedStudents = () => {
                 >
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-medium">{batch.name}</h3>
-                    <span className="px-2 py-1 text-sm rounded-full bg-blue-500/20 text-blue-300">
-                      {batch.students?.length || 0} Students
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 text-sm rounded-full bg-blue-500/20 text-blue-300">
+                        {batch.students?.length || 0} Students
+                      </span>
+                      {isAssigned && (
+                        <span className="px-2 py-1 text-sm rounded-full bg-green-500/20 text-green-300">
+                          Assigned
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className="text-gray-400 text-sm mt-2">{batch.subject || "No subject"}</p>
                   <p className="text-gray-400 text-sm mt-1">{batch.description || "No description"}</p>
+                  
+                  {/* Only show this section if there's actually a due date */}
+                  {dueDateValue && !isSelected && (
+                    <div className="mt-3 p-2 bg-indigo-900/30 border border-indigo-800/50 rounded">
+                      <p className="text-sm flex items-center gap-2 text-indigo-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Due: {new Date(dueDateValue).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                  
                   {isSelected && (
                     <div className="mt-4">
                       <label className="block text-gray-300 mb-1 text-sm">
-                        Due Date for this Batch (optional)
+                        Due Date for this Batch {dueDateValue ? "(currently set)" : "(optional)"}
                       </label>
                       <input
                         type="datetime-local"
-                        value={dueDateValue}
-                        onChange={e =>
-                          handleBatchDueDateChange(batch._id, e.target.value)
-                        }
-                        className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600"
+                        // Only show the value if it's actually set
+                        value={dueDateValue || ""}
+                        min={getCurrentDateTime()}
+                        onChange={e => handleBatchDueDateChange(batch._id, e.target.value || null)}
+                        className="bg-gray-700 text-white px-2 py-1 rounded border border-gray-600 w-full"
                         onClick={e => e.stopPropagation()}
                       />
+                      {/* Add a clear button to remove a due date */}
+                      {dueDateValue && (
+                        <button
+                          type="button"
+                          className="mt-2 text-xs text-red-400 hover:text-red-300 bg-red-900/20 px-2 py-1 rounded"
+                          onClick={(e) => handleClearDueDate(e, batch._id)}
+                        >
+                          Clear Due Date
+                        </button>
+                      )}
                       <p className="text-xs text-gray-400 mt-1">
                         {dueDateValue
                           ? `Due on: ${new Date(dueDateValue).toLocaleString()}`

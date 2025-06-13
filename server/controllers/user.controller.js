@@ -257,18 +257,14 @@ export const addApiKey = async (req, res) => {
         message: "User not found",
         success: false,
       });
-    }
-
-    // Check if API key already exists
-    const existingKey = user.apiKeys.find((apiKey) => apiKey.key === key);
-    if (existingKey) {
+    }    // Check if API key already exists
+    const existingApiKey = user.apiKeys.find(apiKey => apiKey.key === key.trim());
+    if (existingApiKey) {
       return res.status(400).json({
         message: "This API key is already added",
         success: false,
       });
-    }
-
-    // Add new API key
+    }    // Add the API key to user
     user.apiKeys.push({
       name: name.trim(),
       key: key.trim(),
@@ -383,19 +379,16 @@ export const updateApiKey = async (req, res) => {
           message: "API key value cannot be empty",
           success: false,
         });
-      }
-      
-      // Check if the new key already exists (excluding current key)
-      const existingKey = user.apiKeys.find((otherKey) => 
-        otherKey.key === key.trim() && otherKey._id.toString() !== apiKeyId
-      );
+      }        // Check if the new key already exists (excluding current key)
+      const otherApiKeys = user.apiKeys.filter(otherKey => otherKey._id.toString() !== apiKeyId);
+      const existingKey = otherApiKeys.find(otherKey => otherKey.key === key.trim());
       if (existingKey) {
         return res.status(400).json({
           message: "This API key already exists",
           success: false,
         });
       }
-      
+        // Update the key
       apiKey.key = key.trim();
       // Reset usage when key is changed
       apiKey.dailyUsage = 0;

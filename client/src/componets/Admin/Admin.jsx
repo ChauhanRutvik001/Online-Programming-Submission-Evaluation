@@ -8,7 +8,8 @@ import {
   UserPlus, 
   GraduationCap, 
   BookOpen, 
-  Home 
+  Home,
+  Key
 } from "lucide-react";
 
 // Skeleton loader component for stats cards
@@ -451,12 +452,17 @@ const Admin = () => {
                     className="flex items-center gap-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition-all duration-200 text-base w-full justify-center"
                   >
                     <Users className="h-5 w-5" /> Create Batch
-                  </button>
-                  <button
+                  </button>                  <button
                     onClick={() => navigate("/admin/users")}
                     className="flex items-center gap-3 bg-pink-700 hover:bg-pink-800 text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition-all duration-200 text-base w-full justify-center"
                   >
                     <UserPlus className="h-5 w-5" /> All Users
+                  </button>
+                  <button
+                    onClick={() => navigate("/admin/api-keys")}
+                    className="flex items-center gap-3 bg-indigo-700 hover:bg-indigo-800 text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition-all duration-200 text-base w-full justify-center"
+                  >
+                    <Key className="h-5 w-5" /> API Key Management
                   </button>
                 </div>
               </div>

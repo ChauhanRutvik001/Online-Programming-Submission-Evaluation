@@ -10,6 +10,12 @@ class Auth {
       }
       return { authStatus: false };
     } catch (error) {
+      // Don't log 401 errors as they're expected for non-authenticated users
+      if (error.response && error.response.status === 401) {
+        return { authStatus: false };
+      }
+      
+      // Log other errors
       console.error("Error in getCurrentUser:", error);
       return { authStatus: false };
     }

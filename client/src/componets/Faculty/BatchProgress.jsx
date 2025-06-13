@@ -105,12 +105,21 @@ const FacultyBatchProgress = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8 mt-16">
           <div className="flex items-center space-x-4">
+            {/* Add this button for browser history back navigation */}
             <button
-              onClick={() => navigate(`/faculty/batches/${batchId}`)}
+              onClick={() => navigate(-1)}
               className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
             >
               <ChevronLeft size={20} />
-              <span>Back to Batch Details</span>
+              <span>Back</span>
+            </button>
+            
+            {/* Keep the existing direct navigation button */}
+            <button
+              onClick={() => navigate(`/faculty/batches/${batchId}`)}
+              className="flex items-center space-x-2 text-gray-400 hover:text-gray-300 transition-colors"
+            >
+              <span>Batch Details</span>
             </button>
           </div>
         </div>

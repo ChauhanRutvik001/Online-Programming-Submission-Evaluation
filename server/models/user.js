@@ -104,12 +104,10 @@ const userSchema = new Schema(
         type: Schema.Types.ObjectId,
         ref: "Submission",
       },
-    ],
-    apiKeys: [
-      {
+    ],    apiKeys: [      {
         key: {
           type: String,
-          required: true,
+          required: true, // This stores the actual API key for Judge0 API calls
         },
         name: {
           type: String,

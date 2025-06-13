@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
+import ErrorDisplay from "../Common/ErrorDisplay";
 
 const TestCaseResults = ({
   results,
@@ -15,6 +16,8 @@ const TestCaseResults = ({
   handleClearResults,
   error,
   apiKeyError,
+  onClearApiKeyError,
+  onGoToProfile,
   isPastDue,
   saveStatus,
 }) => {
@@ -139,7 +142,27 @@ const TestCaseResults = ({
           className={`px-4 py-2 rounded-lg shadow-md transition-all duration-200 flex items-center space-x-2 ${statusConfig.bgColor} ${statusConfig.textColor} hover:opacity-90 disabled:opacity-50`}
         >
           <span>{statusConfig.icon}</span>
-          <span>{saveStatus === 'saving' ? 'Saving...' : 'Save Code'}</span>        </button>      </div>      {error && !apiKeyError && (
+          <span>{saveStatus === 'saving' ? 'Saving...' : 'Save Code'}</span>        </button>      </div>      {/* API Key Error Display */}
+      {apiKeyError && (
+        <div className="mt-4 relative">
+          <div className="bg-gray-800 border border-gray-600 rounded-lg overflow-hidden">
+            <ErrorDisplay
+              error={apiKeyError}
+              onGoToProfile={onGoToProfile}
+              onRetry={handleRun}
+            />
+          </div>
+          <button
+            onClick={onClearApiKeyError}
+            className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors bg-gray-700 hover:bg-gray-600 rounded-full p-1.5 shadow-lg"
+            title="Close API key error"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {error && !apiKeyError && (
         <div className="mt-4 p-4 bg-red-800 text-red-200 rounded-lg shadow-lg max-w-full overflow-auto relative">
           <button
             onClick={handleClearResults}
@@ -215,8 +238,7 @@ const TestCaseResults = ({
             </div>
           )}
         </div>
-      ) : (
-        !error && !apiKeyError && (
+      ) : (        !error && !apiKeyError && (
           <div className="mt-4 text-gray-500">
             {/* No results available */}
           </div>

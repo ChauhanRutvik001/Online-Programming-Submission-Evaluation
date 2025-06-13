@@ -40,74 +40,150 @@ import SemesterStudentList from "./Admin/SemesterStudentList";
 import BatchAssignedStudents from "./Problem/BatchAssignedStudents";
 import AdminProblems from "./Admin/AdminProblems";
 import FacultyBatches from "./Admin/FacultyBatches";
-const appRouter = createBrowserRouter([
-  {
-    path: "/",
-    element: <Layout />,
-    children: [
-      { path: "/", element: <Login /> },
-      { path: "/browse", element: <Browse /> },
-      { path: "/support", element: <Support /> },
-      { path: "/student", element: <Student /> },
-      { path: "/make-contest", element: <MakeContest /> },
-      { path: "/create-contest", element: <CreateContest /> },
-      { path: "/create-contest/:id", element: <CreateContest /> },
-      { path: "/contests/:id", element: <Contest /> },
-      { path: "/make-problem", element: <MakeProblem /> },
-      { path: "/pending-requests", element: <AdminPage /> },
-      { path: "/problem-form", element: <ProblemForm /> },
-      { path: "/problem-form/:id", element: <ProblemForm /> },
-      { path: "/problems/:id/:batchId", element: <ProblemShow /> },
-      { path: "/profile", element: <Profile /> },
-      { path: "/dashboard/:problemId", element: <Dashboard /> },
-      { path: "/history", element: <History /> },
-      { path: "*", element: <NotFoundError /> },
-      { path: "/registerFaculty", element: <AdminRegister /> },
-      { path: "/create-faculty", element: <CreateFaculty /> },
-      { path: "/registerStudents", element: <AdminStudentRegister /> },
-      { path: "/studentinformation", element: <StudentInfo /> },
-      { path: "/submissions/:submissionId", element: <Details /> },
-      {
-        path: "/assignContestToStudents/:contestId",
-        element: <UnAssignContest />,
-      },
-      {
-        path: "/unassignContestToStudents/:contestId",
-        element: <AssignedContest />,
-      },
-      { path: "/duplicate", element: <Duplicate /> },
-      { path: "/contests/:id/dashboard", element: <ContestDashboard /> },
-      { path: "/admin/batch/batches", element: <BatchManagement /> },
-      { path: "/admin/batch/batches/create", element: <CreateBatch /> },
-      { path: "/admin/batch/batches/:batchId", element: <BatchDetails /> },
-      { path: "/faculty/batches", element: <FacultyBatchList /> },
-      { path: "/faculty/batches/:batchId", element: <FacultyBatchDetails /> },
-      {
-        path: "/faculty/batches/:batchId/progress",
-        element: <FacultyBatchProgress />,
-      },
-      { path: "/student/batches", element: <StudentBatchList /> },
-      { path: "/student/batch/:batchId", element: <StudentBatchDetails /> },
-      {
-        path: "/student/batch/:batchId/progress",
-        element: <StudentBatchProgress />,
-      },
-      { path: "/admin/users", element: <ManageUser /> },
-      {
-        path: "/students/semester/:semesterId",
-        element: <SemesterStudentList />,
-      },
-      { path: "/batch-assign/:problemId", element: <BatchAssignedStudents /> },
-      { path: "/admin/problems", element: <AdminProblems /> },
-      { path: "/faculty/:facultyId/batches", element: <FacultyBatches /> },
-      {
-        path: "/faculty/:facultyId/batch/:batchId/students",
-        element: <StudentList />,
-      },
-    ],
-  },
-]);
+import ProblemDetails from "./Problem/ProblemDetails";
+import { useSelector } from "react-redux";
+import AdminApiKeyManagement from "./Admin/AdminApiKeyManagement";
 
-const Body = () => <RouterProvider router={appRouter} />;
+const Body = () => {
+  // Get authentication status from Redux store
+  const isAuthenticated = useSelector((state) => state.app.authStatus);
+  
+  const appRouter = createBrowserRouter([
+    {
+      path: "/",
+      element: <Layout isAuthenticated={isAuthenticated} />,
+      children: [
+        { path: "/", element: <Browse isAuthenticated={isAuthenticated} /> },
+         // Changed to Browse
+        { path: "/login", element: <Login /> }, // Keep login route as is
+        { path: "/support", element: <Support /> },
+        
+        // For protected routes, check if authenticated
+        { path: "/student", 
+          element: isAuthenticated ? <Student /> : <Login /> 
+        },
+        { path: "/make-contest", 
+          element: isAuthenticated ? <MakeContest /> : <Login /> 
+        },
+        { path: "/create-contest", 
+          element: isAuthenticated ? <CreateContest /> : <Login /> 
+        },
+        { path: "/create-contest/:id", 
+          element: isAuthenticated ? <CreateContest /> : <Login /> 
+        },
+        { path: "/contests/:id", 
+          element: isAuthenticated ? <Contest /> : <Login /> 
+        },
+        { path: "/make-problem", 
+          element: isAuthenticated ? <MakeProblem /> : <Login /> 
+        },
+        { path: "/pending-requests", 
+          element: isAuthenticated ? <AdminPage /> : <Login /> 
+        },
+        { path: "/problem-form", 
+          element: isAuthenticated ? <ProblemForm /> : <Login /> 
+        },
+        { path: "/problem-form/:id", 
+          element: isAuthenticated ? <ProblemForm /> : <Login /> 
+        },
+        { path: "/problems/:id/:batchId", 
+          element: isAuthenticated ? <ProblemShow /> : <Login /> 
+        },
+        { path: "/profile", 
+          element: isAuthenticated ? <Profile /> : <Login /> 
+        },
+        { path: "/dashboard/:problemId", 
+          element: isAuthenticated ? <Dashboard /> : <Login /> 
+        },
+        { path: "/history", 
+          element: isAuthenticated ? <History /> : <Login /> 
+        },
+        { path: "/registerFaculty", 
+          element: isAuthenticated ? <AdminRegister /> : <Login /> 
+        },
+        { path: "/create-faculty", 
+          element: isAuthenticated ? <CreateFaculty /> : <Login /> 
+        },
+        { path: "/registerStudents", 
+          element: isAuthenticated ? <AdminStudentRegister /> : <Login /> 
+        },
+        { path: "/studentinformation", 
+          element: isAuthenticated ? <StudentInfo /> : <Login /> 
+        },
+        { path: "/submissions/:submissionId", 
+          element: isAuthenticated ? <Details /> : <Login /> 
+        },
+        { path: "/assignContestToStudents/:contestId",
+          element: isAuthenticated ? <UnAssignContest /> : <Login /> 
+        },
+        { path: "/unassignContestToStudents/:contestId",
+          element: isAuthenticated ? <AssignedContest /> : <Login /> 
+        },
+        { path: "/duplicate", 
+          element: isAuthenticated ? <Duplicate /> : <Login /> 
+        },
+        { path: "/contests/:id/dashboard", 
+          element: isAuthenticated ? <ContestDashboard /> : <Login /> 
+        },
+        { path: "/admin/batch/batches", 
+          element: isAuthenticated ? <BatchManagement /> : <Login /> 
+        },
+        { path: "/admin/batch/batches/create", 
+          element: isAuthenticated ? <CreateBatch /> : <Login /> 
+        },
+        { path: "/admin/batch/batches/:batchId", 
+          element: isAuthenticated ? <BatchDetails /> : <Login /> 
+        },
+        { path: "/faculty/batches", 
+          element: isAuthenticated ? <FacultyBatchList /> : <Login /> 
+        },
+        { path: "/faculty/batches/:batchId", 
+          element: isAuthenticated ? <FacultyBatchDetails /> : <Login /> 
+        },
+        { path: "/faculty/batches/:batchId/progress",
+          element: isAuthenticated ? <FacultyBatchProgress /> : <Login /> 
+        },
+        { path: "/student/batches", 
+          element: isAuthenticated ? <StudentBatchList /> : <Login /> 
+        },
+        { path: "/student/batch/:batchId", 
+          element: isAuthenticated ? <StudentBatchDetails /> : <Login /> 
+        },
+        { path: "/student/batch/:batchId/progress",
+          element: isAuthenticated ? <StudentBatchProgress /> : <Login /> 
+        },
+        { path: "/admin/users", 
+          element: isAuthenticated ? <ManageUser /> : <Login /> 
+        },
+        { path: "/students/semester/:semesterId",
+          element: isAuthenticated ? <SemesterStudentList /> : <Login /> 
+        },
+        { path: "/batch-assign/:problemId", 
+          element: isAuthenticated ? <BatchAssignedStudents /> : <Login /> 
+        },
+        { path: "/admin/problems", 
+          element: isAuthenticated ? <AdminProblems /> : <Login /> 
+        },
+        { path: "/faculty/:facultyId/batches", 
+          element: isAuthenticated ? <FacultyBatches /> : <Login /> 
+        },
+        { path: "/faculty/:facultyId/batch/:batchId/students",
+          element: isAuthenticated ? <StudentList /> : <Login /> 
+        },
+        { path: "/problem-details/:problemId", 
+          element: isAuthenticated ? <ProblemDetails /> : <Login /> 
+        },
+        {
+          path:"/admin/api-keys",
+          element: isAuthenticated ? <AdminApiKeyManagement /> : <Login />
+        },
+        // 404 route
+        { path: "*", element: <NotFoundError /> },
+      ],
+    },
+  ]);
+
+  return <RouterProvider router={appRouter} />;
+};
 
 export default Body;

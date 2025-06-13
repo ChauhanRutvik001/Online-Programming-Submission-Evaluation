@@ -468,16 +468,6 @@ int main() {
     <div className="code-editor bg-gray-900 p-6 shadow-lg">
       {/* API Usage Stats */}
       <ApiUsageStats />
-      
-      {/* API Key Error Display - Priority Position */}
-      {apiKeyError && (
-        <div className="mb-6">
-          <ErrorDisplay
-            error={apiKeyError}
-            onGoToProfile={() => navigate('/profile?tab=apikeys')}
-          />
-        </div>
-      )}
 
       {/* Language and Score Selector */}
       <ScoreAndLanguageSelector
@@ -507,6 +497,8 @@ int main() {
         handleClearResults={handleClearResults}
         error={error}
         apiKeyError={apiKeyError}
+        onClearApiKeyError={() => setApiKeyError(null)}
+        onGoToProfile={() => navigate('/profile?tab=apikeys')}
         isPastDue={isPastDue}
         saveStatus={saveStatus}
       />

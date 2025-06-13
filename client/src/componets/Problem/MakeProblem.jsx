@@ -40,8 +40,9 @@ const MakeProblem = () => {
   const fetchProblems = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get(`/problems`);
+      const response = await axiosInstance.get(`/problems/problems`);
       const { problems: allProblems } = response.data;
+      console.log("Fetched problems:", allProblems);
       setProblems(allProblems);
     } catch (error) {
       toast.error("Error fetching problems!");
@@ -110,13 +111,39 @@ const MakeProblem = () => {
     let sortableProblems = [...problems];
     if (sortConfig !== null) {
       sortableProblems.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === "asc" ? -1 : 1;
+        // Handle nested fields like createdBy.name
+        if (sortConfig.key.includes('.')) {
+          const keys = sortConfig.key.split('.');
+          let aValue = a;
+          let bValue = b;
+          
+          // Navigate through the nested object
+          for (const key of keys) {
+            aValue = aValue?.[key];
+            bValue = bValue?.[key];
+          }
+          
+          // Handle undefined values
+          if (aValue === undefined) return sortConfig.direction === 'asc' ? -1 : 1;
+          if (bValue === undefined) return sortConfig.direction === 'asc' ? 1 : -1;
+          
+          if (aValue < bValue) {
+            return sortConfig.direction === "asc" ? -1 : 1;
+          }
+          if (aValue > bValue) {
+            return sortConfig.direction === "asc" ? 1 : -1;
+          }
+          return 0;
+        } else {
+          // Original code for non-nested fields
+          if (a[sortConfig.key] < b[sortConfig.key]) {
+            return sortConfig.direction === "asc" ? -1 : 1;
+          }
+          if (a[sortConfig.key] > b[sortConfig.key]) {
+            return sortConfig.direction === "asc" ? 1 : -1;
+          }
+          return 0;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === "asc" ? 1 : -1;
-        }
-        return 0;
       });
     }
     return sortableProblems;
@@ -155,10 +182,6 @@ const MakeProblem = () => {
       ? `${title.slice(0, maxLength)}...`
       : title || "Untitled";
   };
-
-  // useEffect(() => {
-  //   if (user?.role !== "admin" && user?.role !== "faculty") navigate("/");
-  // }, [user, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-900 text-white">
@@ -234,15 +257,23 @@ const MakeProblem = () => {
                   <th className="py-4 px-6 text-center">
                     <button
                       onClick={() => handleSort("difficulty")}
-                      className="flex items-center justify-center font-semibold"
+                      className="flex items-center justify-center font-semibold mx-auto"
                     >
                       Difficulty {getSortIcon("difficulty")}
                     </button>
                   </th>
                   <th className="py-4 px-6 text-center">
                     <button
+                      onClick={() => handleSort("createdBy.name")}
+                      className="flex items-center justify-center font-semibold mx-auto"
+                    >
+                      Faculty {getSortIcon("createdBy.name")}
+                    </button>
+                  </th>
+                  <th className="py-4 px-6 text-center">
+                    <button
                       onClick={() => handleSort("createdAt")}
-                      className="flex items-center justify-center font-semibold"
+                      className="flex items-center justify-center font-semibold mx-auto"
                     >
                       Created Date {getSortIcon("createdAt")}
                     </button>
@@ -264,7 +295,7 @@ const MakeProblem = () => {
                       </td>
                       <td
                         className="py-4 px-6"
-                        onClick={() => navigate(`/problems/${problem._id}`)}
+                        onClick={() => navigate(`/problem-details/${problem._id}`)}
                       >
                         <div className="font-semibold capitalize text-blue-400 hover:text-blue-300 cursor-pointer transition-colors">
                           {truncateTitle(
@@ -286,6 +317,9 @@ const MakeProblem = () => {
                           {problem.difficulty.charAt(0).toUpperCase() +
                             problem.difficulty.slice(1)}
                         </span>
+                      </td>
+                      <td className="py-4 px-6 text-center text-gray-300">
+                        {problem.createdBy?.name || "Unknown"}
                       </td>
                       <td className="py-4 px-6 text-center text-gray-400 text-sm">
                         {formatDate(problem.createdAt)}
@@ -338,7 +372,7 @@ const MakeProblem = () => {
                 ) : (
                   <tr>
                     <td
-                      colSpan={userRole !== "student" ? 5 : 4}
+                      colSpan={userRole !== "student" ? 6 : 5} // Updated colspan to account for new Faculty column
                       className="py-8 px-6 text-center text-gray-400"
                     >
                       <div className="flex flex-col items-center justify-center">

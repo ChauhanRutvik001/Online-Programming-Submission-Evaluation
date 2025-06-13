@@ -1320,7 +1320,7 @@ const adminController = {
 
     const [problems, total] = await Promise.all([
       Problem.find()
-        .populate("createdBy", "username")
+        .populate("createdBy", "username email name") 
         .populate("assignedBatches", "name")
         .sort({ createdAt: -1 })
         .skip(skip)

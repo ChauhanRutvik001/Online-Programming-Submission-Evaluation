@@ -16,7 +16,8 @@ import {
   getProblemByIdForUpdate,
   getProblemBatches,
   getProblemsByBatch,
-  getRecentDueProblems
+  getRecentDueProblems,
+  getProblemDetails
 } from '../controllers/problem.controller.js';
 import { isAdminOrFaculty, isAuthorized } from '../middlewares/auth.js';
 
@@ -42,7 +43,9 @@ router.get('/:id/batches', isAdminOrFaculty, getProblemBatches); // Used by: Pro
 router.get('/batch/:batchId', getProblemsByBatch); // Used by: Problem/BatchProblems.jsx (line 24) - Get problems by batch for students
 router.get('/recent-due-problems', isAuthorized, getRecentDueProblems)
 // Public routes (All authenticated users)
-router.get('/', getProblems); // Used for problem listing (not directly visible in current components)
+router.get('/problems', getProblems); // Used for problem listing (not directly visible in current components)
 router.get('/:id', getProblemById); // Used by: Problem/ProblemShow.jsx (line 42), Problem/BatchAssignedStudents.jsx (line 39) - Get problem details
+// Get detailed problem info with batch details
+router.get('/:id/details', getProblemDetails);
 
 export default router;
