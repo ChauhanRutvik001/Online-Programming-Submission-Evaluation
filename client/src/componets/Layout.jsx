@@ -1,17 +1,19 @@
 import React, { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 import Header from "./Header";
 import LoginModal from "./LoginModal";
+import AuthRouter from "./AuthRouter";
 
-const Layout = ({ isAuthenticated }) => {
+const Layout = () => {
   const location = useLocation();
   const [showLoginModal, setShowLoginModal] = useState(false);
-
+  const isAuthenticated = useSelector((state) => state.app.authStatus);
   // Specify the routes where the Header should not appear
   const noHeaderRoutes = [
     "/problems/:id", 
-    "/problems/:id/:batchId",
-    "/login" // Add login to no-header routes
+    "/problems/:id/:batchId"
+    // Removed "/login" so header shows on login page
   ];
 
   // Check if the current route matches any of the noHeaderRoutes
@@ -23,23 +25,25 @@ const Layout = ({ isAuthenticated }) => {
   });
 
   return (
-    <div>
-      {!isNoHeaderRoute && (
-        <Header 
-          isAuthenticated={isAuthenticated} 
-          onLoginClick={() => setShowLoginModal(true)} 
+    <AuthRouter>
+      <div>
+        {!isNoHeaderRoute && (
+          <Header 
+            isAuthenticated={isAuthenticated} 
+            onLoginClick={() => setShowLoginModal(true)} 
+          />
+        )}
+        <main>
+          <Outlet context={{ showLoginModal, setShowLoginModal }} />
+        </main>
+        
+        {/* LoginModal with proper onClose handler to auto-close */}
+        <LoginModal 
+          isOpen={showLoginModal} 
+          onClose={() => setShowLoginModal(false)} 
         />
-      )}
-      <main>
-        <Outlet context={{ showLoginModal, setShowLoginModal }} />
-      </main>
-      
-      {/* LoginModal with proper onClose handler to auto-close */}
-      <LoginModal 
-        isOpen={showLoginModal} 
-        onClose={() => setShowLoginModal(false)} 
-      />
-    </div>
+      </div>
+    </AuthRouter>
   );
 };
 

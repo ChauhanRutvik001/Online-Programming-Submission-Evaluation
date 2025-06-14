@@ -43,140 +43,339 @@ import FacultyBatches from "./Admin/FacultyBatches";
 import ProblemDetails from "./Problem/ProblemDetails";
 import { useSelector } from "react-redux";
 import AdminApiKeyManagement from "./Admin/AdminApiKeyManagement";
+import ProtectedRoute from "./ProtectedRoute";
+import RoleBasedHome from "./RoleBasedHome";
 
 const Body = () => {
-  // Get authentication status from Redux store
-  const isAuthenticated = useSelector((state) => state.app.authStatus);
-  
   const appRouter = createBrowserRouter([
     {
       path: "/",
-      element: <Layout isAuthenticated={isAuthenticated} />,
+      element: <Layout />,
       children: [
-        { path: "/", element: <Browse isAuthenticated={isAuthenticated} /> },
-         // Changed to Browse
-        { path: "/login", element: <Login /> }, // Keep login route as is
+        { path: "/", element: <RoleBasedHome /> },
+        { path: "/login", element: <Login /> },
         { path: "/support", element: <Support /> },
         
-        // For protected routes, check if authenticated
-        { path: "/student", 
-          element: isAuthenticated ? <Student /> : <Login /> 
+        // Student routes
+        { 
+          path: "/student", 
+          element: (
+            <ProtectedRoute allowedRoles={['student']}>
+              <Student />
+            </ProtectedRoute>
+          )
         },
-        { path: "/make-contest", 
-          element: isAuthenticated ? <MakeContest /> : <Login /> 
+        { 
+          path: "/student/batches", 
+          element: (
+            <ProtectedRoute allowedRoles={['student']}>
+              <StudentBatchList />
+            </ProtectedRoute>
+          )
         },
-        { path: "/create-contest", 
-          element: isAuthenticated ? <CreateContest /> : <Login /> 
+        { 
+          path: "/student/batch/:batchId", 
+          element: (
+            <ProtectedRoute allowedRoles={['student']}>
+              <StudentBatchDetails />
+            </ProtectedRoute>
+          )
         },
-        { path: "/create-contest/:id", 
-          element: isAuthenticated ? <CreateContest /> : <Login /> 
+        { 
+          path: "/student/batch/:batchId/progress",
+          element: (
+            <ProtectedRoute allowedRoles={['student']}>
+              <StudentBatchProgress />
+            </ProtectedRoute>
+          )
         },
-        { path: "/contests/:id", 
-          element: isAuthenticated ? <Contest /> : <Login /> 
+        
+        // Admin routes
+        { 
+          path: "/pending-requests", 
+          element: (
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminPage />
+            </ProtectedRoute>
+          )
         },
-        { path: "/make-problem", 
-          element: isAuthenticated ? <MakeProblem /> : <Login /> 
+        { 
+          path: "/registerFaculty", 
+          element: (
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminRegister />
+            </ProtectedRoute>
+          )
         },
-        { path: "/pending-requests", 
-          element: isAuthenticated ? <AdminPage /> : <Login /> 
+        { 
+          path: "/create-faculty", 
+          element: (
+            <ProtectedRoute allowedRoles={['admin']}>
+              <CreateFaculty />
+            </ProtectedRoute>
+          )
         },
-        { path: "/problem-form", 
-          element: isAuthenticated ? <ProblemForm /> : <Login /> 
+        { 
+          path: "/registerStudents", 
+          element: (
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminStudentRegister />
+            </ProtectedRoute>
+          )
         },
-        { path: "/problem-form/:id", 
-          element: isAuthenticated ? <ProblemForm /> : <Login /> 
+        { 
+          path: "/admin/batch/batches", 
+          element: (
+            <ProtectedRoute allowedRoles={['admin']}>
+              <BatchManagement />
+            </ProtectedRoute>
+          )
         },
-        { path: "/problems/:id/:batchId", 
-          element: isAuthenticated ? <ProblemShow /> : <Login /> 
+        { 
+          path: "/admin/batch/batches/create", 
+          element: (
+            <ProtectedRoute allowedRoles={['admin']}>
+              <CreateBatch />
+            </ProtectedRoute>
+          )
         },
-        { path: "/profile", 
-          element: isAuthenticated ? <Profile /> : <Login /> 
+        { 
+          path: "/admin/batch/batches/:batchId", 
+          element: (
+            <ProtectedRoute allowedRoles={['admin']}>
+              <BatchDetails />
+            </ProtectedRoute>
+          )
         },
-        { path: "/dashboard/:problemId", 
-          element: isAuthenticated ? <Dashboard /> : <Login /> 
+        { 
+          path: "/admin/users", 
+          element: (
+            <ProtectedRoute allowedRoles={['admin']}>
+              <ManageUser />
+            </ProtectedRoute>
+          )
         },
-        { path: "/history", 
-          element: isAuthenticated ? <History /> : <Login /> 
-        },
-        { path: "/registerFaculty", 
-          element: isAuthenticated ? <AdminRegister /> : <Login /> 
-        },
-        { path: "/create-faculty", 
-          element: isAuthenticated ? <CreateFaculty /> : <Login /> 
-        },
-        { path: "/registerStudents", 
-          element: isAuthenticated ? <AdminStudentRegister /> : <Login /> 
-        },
-        { path: "/studentinformation", 
-          element: isAuthenticated ? <StudentInfo /> : <Login /> 
-        },
-        { path: "/submissions/:submissionId", 
-          element: isAuthenticated ? <Details /> : <Login /> 
-        },
-        { path: "/assignContestToStudents/:contestId",
-          element: isAuthenticated ? <UnAssignContest /> : <Login /> 
-        },
-        { path: "/unassignContestToStudents/:contestId",
-          element: isAuthenticated ? <AssignedContest /> : <Login /> 
-        },
-        { path: "/duplicate", 
-          element: isAuthenticated ? <Duplicate /> : <Login /> 
-        },
-        { path: "/contests/:id/dashboard", 
-          element: isAuthenticated ? <ContestDashboard /> : <Login /> 
-        },
-        { path: "/admin/batch/batches", 
-          element: isAuthenticated ? <BatchManagement /> : <Login /> 
-        },
-        { path: "/admin/batch/batches/create", 
-          element: isAuthenticated ? <CreateBatch /> : <Login /> 
-        },
-        { path: "/admin/batch/batches/:batchId", 
-          element: isAuthenticated ? <BatchDetails /> : <Login /> 
-        },
-        { path: "/faculty/batches", 
-          element: isAuthenticated ? <FacultyBatchList /> : <Login /> 
-        },
-        { path: "/faculty/batches/:batchId", 
-          element: isAuthenticated ? <FacultyBatchDetails /> : <Login /> 
-        },
-        { path: "/faculty/batches/:batchId/progress",
-          element: isAuthenticated ? <FacultyBatchProgress /> : <Login /> 
-        },
-        { path: "/student/batches", 
-          element: isAuthenticated ? <StudentBatchList /> : <Login /> 
-        },
-        { path: "/student/batch/:batchId", 
-          element: isAuthenticated ? <StudentBatchDetails /> : <Login /> 
-        },
-        { path: "/student/batch/:batchId/progress",
-          element: isAuthenticated ? <StudentBatchProgress /> : <Login /> 
-        },
-        { path: "/admin/users", 
-          element: isAuthenticated ? <ManageUser /> : <Login /> 
-        },
-        { path: "/students/semester/:semesterId",
-          element: isAuthenticated ? <SemesterStudentList /> : <Login /> 
-        },
-        { path: "/batch-assign/:problemId", 
-          element: isAuthenticated ? <BatchAssignedStudents /> : <Login /> 
-        },
-        { path: "/admin/problems", 
-          element: isAuthenticated ? <AdminProblems /> : <Login /> 
-        },
-        { path: "/faculty/:facultyId/batches", 
-          element: isAuthenticated ? <FacultyBatches /> : <Login /> 
-        },
-        { path: "/faculty/:facultyId/batch/:batchId/students",
-          element: isAuthenticated ? <StudentList /> : <Login /> 
-        },
-        { path: "/problem-details/:problemId", 
-          element: isAuthenticated ? <ProblemDetails /> : <Login /> 
+        { 
+          path: "/admin/problems", 
+          element: (
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminProblems />
+            </ProtectedRoute>
+          )
         },
         {
           path:"/admin/api-keys",
-          element: isAuthenticated ? <AdminApiKeyManagement /> : <Login />
+          element: (
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminApiKeyManagement />
+            </ProtectedRoute>
+          )
         },
+        
+        // Faculty routes
+        { 
+          path: "/faculty/batches", 
+          element: (
+            <ProtectedRoute allowedRoles={['faculty']}>
+              <FacultyBatchList />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/faculty/batches/:batchId", 
+          element: (
+            <ProtectedRoute allowedRoles={['faculty']}>
+              <FacultyBatchDetails />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/faculty/batches/:batchId/progress",
+          element: (
+            <ProtectedRoute allowedRoles={['faculty']}>
+              <FacultyBatchProgress />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/faculty/:facultyId/batches", 
+          element: (
+            <ProtectedRoute allowedRoles={['faculty', 'admin']}>
+              <FacultyBatches />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/faculty/:facultyId/batch/:batchId/students",
+          element: (
+            <ProtectedRoute allowedRoles={['faculty', 'admin']}>
+              <StudentList />
+            </ProtectedRoute>
+          )
+        },
+        
+        // Protected routes for all authenticated users
+        { 
+          path: "/make-contest", 
+          element: (
+            <ProtectedRoute>
+              <MakeContest />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/create-contest", 
+          element: (
+            <ProtectedRoute>
+              <CreateContest />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/create-contest/:id", 
+          element: (
+            <ProtectedRoute>
+              <CreateContest />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/contests/:id", 
+          element: (
+            <ProtectedRoute>
+              <Contest />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/make-problem", 
+          element: (
+            <ProtectedRoute>
+              <MakeProblem />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/problem-form", 
+          element: (
+            <ProtectedRoute>
+              <ProblemForm />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/problem-form/:id", 
+          element: (
+            <ProtectedRoute>
+              <ProblemForm />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/problems/:id/:batchId", 
+          element: (
+            <ProtectedRoute>
+              <ProblemShow />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/profile", 
+          element: (
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/dashboard/:problemId", 
+          element: (
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/history", 
+          element: (
+            <ProtectedRoute>
+              <History />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/studentinformation", 
+          element: (
+            <ProtectedRoute>
+              <StudentInfo />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/submissions/:submissionId", 
+          element: (
+            <ProtectedRoute>
+              <Details />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/assignContestToStudents/:contestId",
+          element: (
+            <ProtectedRoute>
+              <UnAssignContest />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/unassignContestToStudents/:contestId",
+          element: (
+            <ProtectedRoute>
+              <AssignedContest />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/duplicate", 
+          element: (
+            <ProtectedRoute>
+              <Duplicate />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/contests/:id/dashboard", 
+          element: (
+            <ProtectedRoute>
+              <ContestDashboard />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/students/semester/:semesterId",
+          element: (
+            <ProtectedRoute>
+              <SemesterStudentList />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/batch-assign/:problemId", 
+          element: (
+            <ProtectedRoute>
+              <BatchAssignedStudents />
+            </ProtectedRoute>
+          )
+        },
+        { 
+          path: "/problem-details/:problemId", 
+          element: (
+            <ProtectedRoute>
+              <ProblemDetails />
+            </ProtectedRoute>
+          )
+        },
+        
         // 404 route
         { path: "*", element: <NotFoundError /> },
       ],

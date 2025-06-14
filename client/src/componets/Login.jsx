@@ -27,9 +27,7 @@ const Login = ({ isModal = false, onLoginSuccess }) => {
       return false;
     }
     return true;
-  };
-
-  // Function to redirect based on user role
+  };  // Function to redirect based on user role
   const redirectBasedOnRole = (role) => {
     if (!role) return;
     
@@ -37,16 +35,16 @@ const Login = ({ isModal = false, onLoginSuccess }) => {
     
     switch (roleInLowerCase) {
       case "admin":
-        navigate("/pending-requests");
+        navigate("/pending-requests", { replace: true });
         break;
       case "student":
-        navigate("/student");
+        navigate("/student", { replace: true });
         break;
       case "faculty":
-        navigate("/profile");
+        navigate("/profile", { replace: true });
         break;
       default:
-        navigate("/browse");
+        navigate("/", { replace: true });
         break;
     }
   };
@@ -136,9 +134,8 @@ const Login = ({ isModal = false, onLoginSuccess }) => {
     setIdOrEmail("");
     setPassword("");
   };
-
   return (
-    <div className={`flex ${isModal ? 'min-h-[80vh]' : 'min-h-screen'} bg-gradient-to-b from-gray-900 via-gray-950 to-black overflow-hidden rounded-xl`}>
+    <div className={`flex ${isModal ? 'min-h-[80vh] rounded-xl' : 'min-h-screen'} bg-gradient-to-b from-gray-900 via-gray-950 to-black overflow-hidden`}>
       {/* Left Section with code background for large screens */}
       <motion.div 
         initial={{ opacity: 0, x: -50 }}
