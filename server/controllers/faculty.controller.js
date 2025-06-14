@@ -295,12 +295,10 @@ const facultyController = {
           success: false,
           message: "Batch not found or you don't have access to it",
         });
-      }
-
-      // Get all problems assigned to this batch
+      }      // Get all problems assigned to this batch
       const problems = await Problem.find({
         _id: { $in: batch.assignedProblems },
-      }).select("_id title difficulty createdAt dueDate");
+      }).select("_id title difficulty createdAt dueDate totalMarks");
 
       // Get all student IDs in this batch
       const batchStudentIds = batch.students.map((student) => student._id);
@@ -339,9 +337,7 @@ const facultyController = {
           ) {
             studentBestSubmissions[studentId] = sub;
           }
-        });
-
-        const bestSubmissions = Object.values(studentBestSubmissions);
+        });        const bestSubmissions = Object.values(studentBestSubmissions);
         const studentsAttempted = bestSubmissions.length;
         const studentsCompleted = bestSubmissions.filter(
           (sub) =>
@@ -354,9 +350,16 @@ const facultyController = {
             sub.numberOfTestCasePass < sub.numberOfTestCase
         ).length;
 
+        // Calculate average marks percentage for this problem
+        const problemTotalMarks = problem.totalMarks || 100; // Fallback to 100 if not set
+        const averageMarksPercentage = bestSubmissions.length > 0
+          ? (bestSubmissions.reduce((sum, sub) => sum + sub.totalMarks, 0) / bestSubmissions.length / problemTotalMarks * 100).toFixed(1)
+          : 0;
+
         progressStats.problemStats[problem._id] = {
           title: problem.title,
           difficulty: problem.difficulty,
+          totalMarks: problemTotalMarks,
           studentsAttempted,
           studentsCompleted,
           studentsPartial,
@@ -368,23 +371,9 @@ const facultyController = {
             (studentsAttempted / progressStats.totalStudents) *
             100
           ).toFixed(1),
-          averageScore:
-            bestSubmissions.length > 0
-              ? (
-                  bestSubmissions.reduce((sum, sub) => {
-                    const score =
-                      sub.numberOfTestCase > 0
-                        ? (sub.numberOfTestCasePass / sub.numberOfTestCase) *
-                          100
-                        : 0;
-                    return sum + score;
-                  }, 0) / bestSubmissions.length
-                ).toFixed(1)
-              : 0,
+          averageMarksPercentage: averageMarksPercentage,
         };
-      });
-
-      // Calculate per-student statistics
+      });      // Calculate per-student statistics
       batch.students.forEach((student) => {
         const studentSubmissions = submissions.filter(
           (sub) => sub.user_id._id.toString() === student._id.toString()
@@ -393,8 +382,12 @@ const facultyController = {
         // Get best submission per problem for this student
         const problemsAttempted = new Set();
         const problemsCompleted = new Set();
-        let totalScore = 0;
-        let problemsWithScores = 0;
+        let totalMarksEarned = 0;
+        let totalPossibleMarks = 0;
+        const submissionDates = []; // For tie-breaking        // Calculate total possible marks for all problems in the batch
+        problems.forEach((problem) => {
+          totalPossibleMarks += problem.totalMarks || 100;
+        });
 
         const studentBestByProblem = {};
         studentSubmissions.forEach((sub) => {
@@ -408,19 +401,48 @@ const facultyController = {
         });
 
         Object.values(studentBestByProblem).forEach((sub) => {
-          problemsAttempted.add(sub.problem_id._id.toString());
+          const problemId = sub.problem_id._id.toString();
+          
+          problemsAttempted.add(problemId);
+          totalMarksEarned += sub.totalMarks;
+          
+          // Add submission date for tie-breaking
+          submissionDates.push(new Date(sub.createdAt));
+          
           if (
             sub.numberOfTestCasePass === sub.numberOfTestCase &&
             sub.numberOfTestCase > 0
           ) {
-            problemsCompleted.add(sub.problem_id._id.toString());
+            problemsCompleted.add(problemId);
           }
-          if (sub.numberOfTestCase > 0) {
-            totalScore +=
-              (sub.numberOfTestCasePass / sub.numberOfTestCase) * 100;
-            problemsWithScores++;
+        });        // Calculate submission timing sum for tie-breaking (sum of timestamps)
+        const submissionTimingSum = submissionDates.reduce((sum, date) => sum + date.getTime(), 0);
+
+        // Create problem details for this student
+        const problemDetails = {};
+        Object.values(studentBestByProblem).forEach((sub) => {
+          const problemId = sub.problem_id._id.toString();
+          const problem = problems.find(p => p._id.toString() === problemId);
+          const problemTotalMarks = problem ? problem.totalMarks : 100;
+          
+          let status = 'attempted';
+          if (sub.numberOfTestCasePass === sub.numberOfTestCase && sub.numberOfTestCase > 0) {
+            status = 'completed';
+          } else if (sub.numberOfTestCasePass === 0) {
+            status = 'failed';
+          } else {
+            status = 'partial';
           }
+          
+          problemDetails[problemId] = {
+            status: status,
+            score: problemTotalMarks > 0 ? ((sub.totalMarks / problemTotalMarks) * 100).toFixed(1) : 0,
+            totalMarks: sub.totalMarks,
+            maxMarks: problemTotalMarks,
+            submissionDate: sub.createdAt
+          };
         });
+
         progressStats.studentStats[student._id] = {
           _id: student._id,
           username: student.username,
@@ -431,26 +453,29 @@ const facultyController = {
           batch: student.batch,
           problemsAttempted: problemsAttempted.size,
           problemsCompleted: problemsCompleted.size,
+          totalMarksEarned: totalMarksEarned,
+          totalPossibleMarks: totalPossibleMarks,
+          submissionTimingSum: submissionTimingSum, // For tie-breaking
+          problemDetails: problemDetails, // Individual problem details
           completionRate:
             problemsAttempted.size > 0
               ? (
                   (problemsCompleted.size / problemsAttempted.size) *
                   100
                 ).toFixed(1)
-              : 0,
-          averageScore:
-            problemsWithScores > 0
-              ? (totalScore / problemsWithScores).toFixed(1)
-              : 0,
+              : 0,          scorePercentage:
+            totalPossibleMarks > 0
+              ? ((totalMarksEarned / totalPossibleMarks) * 100).toFixed(1)
+              : "0.0",
           progressPercentage: (
             (problemsAttempted.size / progressStats.totalProblems) *
             100
           ).toFixed(1),
         };
-      });
-
-      // Calculate overall batch statistics
+      });      // Calculate overall batch statistics
       const allStudentStats = Object.values(progressStats.studentStats);
+      const totalMarksInBatch = allStudentStats.reduce((sum, stat) => sum + stat.totalMarksEarned, 0);
+      
       progressStats.overallProgress = {
         averageCompletionRate:
           allStudentStats.length > 0
@@ -461,15 +486,16 @@ const facultyController = {
                 ) / allStudentStats.length
               ).toFixed(1)
             : 0,
-        averageScore:
+        averageScorePercentage:
           allStudentStats.length > 0
             ? (
                 allStudentStats.reduce(
-                  (sum, stat) => sum + parseFloat(stat.averageScore),
+                  (sum, stat) => sum + parseFloat(stat.scorePercentage),
                   0
                 ) / allStudentStats.length
               ).toFixed(1)
             : 0,
+        totalMarksEarned: totalMarksInBatch,
         studentsActive: allStudentStats.filter(
           (stat) => stat.problemsAttempted > 0
         ).length,

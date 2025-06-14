@@ -477,12 +477,10 @@ const studentBatchController = {
           success: false,
           message: "Batch not found or you don't have access to it",
         });
-      }
-
-      // Get all problems assigned to this batch, including batchDueDates
-      const problems = await Problem.find({
-        _id: { $in: batch.assignedProblems }
-      }).select('_id title difficulty createdAt batchDueDates');
+      }        // Get all problems assigned to this batch
+        const problems = await Problem.find({
+          _id: { $in: batch.assignedProblems }
+        }).select('_id title difficulty createdAt batchDueDates totalMarks');
 
       // CHANGED: Map problems to include only the due date for this batch
       const problemsWithDueDate = problems.map(problem => {
@@ -494,12 +492,12 @@ const studentBatchController = {
           if (entry) {
             dueDate = entry.dueDate;
           }
-        }
-        return {
+        }        return {
           _id: problem._id,
           title: problem.title,
           difficulty: problem.difficulty,
           createdAt: problem.createdAt,
+          totalMarks: problem.totalMarks || 100, // Include total marks
           dueDate, // per-batch due date
         };
       });
@@ -554,11 +552,16 @@ const studentBatchController = {
           (sub) =>
             sub.numberOfTestCasePass > 0 &&
             sub.numberOfTestCasePass < sub.numberOfTestCase
-        ).length;
+        ).length;        // Calculate average marks percentage for this problem
+        const problemTotalMarks = problem.totalMarks || 100; // Fallback to 100 if not set
+        const averageMarksPercentage = bestSubmissions.length > 0
+          ? (bestSubmissions.reduce((sum, sub) => sum + sub.totalMarks, 0) / bestSubmissions.length / problemTotalMarks * 100).toFixed(1)
+          : 0;
 
         progressStats.problemStats[problem._id] = {
           title: problem.title,
           difficulty: problem.difficulty,
+          totalMarks: problemTotalMarks,
           dueDate: problem.dueDate, // include due date in stats
           studentsAttempted,
           studentsCompleted,
@@ -571,33 +574,23 @@ const studentBatchController = {
             (studentsAttempted / progressStats.totalStudents) *
             100
           ).toFixed(1),
-          averageScore:
-            bestSubmissions.length > 0
-              ? (
-                  bestSubmissions.reduce((sum, sub) => {
-                    const score =
-                      sub.numberOfTestCase > 0
-                        ? (sub.numberOfTestCasePass / sub.numberOfTestCase) *
-                          100
-                        : 0;
-                    return sum + score;
-                  }, 0) / bestSubmissions.length
-                ).toFixed(1)
-              : 0,
+          averageMarksPercentage: averageMarksPercentage,
         };
-      });
-
-      // Calculate per-student statistics
+      });      // Calculate per-student statistics
       batch.students.forEach((student) => {
         const studentSubmissions = submissions.filter(
           (sub) => sub.user_id._id.toString() === student._id.toString()
-        );
-
-        // Get best submission per problem for this student
+        );        // Get best submission per problem for this student
         const problemsAttempted = new Set();
         const problemsCompleted = new Set();
-        let totalScore = 0;
-        let problemsWithScores = 0;
+        let totalMarksEarned = 0;
+        let totalPossibleMarks = 0;
+        const submissionDates = []; // For tie-breaking
+        
+        // Calculate total possible marks for all problems in the batch
+        problemsWithDueDate.forEach((problem) => {
+          totalPossibleMarks += problem.totalMarks;
+        });
 
         const studentBestByProblem = {};
         const problemDetails = {}; // Add detailed problem status for each student
@@ -615,15 +608,11 @@ const studentBatchController = {
         // Calculate problem details for this student
         problemsWithDueDate.forEach((problem) => {
           const problemId = problem._id.toString();
-          const bestSub = studentBestByProblem[problemId];
-
-          if (bestSub) {
+          const bestSub = studentBestByProblem[problemId];          if (bestSub) {
             problemsAttempted.add(problemId);
-            const score =
-              bestSub.numberOfTestCase > 0
-                ? (bestSub.numberOfTestCasePass / bestSub.numberOfTestCase) *
-                  100
-                : 0;
+            totalMarksEarned += bestSub.totalMarks;
+            submissionDates.push(new Date(bestSub.createdAt));
+
             const isCompleted =
               bestSub.numberOfTestCasePass === bestSub.numberOfTestCase &&
               bestSub.numberOfTestCase > 0;
@@ -632,14 +621,20 @@ const studentBatchController = {
               problemsCompleted.add(problemId);
             }
 
-            if (bestSub.numberOfTestCase > 0) {
-              totalScore += score;
-              problemsWithScores++;
+            let status = 'attempted';
+            if (isCompleted) {
+              status = 'completed';
+            } else if (bestSub.numberOfTestCasePass === 0) {
+              status = 'failed';
+            } else if (bestSub.numberOfTestCasePass > 0 && bestSub.numberOfTestCasePass < bestSub.numberOfTestCase) {
+              status = 'partial';
             }
 
             problemDetails[problemId] = {
-              status: isCompleted ? "completed" : "attempted",
-              score: score.toFixed(1),
+              status: status,
+              score: problem.totalMarks > 0 ? ((bestSub.totalMarks / problem.totalMarks) * 100).toFixed(1) : 0,
+              totalMarks: bestSub.totalMarks,
+              maxMarks: problem.totalMarks,
               testCasesPassed: bestSub.numberOfTestCasePass,
               totalTestCases: bestSub.numberOfTestCase,
               submissionDate: bestSub.createdAt,
@@ -649,6 +644,8 @@ const studentBatchController = {
             problemDetails[problemId] = {
               status: "not_started",
               score: 0,
+              totalMarks: 0,
+              maxMarks: problem.totalMarks,
               testCasesPassed: 0,
               totalTestCases: 0,
               submissionDate: null,
@@ -657,31 +654,42 @@ const studentBatchController = {
           }
         });
 
+        // Calculate submission timing sum for tie-breaking
+        const submissionTimingSum = submissionDates.reduce((sum, date) => sum + date.getTime(), 0);
+
         progressStats.studentStats[student._id] = {
+          _id: student._id,
           username: student.username,
+          email: student.email,
+          id: student.id,
+          branch: student.branch,
+          semester: student.semester,
+          batch: student.batch,
           problemsAttempted: problemsAttempted.size,
           problemsCompleted: problemsCompleted.size,
+          totalMarksEarned: totalMarksEarned,
+          totalPossibleMarks: totalPossibleMarks,
+          submissionTimingSum: submissionTimingSum, // For tie-breaking
           completionRate:
             problemsAttempted.size > 0
               ? (
                   (problemsCompleted.size / problemsAttempted.size) *
                   100
                 ).toFixed(1)
-              : 0,
-          averageScore:
-            problemsWithScores > 0
-              ? (totalScore / problemsWithScores).toFixed(1)
-              : 0,
+              : 0,          scorePercentage:
+            totalPossibleMarks > 0
+              ? ((totalMarksEarned / totalPossibleMarks) * 100).toFixed(1)
+              : "0.0",
           progressPercentage: (
             (problemsAttempted.size / progressStats.totalProblems) *
             100
           ).toFixed(1),
           problemDetails, // Add individual problem details
         };
-      });
-
-      // Calculate overall batch statistics
+      });      // Calculate overall batch statistics
       const allStudentStats = Object.values(progressStats.studentStats);
+      const totalMarksInBatch = allStudentStats.reduce((sum, stat) => sum + stat.totalMarksEarned, 0);
+      
       progressStats.overallProgress = {
         averageCompletionRate:
           allStudentStats.length > 0
@@ -692,15 +700,15 @@ const studentBatchController = {
                 ) / allStudentStats.length
               ).toFixed(1)
             : 0,
-        averageScore:
+        averageScorePercentage:
           allStudentStats.length > 0
             ? (
                 allStudentStats.reduce(
-                  (sum, stat) => sum + parseFloat(stat.averageScore),
+                  (sum, stat) => sum + parseFloat(stat.scorePercentage),
                   0
                 ) / allStudentStats.length
               ).toFixed(1)
-            : 0,
+            : 0,        totalMarksEarned: totalMarksInBatch,
         studentsActive: allStudentStats.filter(
           (stat) => stat.problemsAttempted > 0
         ).length,

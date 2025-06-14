@@ -232,18 +232,16 @@ const StudentBatchProgress = () => {
                     ></div>
                   </div>
                 </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-yellow-600 to-yellow-700 p-6 rounded-lg border border-yellow-500">
+              </div>              <div className="bg-gradient-to-br from-yellow-600 to-yellow-700 p-6 rounded-lg border border-yellow-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-yellow-200 text-sm">Average Score</p>
-                    <p className="text-2xl font-bold text-white">{myProgress.averageScore}%</p>
+                    <p className="text-yellow-200 text-sm">Total Marks</p>
+                    <p className="text-2xl font-bold text-white">{myProgress.totalMarksEarned}/{myProgress.totalPossibleMarks}</p>
                   </div>
                   <Award className="text-yellow-300" size={24} />
                 </div>
                 <div className="mt-2 text-xs text-yellow-200">
-                  Batch avg: {progressStats.overallProgress.averageScore}%
+                  Score: {myProgress.scorePercentage}%
                 </div>
               </div>
 
@@ -263,32 +261,26 @@ const StudentBatchProgress = () => {
 
             {/* Performance Analysis */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Your Ranking */}
-              <div className="bg-gray-800 p-6 rounded-lg border border-gray-600">                <h3 className="text-xl font-semibold text-blue-400 mb-4 flex items-center">
+              {/* Your Ranking */}              <div className="bg-gray-800 p-6 rounded-lg border border-gray-600">                <h3 className="text-xl font-semibold text-blue-400 mb-4 flex items-center">
                   <Star className="mr-2" size={20} />
                   Your Class Ranking
                 </h3>
                 {(() => {
                   const students = Object.values(progressStats.studentStats)
                     .sort((a, b) => {
-                      // Primary: Average Score (descending)
-                      const scoreA = parseFloat(a.averageScore);
-                      const scoreB = parseFloat(b.averageScore);
-                      if (scoreB !== scoreA) return scoreB - scoreA;
+                      // Primary: Total Marks Earned (descending)
+                      if (b.totalMarksEarned !== a.totalMarksEarned) {
+                        return b.totalMarksEarned - a.totalMarksEarned;
+                      }
                       
                       // Tie-breaker 1: Problems Completed (descending)
                       if (b.problemsCompleted !== a.problemsCompleted) {
                         return b.problemsCompleted - a.problemsCompleted;
                       }
                       
-                      // Tie-breaker 2: Completion Rate (descending)
-                      const completionA = parseFloat(a.completionRate);
-                      const completionB = parseFloat(b.completionRate);
-                      if (completionB !== completionA) return completionB - completionA;
-                      
-                      // Tie-breaker 3: Problems Attempted (descending)
-                      if (b.problemsAttempted !== a.problemsAttempted) {
-                        return b.problemsAttempted - a.problemsAttempted;
+                      // Tie-breaker 2: Submission Timing (earliest submission wins)
+                      if (a.submissionTimingSum !== b.submissionTimingSum) {
+                        return a.submissionTimingSum - b.submissionTimingSum;
                       }
                       
                       // Final tie-breaker: Username (alphabetical)
@@ -302,13 +294,15 @@ const StudentBatchProgress = () => {
                       <div className="text-center">
                         <div className="text-4xl font-bold text-blue-400">#{myRank}</div>
                         <div className="text-gray-300">out of {totalStudents} students</div>
-                      </div>
-                      <div className="bg-gray-700 p-4 rounded">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-300">Percentile</span>
+                      </div>                      <div className="bg-gray-700 p-4 rounded">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-gray-300">Performance Percentile</span>
                           <span className="text-blue-400 font-semibold">
                             {Math.round(((totalStudents - myRank) / totalStudents) * 100)}th
                           </span>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          You performed better than {Math.round(((totalStudents - myRank) / totalStudents) * 100)}% of students
                         </div>
                       </div>
                     </div>
@@ -342,26 +336,25 @@ const StudentBatchProgress = () => {
                       ></div>
                     </div>
                   </div>
-                  
-                  <div>
+                    <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-300">Average Score</span>
+                      <span className="text-gray-300">Score Percentage</span>
                       <span className={`font-semibold ${
-                        parseFloat(myProgress.averageScore) > parseFloat(progressStats.overallProgress.averageScore) 
+                        parseFloat(myProgress.scorePercentage) > parseFloat(progressStats.overallProgress.averageScorePercentage) 
                           ? 'text-green-400' : 'text-red-400'
                       }`}>
-                        {parseFloat(myProgress.averageScore) > parseFloat(progressStats.overallProgress.averageScore) 
+                        {parseFloat(myProgress.scorePercentage) > parseFloat(progressStats.overallProgress.averageScorePercentage) 
                           ? '+' : ''}
-                        {(parseFloat(myProgress.averageScore) - parseFloat(progressStats.overallProgress.averageScore)).toFixed(1)}%
+                        {(parseFloat(myProgress.scorePercentage) - parseFloat(progressStats.overallProgress.averageScorePercentage)).toFixed(1)}%
                       </span>
                     </div>
                     <div className="w-full bg-gray-600 rounded-full h-3">
                       <div 
                         className={`h-3 rounded-full ${
-                          parseFloat(myProgress.averageScore) > parseFloat(progressStats.overallProgress.averageScore)
+                          parseFloat(myProgress.scorePercentage) > parseFloat(progressStats.overallProgress.averageScorePercentage)
                             ? 'bg-green-500' : 'bg-red-500'
                         }`}
-                        style={{ width: `${myProgress.averageScore}%` }}
+                        style={{ width: `${myProgress.scorePercentage}%` }}
                       ></div>
                     </div>
                   </div>
@@ -387,9 +380,8 @@ const StudentBatchProgress = () => {
                         <div className="text-2xl font-bold text-blue-400">{unattempted}</div>
                         <div className="text-gray-300 text-sm">Problems to attempt</div>
                       </div>
-                      <div className="text-center p-4 bg-gray-700 rounded">
-                        <div className="text-2xl font-bold text-green-400">{myProgress.averageScore}%</div>
-                        <div className="text-gray-300 text-sm">Current average score</div>
+                      <div className="text-center p-4 bg-gray-700 rounded">                        <div className="text-2xl font-bold text-green-400">{myProgress.scorePercentage}%</div>
+                        <div className="text-gray-300 text-sm">Current score percentage</div>
                       </div>
                     </>
                   );
@@ -426,7 +418,7 @@ const StudentBatchProgress = () => {
                       <th className="text-left py-3 px-4 text-gray-300">My Status</th>
                       <th className="text-left py-3 px-4 text-gray-300">My Score</th>
                       <th className="text-left py-3 px-4 text-gray-300">Batch Completion</th>
-                      <th className="text-left py-3 px-4 text-gray-300">Batch Avg Score</th>
+                      <th className="text-left py-3 px-4 text-gray-300">Batch Avg Marks %</th>
                       <th className="text-left py-3 px-4 text-gray-300">Class Performance</th>
                     </tr>
                   </thead>                  <tbody>
@@ -437,23 +429,33 @@ const StudentBatchProgress = () => {
                       let myStatus = 'Not Started';
                       let myScore = '--';
                       let statusColor = 'text-gray-400';
-                      let statusIcon = '○';
-
-                      if (myProgress && myProgress.problemDetails && myProgress.problemDetails[problem._id]) {
+                      let statusIcon = '○';                      if (myProgress && myProgress.problemDetails && myProgress.problemDetails[problem._id]) {
                         const problemDetail = myProgress.problemDetails[problem._id];
                         
                         switch (problemDetail.status) {
                           case 'completed':
                             myStatus = 'Completed';
-                            myScore = `${problemDetail.score}%`;
+                            myScore = `${problemDetail.totalMarks}/${problemDetail.maxMarks} (${problemDetail.score}%)`;
                             statusColor = 'text-green-400';
                             statusIcon = '✓';
                             break;
-                          case 'attempted':
-                            myStatus = 'In Progress';
-                            myScore = `${problemDetail.score}%`;
+                          case 'partial':
+                            myStatus = 'Partial';
+                            myScore = `${problemDetail.totalMarks}/${problemDetail.maxMarks} (${problemDetail.score}%)`;
                             statusColor = 'text-yellow-400';
                             statusIcon = '◐';
+                            break;
+                          case 'failed':
+                            myStatus = 'Failed';
+                            myScore = `${problemDetail.totalMarks}/${problemDetail.maxMarks} (${problemDetail.score}%)`;
+                            statusColor = 'text-red-400';
+                            statusIcon = '✗';
+                            break;
+                          case 'attempted':
+                            myStatus = 'Attempted';
+                            myScore = `${problemDetail.totalMarks}/${problemDetail.maxMarks} (${problemDetail.score}%)`;
+                            statusColor = 'text-blue-400';
+                            statusIcon = '→';
                             break;
                           default:
                             myStatus = 'Not Started';
@@ -493,37 +495,35 @@ const StudentBatchProgress = () => {
                             <span className={`font-medium ${statusColor}`}>
                               {myScore}
                             </span>
-                          </td>
-                          <td className="py-3 px-4">
+                          </td>                          <td className="py-3 px-4">
                             <div className="flex items-center">
                               <div className="w-16 bg-gray-600 rounded-full h-2 mr-3">
                                 <div 
                                   className={`h-2 rounded-full ${
-                                    ((stats?.completedCount || 0) / progressStats.totalStudents * 100) >= 80 ? 'bg-green-500' :
-                                    ((stats?.completedCount || 0) / progressStats.totalStudents * 100) >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                                    parseFloat(stats?.completionRate || 0) >= 80 ? 'bg-green-500' :
+                                    parseFloat(stats?.completionRate || 0) >= 50 ? 'bg-yellow-500' : 'bg-red-500'
                                   }`}
-                                  style={{ width: `${(stats?.completedCount || 0) / progressStats.totalStudents * 100}%` }}
+                                  style={{ width: `${stats?.completionRate || 0}%` }}
                                 ></div>
                               </div>
-                              <span className={getPerformanceColor((stats?.completedCount || 0) / progressStats.totalStudents * 100)}>
-                                {((stats?.completedCount || 0) / progressStats.totalStudents * 100).toFixed(1)}%
+                              <span className={getPerformanceColor(parseFloat(stats?.completionRate || 0))}>
+                                {stats?.completionRate || '0.0'}% ({stats?.studentsCompleted || 0}/{progressStats.totalStudents})
                               </span>
                             </div>
                           </td>                          <td className="py-3 px-4">
-                            <span className={getPerformanceColor(parseFloat(stats?.averageScore) || 0)}>
-                              {typeof stats?.averageScore === 'number' ? stats.averageScore.toFixed(1) : (stats?.averageScore || '0.0')}%
+                            <span className={getPerformanceColor(parseFloat(stats?.averageMarksPercentage) || 0)}>
+                              {stats?.averageMarksPercentage || '0.0'}%
                             </span>
-                          </td>
-                          <td className="py-3 px-4">
+                          </td><td className="py-3 px-4">
                             <div className="flex space-x-1">
                               <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-900 text-green-300">
-                                ✓ {stats?.completedCount || 0}
+                                ✓ {stats?.studentsCompleted || 0}
                               </span>
                               <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-yellow-900 text-yellow-300">
-                                ◐ {stats?.attemptedCount || 0}
+                                ◐ {stats?.studentsPartial || 0}
                               </span>
                               <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-900 text-blue-300">
-                                → {(progressStats.totalStudents - (stats?.completedCount || 0) - (stats?.attemptedCount || 0))}
+                                → {stats?.studentsAttempted || 0}
                               </span>
                             </div>
                           </td>
@@ -561,12 +561,11 @@ const StudentBatchProgress = () => {
                     <div className="text-xs text-gray-400 mt-1">
                       {(((progressStats.totalProblems - myProgress.problemsAttempted) / progressStats.totalProblems) * 100).toFixed(1)}% untouched
                     </div>
-                  </div>
-                  <div className="text-center p-4 bg-gray-700 rounded">
-                    <div className="text-2xl font-bold text-purple-400">{myProgress.averageScore}%</div>
-                    <div className="text-gray-300 text-sm">Your Average Score</div>
+                  </div>                  <div className="text-center p-4 bg-gray-700 rounded">
+                    <div className="text-2xl font-bold text-purple-400">{myProgress.scorePercentage}%</div>
+                    <div className="text-gray-300 text-sm">Your Score Percentage</div>
                     <div className="text-xs text-gray-400 mt-1">
-                      {parseFloat(myProgress.averageScore) > parseFloat(progressStats.overallProgress.averageScore) ? 'Above' : 'Below'} batch average
+                      {parseFloat(myProgress.scorePercentage) > parseFloat(progressStats.overallProgress.averageScorePercentage) ? 'Above' : 'Below'} batch average
                     </div>
                   </div>
                 </div>
@@ -596,30 +595,26 @@ const StudentBatchProgress = () => {
                       <th className="text-left py-3 px-4 text-gray-300">Problems Attempted</th>
                       <th className="text-left py-3 px-4 text-gray-300">Problems Completed</th>
                       <th className="text-left py-3 px-4 text-gray-300">Completion Rate</th>
-                      <th className="text-left py-3 px-4 text-gray-300">Average Score</th>
+                      <th className="text-left py-3 px-4 text-gray-300">Total Marks</th>
+                      <th className="text-left py-3 px-4 text-gray-300">Score %</th>
                       <th className="text-left py-3 px-4 text-gray-300">Overall Progress</th>
                     </tr>
                   </thead>
                   <tbody>                    {Object.values(progressStats.studentStats)
                       .sort((a, b) => {
-                        // Primary: Average Score (descending)
-                        const scoreA = parseFloat(a.averageScore);
-                        const scoreB = parseFloat(b.averageScore);
-                        if (scoreB !== scoreA) return scoreB - scoreA;
+                        // Primary: Total Marks Earned (descending)
+                        if (b.totalMarksEarned !== a.totalMarksEarned) {
+                          return b.totalMarksEarned - a.totalMarksEarned;
+                        }
                         
                         // Tie-breaker 1: Problems Completed (descending)
                         if (b.problemsCompleted !== a.problemsCompleted) {
                           return b.problemsCompleted - a.problemsCompleted;
                         }
                         
-                        // Tie-breaker 2: Completion Rate (descending)
-                        const completionA = parseFloat(a.completionRate);
-                        const completionB = parseFloat(b.completionRate);
-                        if (completionB !== completionA) return completionB - completionA;
-                        
-                        // Tie-breaker 3: Problems Attempted (descending)
-                        if (b.problemsAttempted !== a.problemsAttempted) {
-                          return b.problemsAttempted - a.problemsAttempted;
+                        // Tie-breaker 2: Submission Timing (earliest submission wins)
+                        if (a.submissionTimingSum !== b.submissionTimingSum) {
+                          return a.submissionTimingSum - b.submissionTimingSum;
                         }
                         
                         // Final tie-breaker: Username (alphabetical)
@@ -684,12 +679,19 @@ const StudentBatchProgress = () => {
                               }`}>
                                 {student.completionRate}%
                               </span>
+                            </td>                            <td className="py-3 px-4">
+                              <span className={`text-yellow-400 font-bold ${isCurrentUser ? 'font-extrabold' : ''}`}>
+                                {student.totalMarksEarned}
+                              </span>
+                              <span className={`text-gray-400 text-sm ${isCurrentUser ? 'text-gray-300' : ''}`}>
+                                /{student.totalPossibleMarks}
+                              </span>
                             </td>
                             <td className="py-3 px-4">
-                              <span className={`${getPerformanceColor(parseFloat(student.averageScore))} ${
+                              <span className={`${getPerformanceColor(parseFloat(student.scorePercentage))} ${
                                 isCurrentUser ? 'font-semibold' : ''
                               }`}>
-                                {student.averageScore}%
+                                {student.scorePercentage}%
                               </span>
                             </td>
                             <td className="py-3 px-4">
@@ -722,28 +724,22 @@ const StudentBatchProgress = () => {
             {myProgress && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Your Position Analysis */}
-                <div className="bg-gray-800 p-6 rounded-lg border border-gray-600">                  <h3 className="text-xl font-semibold text-blue-400 mb-4">📈 Your Position Analysis</h3>
-                  {(() => {
+                <div className="bg-gray-800 p-6 rounded-lg border border-gray-600">                  <h3 className="text-xl font-semibold text-blue-400 mb-4">📈 Your Position Analysis</h3>                  {(() => {
                     const students = Object.values(progressStats.studentStats)
                       .sort((a, b) => {
-                        // Primary: Average Score (descending)
-                        const scoreA = parseFloat(a.averageScore);
-                        const scoreB = parseFloat(b.averageScore);
-                        if (scoreB !== scoreA) return scoreB - scoreA;
+                        // Primary: Total Marks Earned (descending)
+                        if (b.totalMarksEarned !== a.totalMarksEarned) {
+                          return b.totalMarksEarned - a.totalMarksEarned;
+                        }
                         
                         // Tie-breaker 1: Problems Completed (descending)
                         if (b.problemsCompleted !== a.problemsCompleted) {
                           return b.problemsCompleted - a.problemsCompleted;
                         }
                         
-                        // Tie-breaker 2: Completion Rate (descending)
-                        const completionA = parseFloat(a.completionRate);
-                        const completionB = parseFloat(b.completionRate);
-                        if (completionB !== completionA) return completionB - completionA;
-                        
-                        // Tie-breaker 3: Problems Attempted (descending)
-                        if (b.problemsAttempted !== a.problemsAttempted) {
-                          return b.problemsAttempted - a.problemsAttempted;
+                        // Tie-breaker 2: Submission Timing (earliest submission wins)
+                        if (a.submissionTimingSum !== b.submissionTimingSum) {
+                          return a.submissionTimingSum - b.submissionTimingSum;
                         }
                         
                         // Final tie-breaker: Username (alphabetical)
@@ -769,12 +765,14 @@ const StudentBatchProgress = () => {
                             <div className="text-lg font-bold text-green-400">{studentsBelow}</div>
                             <div className="text-xs text-gray-300">Below you</div>
                           </div>
-                        </div>
-                        <div className="text-center p-3 bg-gray-700 rounded">
+                        </div>                        <div className="text-center p-3 bg-gray-700 rounded">
                           <div className="text-sm text-gray-300">
                             You're in the <span className="font-semibold text-blue-400">
                               {Math.round(((totalStudents - myRank) / totalStudents) * 100)}th percentile
                             </span>
+                          </div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            Better than {Math.round(((totalStudents - myRank) / totalStudents) * 100)}% of classmates
                           </div>
                         </div>
                       </div>
@@ -786,10 +784,9 @@ const StudentBatchProgress = () => {
                 <div className="bg-gray-800 p-6 rounded-lg border border-gray-600">
                   <h3 className="text-xl font-semibold text-blue-400 mb-4">⚡ Performance Insights</h3>
                   <div className="space-y-4">
-                    {(() => {
-                      const batchAvgScore = parseFloat(progressStats.overallProgress.averageScore);
+                    {(() => {                      const batchAvgScore = parseFloat(progressStats.overallProgress.averageScorePercentage);
                       const batchAvgCompletion = parseFloat(progressStats.overallProgress.averageCompletionRate);
-                      const myScore = parseFloat(myProgress.averageScore);
+                      const myScore = parseFloat(myProgress.scorePercentage);
                       const myCompletion = parseFloat(myProgress.completionRate);
                       
                       return (
