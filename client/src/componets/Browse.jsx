@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Code2, Trophy, Users, Timer, Terminal, Rocket, ExternalLink, ArrowRight, CheckCircle, Star } from "lucide-react";
+import { Code2, Trophy, Users, Timer, Terminal, Rocket, ExternalLink, ArrowRight, CheckCircle, Star, BookOpen, Settings, History, User, Calendar, GraduationCap, ShieldCheck } from "lucide-react";
 import Header from "./Header";
 import { useAnimation } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 // Adding the SimpleCodeBlock component
 const SimpleCodeBlock = () => {
@@ -51,6 +52,8 @@ const Browse = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
+  const user = useSelector((store) => store.app.user);
+  const authStatus = useSelector((store) => store.app.authStatus);
 
   const features = [
     {
@@ -87,10 +90,207 @@ const Browse = () => {
     },
   ];
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-950 to-black text-white">
+  return (    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-950 to-black text-white">
       <main className="container mx-auto px-4 pb-12">
         <HeroSection />
+        
+        {/* Navigation Routes Section */}
+        {authStatus && (
+          <section className="py-16">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center mb-12"
+            >
+              <span className="px-4 py-2 rounded-full bg-green-900/30 text-green-400 text-sm font-medium">Quick Navigation</span>
+              <h2 className="mt-4 text-3xl font-bold tracking-tight bg-gradient-to-r from-green-400 via-blue-400 to-green-500 text-transparent bg-clip-text">
+                Browse Platform Features
+              </h2>
+              <p className="mt-3 max-w-2xl mx-auto text-gray-400">
+                Access all available features and sections based on your role
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {/* Student Routes */}
+              {(user?.role === 'student' || user?.role === 'admin') && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="group cursor-pointer"
+                    onClick={() => navigate('/student')}
+                  >
+                    <div className="rounded-xl p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/10 backdrop-blur-sm border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10">
+                      <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-blue-600/20 transition-all duration-300">
+                        <GraduationCap className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
+                      </div>
+                      <h3 className="text-lg font-bold mb-2 group-hover:text-blue-400 transition-colors duration-300">Student Dashboard</h3>
+                      <p className="text-gray-400 text-sm">Access your assignments, submissions, and progress</p>
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="group cursor-pointer"
+                    onClick={() => navigate('/student/batches')}
+                  >
+                    <div className="rounded-xl p-6 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 backdrop-blur-sm border border-cyan-500/20 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-cyan-500/10">
+                      <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-cyan-600/20 transition-all duration-300">
+                        <Users className="w-8 h-8 text-cyan-400 group-hover:scale-110 transition-transform duration-300" />
+                      </div>
+                      <h3 className="text-lg font-bold mb-2 group-hover:text-cyan-400 transition-colors duration-300">My Batches</h3>
+                      <p className="text-gray-400 text-sm">View and manage your enrolled batches</p>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+
+              {/* Faculty Routes */}
+              {(user?.role === 'faculty' || user?.role === 'admin') && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="group cursor-pointer"
+                    onClick={() => navigate('/faculty/batches')}
+                  >
+                    <div className="rounded-xl p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/10 backdrop-blur-sm border border-purple-500/20 hover:border-purple-400/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/10">
+                      <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-purple-600/20 transition-all duration-300">
+                        <BookOpen className="w-8 h-8 text-purple-400 group-hover:scale-110 transition-transform duration-300" />
+                      </div>
+                      <h3 className="text-lg font-bold mb-2 group-hover:text-purple-400 transition-colors duration-300">Faculty Batches</h3>
+                      <p className="text-gray-400 text-sm">Manage your teaching batches and student progress</p>
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="group cursor-pointer"
+                    onClick={() => navigate('/make-problem')}
+                  >
+                    <div className="rounded-xl p-6 bg-gradient-to-br from-orange-500/10 to-orange-600/10 backdrop-blur-sm border border-orange-500/20 hover:border-orange-400/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-orange-500/10">
+                      <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-orange-600/20 transition-all duration-300">
+                        <Code2 className="w-8 h-8 text-orange-400 group-hover:scale-110 transition-transform duration-300" />
+                      </div>
+                      <h3 className="text-lg font-bold mb-2 group-hover:text-orange-400 transition-colors duration-300">Create Problems</h3>
+                      <p className="text-gray-400 text-sm">Design and create new programming problems</p>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+
+              {/* Common Routes */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="group cursor-pointer"
+                onClick={() => navigate('/contest')}
+              >
+                <div className="rounded-xl p-6 bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 backdrop-blur-sm border border-yellow-500/20 hover:border-yellow-400/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-yellow-500/10">
+                  <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-yellow-600/20 transition-all duration-300">
+                    <Trophy className="w-8 h-8 text-yellow-400 group-hover:scale-110 transition-transform duration-300" />
+                  </div>
+                  <h3 className="text-lg font-bold mb-2 group-hover:text-yellow-400 transition-colors duration-300">Contests</h3>
+                  <p className="text-gray-400 text-sm">Participate in programming contests and competitions</p>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className="group cursor-pointer"
+                onClick={() => navigate('/dashboard')}
+              >
+                <div className="rounded-xl p-6 bg-gradient-to-br from-green-500/10 to-green-600/10 backdrop-blur-sm border border-green-500/20 hover:border-green-400/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-green-500/10">
+                  <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-green-600/20 transition-all duration-300">
+                    <Terminal className="w-8 h-8 text-green-400 group-hover:scale-110 transition-transform duration-300" />
+                  </div>
+                  <h3 className="text-lg font-bold mb-2 group-hover:text-green-400 transition-colors duration-300">Problem Dashboard</h3>
+                  <p className="text-gray-400 text-sm">Browse and solve programming problems</p>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="group cursor-pointer"
+                onClick={() => navigate('/history')}
+              >
+                <div className="rounded-xl p-6 bg-gradient-to-br from-indigo-500/10 to-indigo-600/10 backdrop-blur-sm border border-indigo-500/20 hover:border-indigo-400/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10">
+                  <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-indigo-600/20 transition-all duration-300">
+                    <History className="w-8 h-8 text-indigo-400 group-hover:scale-110 transition-transform duration-300" />
+                  </div>
+                  <h3 className="text-lg font-bold mb-2 group-hover:text-indigo-400 transition-colors duration-300">Submission History</h3>
+                  <p className="text-gray-400 text-sm">View your past submissions and results</p>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45 }}
+                className="group cursor-pointer"
+                onClick={() => navigate('/profile')}
+              >
+                <div className="rounded-xl p-6 bg-gradient-to-br from-pink-500/10 to-pink-600/10 backdrop-blur-sm border border-pink-500/20 hover:border-pink-400/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-pink-500/10">
+                  <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-pink-600/20 transition-all duration-300">
+                    <User className="w-8 h-8 text-pink-400 group-hover:scale-110 transition-transform duration-300" />
+                  </div>
+                  <h3 className="text-lg font-bold mb-2 group-hover:text-pink-400 transition-colors duration-300">Profile</h3>
+                  <p className="text-gray-400 text-sm">Manage your account and personal information</p>
+                </div>
+              </motion.div>
+
+              {/* Admin Routes */}
+              {user?.role === 'admin' && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="group cursor-pointer"
+                    onClick={() => navigate('/pending-requests')}
+                  >
+                    <div className="rounded-xl p-6 bg-gradient-to-br from-red-500/10 to-red-600/10 backdrop-blur-sm border border-red-500/20 hover:border-red-400/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-red-500/10">
+                      <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-red-600/20 transition-all duration-300">
+                        <ShieldCheck className="w-8 h-8 text-red-400 group-hover:scale-110 transition-transform duration-300" />
+                      </div>
+                      <h3 className="text-lg font-bold mb-2 group-hover:text-red-400 transition-colors duration-300">Admin Panel</h3>
+                      <p className="text-gray-400 text-sm">Manage users, batches, and system settings</p>
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.55 }}
+                    className="group cursor-pointer"
+                    onClick={() => navigate('/admin/batch-management')}
+                  >
+                    <div className="rounded-xl p-6 bg-gradient-to-br from-teal-500/10 to-teal-600/10 backdrop-blur-sm border border-teal-500/20 hover:border-teal-400/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-teal-500/10">
+                      <div className="mb-4 bg-gray-800/50 p-3 rounded-lg inline-block group-hover:bg-teal-600/20 transition-all duration-300">
+                        <Settings className="w-8 h-8 text-teal-400 group-hover:scale-110 transition-transform duration-300" />
+                      </div>
+                      <h3 className="text-lg font-bold mb-2 group-hover:text-teal-400 transition-colors duration-300">Batch Management</h3>
+                      <p className="text-gray-400 text-sm">Create and manage student batches</p>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </div>
+          </section>
+        )}
+        
           {/* Features Section with Enhanced Design */}
         <section className="py-20">
           <motion.div

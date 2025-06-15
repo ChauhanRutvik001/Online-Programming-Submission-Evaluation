@@ -229,11 +229,10 @@ const Header = ({ onLoginClick }) => {
       }`}>
         <div className={`flex items-center justify-between transition-all duration-300 ${
           scrolled ? "h-10 sm:h-11 md:h-12 lg:h-14" : "h-10 sm:h-11 md:h-12 lg:h-14"
-        }`}>
-          <motion.div 
+        }`}>          <motion.div 
             whileHover={{ scale: 1.03 }} 
             className="flex items-center space-x-1 sm:space-x-2"
-            onClick={() => navigate('/')}
+            onClick={() => navigate(authStatus ? '/browse' : '/')}
             style={{ cursor: 'pointer' }}
           >
             <div className="relative flex items-center">

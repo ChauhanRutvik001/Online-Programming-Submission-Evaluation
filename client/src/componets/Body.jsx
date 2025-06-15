@@ -44,6 +44,7 @@ import ProblemDetails from "./Problem/ProblemDetails";
 import { useSelector } from "react-redux";
 import AdminApiKeyManagement from "./Admin/AdminApiKeyManagement";
 import ProtectedRoute from "./ProtectedRoute";
+import PublicRoute from "./PublicRoute";
 import RoleBasedHome from "./RoleBasedHome";
 
 const Body = () => {
@@ -51,9 +52,16 @@ const Body = () => {
     {
       path: "/",
       element: <Layout />,
-      children: [
-        { path: "/", element: <RoleBasedHome /> },
-        { path: "/login", element: <Login /> },
+      children: [        { path: "/", element: <RoleBasedHome /> },
+        { path: "/browse", element: <Browse /> },
+        { 
+          path: "/login", 
+          element: (
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          )
+        },
         { path: "/support", element: <Support /> },
         
         // Student routes
