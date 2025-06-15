@@ -33,41 +33,43 @@ const StudentInfo = () => {
   return (
     <div className="relative min-h-screen bg-gray-900 text-white p-0 md:p-4">
       {/* Header Section */}
-   <div className="py-6 mb-8 border-b border-blue-900">
-           <div className="container mx-auto px-4">
-             <div className="flex flex-col md:flex-row justify-between items-center mt-14">
-               <div className="flex items-center mb-4 md:mb-0">
-                 <FaUserGraduate className="h-8 w-8 mr-3 text-blue-300" />
-                 <h1 className="text-3xl font-bold tracking-tight">
-                   Student Info
-                 </h1>
-               </div>
-               <button
-                 className="py-2.5 px-6 flex items-center bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-200 active:scale-95"
-                 onClick={() => navigate(-1)}
-               >
-                 <svg
-                   xmlns="http://www.w3.org/2000/svg"
-                   className="h-5 w-5 mr-2"
-                   viewBox="0 0 20 20"
-                   fill="currentColor"
-                 >
-                   <path
-                     fillRule="evenodd"
-                     d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-                     clipRule="evenodd"
-                   />
-                 </svg>
-                 Back to Dashboard
-               </button>
-             </div>
-           </div>
-         </div>
-   
+      <div className="py-6 mb-8 border-b border-blue-900">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center mt-14">
+            <div className="flex items-center mb-4 md:mb-0">
+              <FaUserGraduate className="h-8 w-8 mr-3 text-blue-300" />
+              <h1 className="text-3xl font-bold tracking-tight">
+                Student Info
+              </h1>
+            </div>
+            <button
+              className="py-2.5 px-6 flex items-center bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-200 active:scale-95"
+              onClick={() => navigate(-1)}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 mr-2"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Main Content */}
       <div className="w-full flex-grow">
-        <div className="w-full bg-gray-900 rounded-lg shadow-xl p-0" style={{ minHeight: "calc(100vh - 180px)" }}>
+        <div
+          className="w-full bg-gray-900 rounded-lg shadow-xl p-0"
+          style={{ minHeight: "calc(100vh - 180px)" }}
+        >
           <div className="px-4 pb-8 pt-6">
             {loading ? (
               <div className="flex justify-center items-center min-h-[300px]">
@@ -81,12 +83,17 @@ const StudentInfo = () => {
             ) : (
               <>
                 <p className="text-xl font-medium mb-4">
-                  Total Students: <span className="text-yellow-400 font-bold">{totalStudents}</span>
+                  Total Students:{" "}
+                  <span className="text-yellow-400 font-bold">
+                    {totalStudents}
+                  </span>
                 </p>
                 <BranchWiseCount branches={branchWiseCount} />
                 <SemesterWiseCount
                   semesters={semesterWiseCount}
-                  onSemesterClick={(semester) => navigate(`/students/semester/${semester}`)}
+                  onSemesterClick={(semester) =>
+                    navigate(`/students/semester/${semester}`)
+                  }
                 />
                 {error && (
                   <div className="px-4 py-2 mb-4 bg-red-700 text-white rounded">

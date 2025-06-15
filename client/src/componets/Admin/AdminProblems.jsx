@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
-import { BookOpen } from "lucide-react";
-
-const PAGE_SIZE = 7;
+import { 
+  FaFileCode,
+  FaSearch,
+  FaChevronLeft,
+  FaChevronRight,
+  FaSort,
+  FaSortUp,
+  FaSortDown
+} from "react-icons/fa";
 
 const AdminProblems = () => {
   const [problems, setProblems] = useState([]);
@@ -12,30 +18,96 @@ const AdminProblems = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalProblems, setTotalProblems] = useState(0);
-  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState("desc");
+
+  const itemsPerPage = 20;
+  const navigate = useNavigate();  const fetchProblems = async (page, search = "", sort = "createdAt", order = "desc") => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get(`/admin/problems`, {
+        params: {
+          page,
+          limit: itemsPerPage,
+          search: search.trim(),
+          sortBy: sort,
+          sortOrder: order,
+        }
+      });
+      
+      if (response.data.success) {
+        setProblems(response.data.problems);
+        setTotalPages(response.data.totalPages);
+        setTotalProblems(response.data.total);
+      } else {
+        setError(response.data.message || "Failed to fetch problems.");
+      }
+    } catch (err) {
+      setError("Error fetching problems.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProblems = async () => {
-      try {
-        setLoading(true);
-        const res = await axiosInstance.get(`/admin/problems?page=${currentPage}&limit=${PAGE_SIZE}`);
-        console.log("Response from server:", res.data);
-        if (res.data.success) {
-          setProblems(res.data.problems);
-          setTotalPages(res.data.totalPages);
-          setTotalProblems(res.data.total);
-        } else {
-          setError(res.data.message || "Failed to fetch problems.");
-        }
-      } catch (err) {
-        setError("Error fetching problems.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProblems();
-  }, [currentPage]);
+    fetchProblems(currentPage, searchTerm, sortBy, sortOrder);
+    // eslint-disable-next-line
+  }, [currentPage, searchTerm, sortBy, sortOrder]);
 
+  // Debounced search function
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page when searching
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const handleSort = (column) => {
+    const newOrder = sortBy === column && sortOrder === "asc" ? "desc" : "asc";
+    setSortBy(column);
+    setSortOrder(newOrder);
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
+  };
+
+  const getSortIcon = (column) => {
+    if (sortBy !== column) {
+      return <FaSort className="w-3 h-3 ml-1" />;
+    }
+    return sortOrder === "asc" ? (
+      <FaSortUp className="w-3 h-3 ml-1" />
+    ) : (
+      <FaSortDown className="w-3 h-3 ml-1" />
+    );
+  };
+
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty?.toLowerCase()) {
+      case "easy":
+        return "bg-green-900/40 text-green-400 border border-green-500/30";
+      case "medium":
+        return "bg-yellow-900/40 text-yellow-400 border border-yellow-500/30";
+      case "hard":
+        return "bg-red-900/40 text-red-400 border border-red-500/30";
+      default:
+        return "bg-gray-900/40 text-gray-400 border border-gray-500/30";
+    }
+  };
   return (
     <div className="relative min-h-screen bg-gray-900 text-white p-0 md:p-4">
       {/* Header Section */}
@@ -43,7 +115,7 @@ const AdminProblems = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center mt-14">
             <div className="flex items-center mb-4 md:mb-0">
-              <BookOpen className="h-8 w-8 mr-3 text-blue-300" />
+              <FaFileCode className="h-8 w-8 mr-3 text-blue-300" />
               <h1 className="text-3xl font-bold tracking-tight">
                 Problems Dashboard
               </h1>
@@ -69,23 +141,37 @@ const AdminProblems = () => {
           </div>
         </div>
       </div>
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center px-2 md:px-8 py-8">
-        <div className="w-full max-w-7xl">
+
+      {/* Main Content - Full Screen */}
+      <main className="px-4 py-8">
+        <div className="w-full">
+          {/* Search and Stats Section */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
-            <div>
-              <p className="text-blue-300 text-lg font-medium">
-                List of all problems, their creators, and assigned batches.
+            <div className="flex-1">
+              <div className="relative max-w-md">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaSearch className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search problems by title, difficulty, or creator..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <p className="text-blue-300 text-sm mt-2">
+                Search and manage all problems in the system
               </p>
             </div>
-            <div className="flex items-center bg-gradient-to-r from-gray-800 to-gray-900 py-3 px-6 rounded-xl shadow font-semibold text-lg">
+            <div className="flex items-center bg-gray-800 py-3 px-6 rounded-xl shadow font-semibold text-lg">
               <span>Total Problems:</span>
-              <span className="ml-3 text-2xl font-extrabold text-blue-400">
-                {totalProblems}
-              </span>
+              <span className="ml-3 text-2xl font-extrabold text-blue-400">{totalProblems}</span>
             </div>
           </div>
-          <div className="overflow-x-auto rounded-xl shadow-2xl bg-[#222733]">
+
+          {/* Table Section - Full Width */}
+          <div className="bg-gray-900 rounded-xl shadow-xl overflow-hidden">
             {loading ? (
               <div className="flex justify-center items-center h-64">
                 <div className="flex flex-col items-center">
@@ -99,89 +185,216 @@ const AdminProblems = () => {
               <div className="text-center py-16 text-red-400 text-lg">
                 {error}
               </div>
-            ) : problems.length === 0 ? (
-              <div className="text-center py-16 text-blue-300 text-lg">
-                No problems found.
-              </div>
             ) : (
-              <>
-                <table className="min-w-full text-base text-left text-white">
-                  <thead className="bg-gradient-to-r from-gray-800 to-gray-900 text-blue-300">
-                    <tr>
-                      <th className="py-4 px-6 rounded-tl-xl">#</th>
-                      <th className="py-4 px-6">Title</th>
-                      <th className="py-4 px-6">Difficulty</th>
-                      <th className="py-4 px-6">Created By</th>
-                      <th className="py-4 px-6">Assigned Batches</th>
-                      <th className="py-4 px-6">Total Marks</th>
-                      <th className="py-4 px-6">Submissions</th>
-                      <th className="py-4 px-6 rounded-tr-xl">Created At</th>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-700 text-gray-200 text-sm uppercase">
+                      <th className="py-4 px-6 text-left w-16">
+                        <span className="font-semibold">#</span>
+                      </th>
+                      <th className="py-4 px-6 text-left min-w-[200px]">
+                        <button
+                          onClick={() => handleSort("title")}
+                          className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                        >
+                          Title {getSortIcon("title")}
+                        </button>
+                      </th>
+                      <th className="py-4 px-6 text-left min-w-[120px]">
+                        <button
+                          onClick={() => handleSort("difficulty")}
+                          className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                        >
+                          Difficulty {getSortIcon("difficulty")}
+                        </button>
+                      </th>
+                      <th className="py-4 px-6 text-left min-w-[150px]">
+                        <button
+                          onClick={() => handleSort("createdBy")}
+                          className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                        >
+                          Created By {getSortIcon("createdBy")}
+                        </button>
+                      </th>
+                      <th className="py-4 px-6 text-left min-w-[200px]">
+                        <span className="font-semibold">Assigned Batches</span>
+                      </th>
+                      <th className="py-4 px-6 text-left min-w-[120px]">
+                        <button
+                          onClick={() => handleSort("totalMarks")}
+                          className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                        >
+                          Total Marks {getSortIcon("totalMarks")}
+                        </button>
+                      </th>
+                      <th className="py-4 px-6 text-left min-w-[120px]">
+                        <span className="font-semibold">Submissions</span>
+                      </th>
+                      <th className="py-4 px-6 text-left min-w-[180px]">
+                        <button
+                          onClick={() => handleSort("createdAt")}
+                          className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                        >
+                          Created At {getSortIcon("createdAt")}
+                        </button>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {problems.map((problem, idx) => (
-                      <tr
-                        key={problem._id}
-                        className={`transition-all duration-150 ${
-                          idx % 2 === 0
-                            ? "bg-[#23272f] hover:bg-blue-950"
-                            : "bg-[#1a1d23] hover:bg-blue-950"
-                        }`}
-                      >
-                        <td className="py-3 px-6 font-bold text-white">
-                          {(currentPage - 1) * PAGE_SIZE + idx + 1}
-                        </td>
-                        <td className="py-3 px-6 text-white">{problem.title}</td>
-                        <td className="py-3 px-6 text-white">
-                          {problem.difficulty}
-                        </td>
-                        <td className="py-3 px-6 text-white">
-                          {problem.createdBy?.username || "Unknown"}
-                        </td>
-                        <td className="py-3 px-6 text-white">
-                          {problem.assignedBatches &&
-                          problem.assignedBatches.length > 0 ? (
-                            problem.assignedBatches.map((b) => b.name).join(", ")
-                          ) : (
-                            <span className="text-gray-400">Not assigned</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-6 text-white">
-                          {problem.totalMarks}
-                        </td>
-                        <td className="py-3 px-6 text-white">
-                          {problem.count ?? 0}
-                        </td>
-                        <td className="py-3 px-6 text-white">
-                          {new Date(problem.createdAt).toLocaleString()}
+                    {problems.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="py-16 text-center text-gray-400 text-lg">
+                          No problems found
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      problems.map((problem, idx) => (
+                        <tr
+                          key={problem._id}
+                          className="border-b border-gray-700 hover:bg-gray-800 transition-colors"
+                        >
+                          <td className="py-4 px-6 text-gray-300 font-medium">
+                            {(currentPage - 1) * itemsPerPage + idx + 1}
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="text-white font-medium">{problem.title}</div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${getDifficultyColor(problem.difficulty)}`}>
+                              {problem.difficulty || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="text-white">
+                              {problem.createdBy?.username || 'Unknown'}
+                            </div>
+                            {problem.createdBy?.email && (
+                              <div className="text-gray-400 text-sm">
+                                {problem.createdBy.email}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-4 px-6">
+                            {problem.assignedBatches && problem.assignedBatches.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {problem.assignedBatches.slice(0, 3).map((batch, index) => (
+                                  <span
+                                    key={index}
+                                    className="px-2 py-1 rounded-lg text-xs font-medium bg-blue-900/40 text-blue-300 border border-blue-500/30"
+                                  >
+                                    {batch.name}
+                                  </span>
+                                ))}
+                                {problem.assignedBatches.length > 3 && (
+                                  <span className="px-2 py-1 rounded-lg text-xs font-medium bg-gray-700 text-gray-300">
+                                    +{problem.assignedBatches.length - 3}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-sm">Not assigned</span>
+                            )}
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="px-2 py-1 rounded-lg text-sm font-medium bg-green-900/40 text-green-300 border border-green-500/30">
+                              {problem.totalMarks}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="px-2 py-1 rounded-lg text-sm font-medium bg-purple-900/40 text-purple-300 border border-purple-500/30">
+                              {problem.count ?? 0}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-gray-300">
+                            {formatDate(problem.createdAt)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="flex justify-end mt-6">
-                    <div className="flex gap-2">
-                      {Array.from({ length: totalPages }, (_, idx) => (
-                        <button
-                          key={idx + 1}
-                          className={`px-4 py-2 rounded-lg font-semibold text-sm ${
-                            currentPage === idx + 1
-                              ? "bg-blue-600 text-white"
-                              : "bg-gray-700 text-gray-200 hover:bg-blue-700 hover:text-white"
-                          } transition`}
-                          onClick={() => setCurrentPage(idx + 1)}
-                        >
-                          {idx + 1}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
+              </div>
             )}
           </div>
+
+          {/* Always Show Pagination Controls */}
+          <div className="flex justify-center items-center mt-8 gap-2">
+            {/* Previous Button */}
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                currentPage === 1
+                  ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                  : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+              }`}
+            >
+              <FaChevronLeft className="w-4 h-4" />
+              Previous
+            </button>
+
+            {/* Page Numbers - Always show current page info */}
+            <div className="flex gap-1">
+              {totalPages <= 1 ? (
+                <span className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white">
+                  1
+                </span>
+              ) : (
+                [...Array(Math.min(5, totalPages))].map((_, idx) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = idx + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = idx + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + idx;
+                  } else {
+                    pageNum = currentPage - 2 + idx;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        currentPage === pageNum
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages || totalPages <= 1}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                currentPage === totalPages || totalPages <= 1
+                  ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                  : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+              }`}
+            >
+              Next
+              <FaChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Pagination Info */}
+          {totalProblems > 0 && (
+            <div className="text-center mt-4 text-gray-400 text-sm">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+              {Math.min(currentPage * itemsPerPage, totalProblems)} of {totalProblems} problems
+              {totalPages > 1 && (
+                <span className="ml-4">Page {currentPage} of {totalPages}</span>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>

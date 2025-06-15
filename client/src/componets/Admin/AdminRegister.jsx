@@ -2,7 +2,15 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { useSelector } from "react-redux";
-import { FaUserTie } from "react-icons/fa";
+import { 
+  FaUserTie, 
+  FaSearch,
+  FaChevronLeft,
+  FaChevronRight,
+  FaSort,
+  FaSortUp,
+  FaSortDown
+} from "react-icons/fa";
 
 const AdminRegister = () => {
   const user = useSelector((store) => store.app.user);
@@ -12,16 +20,22 @@ const AdminRegister = () => {
   const [facultyPage, setFacultyPage] = useState(1);
   const [totalFacultyPages, setTotalFacultyPages] = useState(0);
   const [totalFaculty, setTotalFaculty] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState("desc");
 
-  const itemsPerPage = 8;
+  const itemsPerPage = 10;
   const navigate = useNavigate();
 
-  const fetchFacultys = async (page) => {
+  const fetchFacultys = async (page, search = "", sort = "createdAt", order = "desc") => {
     try {
       setLoading(true);
       const response = await axiosInstance.post("/admin/faculty/get-faculty-by-admin", {
         page,
         limit: itemsPerPage,
+        search: search.trim(),
+        sortBy: sort,
+        sortOrder: order,
       });
       if (response.data.success) {
         setFacultys(response.data.facultys);
@@ -38,9 +52,29 @@ const AdminRegister = () => {
   };
 
   useEffect(() => {
-    fetchFacultys(facultyPage);
+    fetchFacultys(facultyPage, searchTerm, sortBy, sortOrder);
     // eslint-disable-next-line
-  }, [facultyPage]);
+  }, [facultyPage, searchTerm, sortBy, sortOrder]);
+
+  // Debounced search function
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setFacultyPage(1); // Reset to first page when searching
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const handleSort = (column) => {
+    const newOrder = sortBy === column && sortOrder === "asc" ? "desc" : "asc";
+    setSortBy(column);
+    setSortOrder(newOrder);
+    setFacultyPage(1); // Reset to first page when sorting
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
 
   const handleFacultyClick = (facultyId) => {
     navigate(`/faculty/${facultyId}/batches`);
@@ -56,8 +90,18 @@ const AdminRegister = () => {
     return `${day}-${month}-${year} ${hours}:${minutes}`;
   };
 
+  const getSortIcon = (column) => {
+    if (sortBy !== column) {
+      return <FaSort className="w-3 h-3 ml-1" />;
+    }
+    return sortOrder === "asc" ? (
+      <FaSortUp className="w-3 h-3 ml-1" />
+    ) : (
+      <FaSortDown className="w-3 h-3 ml-1" />
+    );
+  };
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-950 to-gray-900 text-white p-0 md:p-4">
+    <div className="relative min-h-screen bg-gray-900 text-white p-0 md:p-4">
       {/* Header Section */}
       <div className="py-6 mb-8 border-b border-blue-900">
         <div className="container mx-auto px-4">
@@ -65,8 +109,9 @@ const AdminRegister = () => {
             <div className="flex items-center mb-4 md:mb-0">
               <FaUserTie className="h-8 w-8 mr-3 text-blue-300" />
               <h1 className="text-3xl font-bold tracking-tight">
-                Faculty Info
+                Faculty Management
               </h1>
+              
             </div>
             <button
               className="py-2.5 px-6 flex items-center bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-200 active:scale-95"
@@ -89,21 +134,37 @@ const AdminRegister = () => {
           </div>
         </div>
       </div>
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="w-full max-w-7xl">
+
+      {/* Main Content - Full Screen */}
+      <main className="px-4 py-8">
+        <div className="w-full">
+          {/* Search and Stats Section */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
-            <div>
-              <p className="text-blue-300 text-lg font-medium">
-                List of all registered faculty members.
+            <div className="flex-1">
+              <div className="relative max-w-md">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaSearch className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search faculty by name, email, or branch..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <p className="text-blue-300 text-sm mt-2">
+                Search and manage all registered faculty members
               </p>
             </div>
-            <div className="flex items-center bg-gradient-to-r from-gray-800 to-gray-900 py-3 px-6 rounded-xl shadow font-semibold text-lg">
-              <span>Total Registered:</span>
-              <span className="ml-3 text-2xl font-extrabold text-yellow-400">{totalFaculty}</span>
+            <div className="flex items-center bg-gray-800 py-3 px-6 rounded-xl shadow font-semibold text-lg">
+              <span>Total Faculty:</span>
+              <span className="ml-3 text-2xl font-extrabold text-blue-400">{totalFaculty}</span>
             </div>
           </div>
-          <div className="overflow-x-auto rounded-xl shadow-2xl bg-[#222733]">
+
+          {/* Table Section - Full Width */}
+          <div className="bg-gray-900 rounded-xl shadow-xl overflow-hidden">
             {loading ? (
               <div className="flex justify-center items-center h-64">
                 <div className="flex flex-col items-center">
@@ -118,97 +179,204 @@ const AdminRegister = () => {
                 {error}
               </div>
             ) : (
-              <table className="min-w-full text-base text-left text-blue-100">
-                <thead className="bg-gradient-to-r from-gray-800 to-gray-900 text-blue-200">
-                  <tr>
-                    <th className="py-4 px-6 rounded-tl-xl">#</th>
-                    <th className="py-4 px-6">Username</th>
-                    <th className="py-4 px-6">Email</th>
-                    <th className="py-4 px-6">Branch</th>
-                    <th className="py-4 px-6">Batches</th>
-                    <th className="py-4 px-6 rounded-tr-xl">Create Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {facultys.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan="6"
-                        className="py-6 px-6 text-center text-blue-300 text-lg"
-                      >
-                        Data not available
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-700 text-gray-200 text-sm uppercase">
+                      <th className="py-4 px-6 text-left w-16">
+                        <span className="font-semibold">#</span>
+                      </th>
+                      <th className="py-4 px-6 text-left min-w-[200px]">
+                        <button
+                          onClick={() => handleSort("username")}
+                          className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                        >
+                          Username {getSortIcon("username")}
+                        </button>
+                      </th>
+                      <th className="py-4 px-6 text-left min-w-[250px]">
+                        <button
+                          onClick={() => handleSort("email")}
+                          className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                        >
+                          Email {getSortIcon("email")}
+                        </button>
+                      </th>
+                      <th className="py-4 px-6 text-center w-32">
+                        <button
+                          onClick={() => handleSort("branch")}
+                          className="flex items-center justify-center font-semibold mx-auto hover:text-blue-300 transition-colors"
+                        >
+                          Branch {getSortIcon("branch")}
+                        </button>
+                      </th>
+                      <th className="py-4 px-6 text-left min-w-[300px]">
+                        <span className="font-semibold">Assigned Batches</span>
+                      </th>
+                      <th className="py-4 px-6 text-center min-w-[150px]">
+                        <button
+                          onClick={() => handleSort("createdAt")}
+                          className="flex items-center justify-center font-semibold mx-auto hover:text-blue-300 transition-colors"
+                        >
+                          Created Date {getSortIcon("createdAt")}
+                        </button>
+                      </th>
                     </tr>
-                  ) : (
-                    facultys.map((faculty, index) => (
-                      <tr
-                        key={faculty._id}
-                        onClick={() => handleFacultyClick(faculty._id)}
-                        className={`cursor-pointer transition-all duration-150 ${
-                          index % 2 === 0
-                            ? "bg-[#23272f] hover:bg-blue-950"
-                            : "bg-[#1a1d23] hover:bg-blue-950"
-                        }`}
-                      >
-                        <td className="py-3 px-6 font-bold">{index + 1}</td>
-                        <td className="py-3 px-6">{faculty.username}</td>
-                        <td className="py-3 px-6">{faculty.email}</td>
-                        <td className="py-3 px-6">
-                          {faculty?.branch?.toUpperCase()}
-                        </td>
-                        <td className="py-3 px-6">
-                          {faculty.batches && faculty.batches.length > 0 ? (
-                            <span
-                              title={
-                                Array.isArray(faculty.batches)
-                                  ? faculty.batches
-                                      .map((b) => (typeof b === "string" ? b : b.name))
-                                      .join(", ")
-                                  : ""
-                              }
-                            >
-                              {faculty.batches
-                                .slice(0, 3)
-                                .map((b) => (typeof b === "string" ? b : b.name))
-                                .join(", ")}
-                              {faculty.batches.length > 3 && (
-                                <span className="text-blue-400">
-                                  , +{faculty.batches.length - 3} more
-                                </span>
-                              )}
-                            </span>
-                          ) : (
-                            "No batches"
-                          )}
-                        </td>
-                        <td className="py-3 px-6">
-                          {formatDate(faculty.createdAt)}
+                  </thead>
+                  <tbody>
+                    {facultys.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="py-8 px-6 text-center text-gray-400">
+                          <div className="flex flex-col items-center justify-center">
+                            <FaSearch className="w-12 h-12 text-gray-600 mb-3" />
+                            <p className="text-lg font-medium">No faculty found</p>
+                            <p className="text-sm text-gray-500">
+                              {searchTerm ? `No results for "${searchTerm}"` : "No faculty members registered yet"}
+                            </p>
+                          </div>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      facultys.map((faculty, index) => (
+                        <tr
+                          key={faculty._id}
+                          onClick={() => handleFacultyClick(faculty._id)}
+                          className="border-t border-gray-700 hover:bg-gray-800/50 transition-colors cursor-pointer"
+                        >
+                          <td className="py-4 px-6 text-gray-300 font-medium">
+                            {(facultyPage - 1) * itemsPerPage + index + 1}
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex items-center">
+                              <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                                <span className="text-white text-sm font-medium">
+                                  {faculty.username?.charAt(0)?.toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="font-semibold text-blue-400 hover:text-blue-300 transition-colors">
+                                {faculty.username}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-gray-300">
+                            {faculty.email}
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium bg-blue-900/40 text-blue-400 border border-blue-500/30">
+                              {faculty?.branch?.toUpperCase() || "N/A"}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6">
+                            {faculty.batches && faculty.batches.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {faculty.batches.slice(0, 3).map((batch, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-900/40 text-green-400 border border-green-500/30"
+                                  >
+                                    {typeof batch === "string" ? batch : batch.name}
+                                  </span>
+                                ))}
+                                {faculty.batches.length > 3 && (
+                                  <span
+                                    className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-gray-700 text-gray-300 cursor-help"
+                                    title={faculty.batches.map(b => typeof b === "string" ? b : b.name).join(", ")}
+                                  >
+                                    +{faculty.batches.length - 3} more
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-500 text-sm italic">No batches assigned</span>
+                            )}
+                          </td>
+                          <td className="py-4 px-6 text-center text-gray-400 text-sm">
+                            {formatDate(faculty.createdAt)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-          {/* Pagination */}
-          {totalFacultyPages > 1 && (
-            <div className="flex justify-end mt-6">
-              <div className="flex gap-2">
-                {Array.from({ length: totalFacultyPages }, (_, idx) => (
-                  <button
-                    key={idx + 1}
-                    className={`px-4 py-2 rounded-lg font-semibold text-sm ${
-                      facultyPage === idx + 1
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-700 text-gray-200 hover:bg-blue-700 hover:text-white"
-                    } transition`}
-                    onClick={() => setFacultyPage(idx + 1)}
-                  >
-                    {idx + 1}
-                  </button>
-                ))}
-              </div>
+
+          {/* Always Show Pagination Controls */}
+          <div className="flex justify-center items-center mt-8 gap-2">
+            {/* Previous Button */}
+            <button
+              onClick={() => setFacultyPage(Math.max(1, facultyPage - 1))}
+              disabled={facultyPage === 1}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                facultyPage === 1
+                  ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                  : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+              }`}
+            >
+              <FaChevronLeft className="w-4 h-4" />
+              Previous
+            </button>
+
+            {/* Page Numbers - Always show current page info */}
+            <div className="flex gap-1">
+              {totalFacultyPages <= 1 ? (
+                <span className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white">
+                  1
+                </span>
+              ) : (
+                [...Array(Math.min(5, totalFacultyPages))].map((_, idx) => {
+                  let pageNum;
+                  if (totalFacultyPages <= 5) {
+                    pageNum = idx + 1;
+                  } else if (facultyPage <= 3) {
+                    pageNum = idx + 1;
+                  } else if (facultyPage >= totalFacultyPages - 2) {
+                    pageNum = totalFacultyPages - 4 + idx;
+                  } else {
+                    pageNum = facultyPage - 2 + idx;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setFacultyPage(pageNum)}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        facultyPage === pageNum
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => setFacultyPage(Math.min(totalFacultyPages, facultyPage + 1))}
+              disabled={facultyPage === totalFacultyPages || totalFacultyPages <= 1}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                facultyPage === totalFacultyPages || totalFacultyPages <= 1
+                  ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                  : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+              }`}
+            >
+              Next
+              <FaChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Pagination Info */}
+          {totalFaculty > 0 && (
+            <div className="text-center mt-4 text-gray-400 text-sm">
+              Showing {(facultyPage - 1) * itemsPerPage + 1} to{" "}
+              {Math.min(facultyPage * itemsPerPage, totalFaculty)} of {totalFaculty} faculty members
+              {totalFacultyPages > 1 && (
+                <span className="ml-4">Page {facultyPage} of {totalFacultyPages}</span>
+              )}
             </div>
           )}
         </div>

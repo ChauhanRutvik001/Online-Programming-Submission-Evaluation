@@ -1,148 +1,137 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
-import { FaUser } from "react-icons/fa";
+import { 
+  FaUser,
+  FaSearch,
+  FaChevronLeft,
+  FaChevronRight,
+  FaSort,
+  FaSortUp,
+  FaSortDown
+} from "react-icons/fa";
 import ConfirmationModal from "../ConfirmationModal";
 import { toast } from "react-hot-toast";
 
-const PAGE_SIZE = 10;
-
 const ManageUser = () => {
   // Data states
-  const [teachers, setTeachers] = useState([]);
-  const [students, setStudents] = useState([]);
-  const [teacherPage, setTeacherPage] = useState(1);
-  const [studentPage, setStudentPage] = useState(1);
-  const [teacherTotal, setTeacherTotal] = useState(0);
-  const [studentTotal, setStudentTotal] = useState(0);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Filters and search for teachers
-  const [teacherBatch, setTeacherBatch] = useState("");
-  const [teacherSort, setTeacherSort] = useState("newest");
-  const [teacherSearch, setTeacherSearch] = useState("");
-
-  // Filters and search for students
-  const [studentBatch, setStudentBatch] = useState("");
-  const [studentSort, setStudentSort] = useState("newest");
-  const [studentSearch, setStudentSearch] = useState("");
-
-  // For dropdown options
-  const [batches, setBatches] = useState([]);
-
-  // Message state
-  const [message, setMessage] = useState(null);
-  const [messageType, setMessageType] = useState("success"); // "success" or "error"
+  const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   // UI state for user type selection
-const [userType, setUserType] = useState(() => localStorage.getItem("userType") || "student");
+  const [userType, setUserType] = useState(() => localStorage.getItem("userType") || "student");
 
   // Edit modal state
-  const [editUser, setEditUser] = useState(null); // user object or null
-  const [editRole, setEditRole] = useState(""); // "teacher" or "student"
+  const [editUser, setEditUser] = useState(null);
   const navigate = useNavigate();
 
   // Confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
 
-  // Debounce hook
-  function useDebounce(value, delay) {
-    const [debouncedValue, setDebouncedValue] = useState(value);
-    useEffect(() => {
-      const handler = setTimeout(() => {
-        setDebouncedValue(value);
-      }, delay);
-      return () => {
-        clearTimeout(handler);
-      };
-    }, [value, delay]);
-    return debouncedValue;
-  }
-
-  useEffect(() => {
-    // Fetch batches for filter dropdowns
-    const fetchMeta = async () => {
-      try {
-        const batchRes = await axiosInstance.get("/admin/batches");
-        setBatches(batchRes.data || []);
-      } catch (err) {
-        setBatches([]);
-      }
-    };
-    fetchMeta();
-  }, []);
-
-  const debouncedTeacherSearch = useDebounce(teacherSearch, 400);
-  const debouncedStudentSearch = useDebounce(studentSearch, 400);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
+  const itemsPerPage = 10;
+  const fetchUsers = async (page, search = "", sort = "createdAt", order = "desc") => {
+    try {
       setLoading(true);
-      try {
-        if (userType === "teacher") {
-          // Teachers
-          const facultyRes = await axiosInstance.post("/admin/getFaculty", {
-            page: teacherPage,
-            limit: PAGE_SIZE,
-            batch: teacherBatch,
-            sort: teacherSort,
-            search: debouncedTeacherSearch,
-          });
-          setTeachers(facultyRes.data.facultys || []);
-          setTeacherTotal(facultyRes.data.totalStudents || 0);
-        } else {
-          // Students
-          const studentRes = await axiosInstance.post("/admin/getStudents", {
-            page: studentPage,
-            limit: PAGE_SIZE,
-            batch: studentBatch,
-            sort: studentSort,
-            search: debouncedStudentSearch,
-          });
-          setStudents(studentRes.data.students || []);
-          setStudentTotal(studentRes.data.totalStudents || 0);
-        }
-      } catch (err) {
-        setTeachers([]);
-        setStudents([]);
-        setTeacherTotal(0);
-        setStudentTotal(0);
+      const endpoint = userType === "teacher" ? "/admin/getFaculty" : "/admin/getStudents";
+      
+      // Map sortBy to backend format
+      let backendSort = "newest";
+      if (sort === "createdAt") {
+        backendSort = order === "asc" ? "oldest" : "newest";
       }
+      
+      const response = await axiosInstance.post(endpoint, {
+        page,
+        limit: itemsPerPage,
+        search: search.trim(),
+        sort: backendSort,
+      });
+      
+      if (response.data.success) {
+        const userData = userType === "teacher" ? response.data.facultys : response.data.students;
+        const totalCount = userType === "teacher" ? response.data.totalFaculty : response.data.totalStudents;
+        
+        setUsers(userData);
+        setTotalPages(response.data.totalPages);
+        setTotalUsers(totalCount);
+        setError("");
+      } else {
+        setError(response.data.message || "Failed to fetch users.");
+      }
+    } catch (err) {
+      setError("An error occurred while fetching users.");
+      setUsers([]);
+      setTotalUsers(0);
+    } finally {
       setLoading(false);
-    };
-    fetchUsers();
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers(currentPage, searchTerm, sortBy, sortOrder);
     // eslint-disable-next-line
-  }, [
-    teacherPage,
-    studentPage,
-    teacherBatch,
-    teacherSort,
-    debouncedTeacherSearch,
-    studentBatch,
-    studentSort,
-    debouncedStudentSearch,
-    userType,
-  ]);
+  }, [currentPage, searchTerm, sortBy, sortOrder, userType]);
 
+  // Debounced search function
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page when searching
+    }, 500);
 
-  const teacherTotalPages = Math.ceil(teacherTotal / PAGE_SIZE);
-  const studentTotalPages = Math.ceil(studentTotal / PAGE_SIZE);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
-  // Message helpers
-  const showMessage = (msg, type = "success") => {
-    setMessage(msg);
-    setMessageType(type);
+  const handleSort = (column) => {
+    const newOrder = sortBy === column && sortOrder === "asc" ? "desc" : "asc";
+    setSortBy(column);
+    setSortOrder(newOrder);
+    setCurrentPage(1); // Reset to first page when sorting
   };
-  const handleCloseMessage = () => setMessage(null);
 
-  // Delete handlers (open confirmation modal)
-  const handleDeleteTeacher = (id) => {
-    setUserToDelete({ id, type: "teacher" });
-    setShowDeleteModal(true);
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
   };
-  const handleDeleteStudent = (id) => {
-    setUserToDelete({ id, type: "student" });
+
+  const handleUserTypeChange = (e) => {
+    setUserType(e.target.value);
+    localStorage.setItem("userType", e.target.value);
+    setCurrentPage(1);
+    setSearchTerm("");
+    setSortBy("createdAt");
+    setSortOrder("desc");
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
+  };
+
+  const getSortIcon = (column) => {
+    if (sortBy !== column) {
+      return <FaSort className="w-3 h-3 ml-1" />;
+    }
+    return sortOrder === "asc" ? (
+      <FaSortUp className="w-3 h-3 ml-1" />
+    ) : (
+      <FaSortDown className="w-3 h-3 ml-1" />
+    );
+  };
+  // Delete handlers
+  const handleDeleteUser = (id) => {
+    setUserToDelete({ id, type: userType });
     setShowDeleteModal(true);
   };
 
@@ -152,13 +141,13 @@ const [userType, setUserType] = useState(() => localStorage.getItem("userType") 
     try {
       if (userToDelete.type === "teacher") {
         await axiosInstance.post("/admin/deleteFaculty", { facultyId: userToDelete.id });
-        setTeachers((prev) => prev.filter((t) => t._id !== userToDelete.id));
         toast.success("Teacher deleted successfully!");
       } else {
         await axiosInstance.post("/admin/removeStudent", { userId: userToDelete.id });
-        setStudents((prev) => prev.filter((s) => s._id !== userToDelete.id));
         toast.success("Student deleted successfully!");
       }
+      // Refresh the list
+      fetchUsers(currentPage, searchTerm, sortBy, sortOrder);
     } catch (err) {
       toast.error("Failed to delete user.");
     } finally {
@@ -168,36 +157,9 @@ const [userType, setUserType] = useState(() => localStorage.getItem("userType") 
   };
 
   // Edit handlers
-  const handleEditTeacher = (teacher) => {
-    setEditUser(teacher);
-    setEditRole("teacher");
+  const handleEditUser = (user) => {
+    setEditUser(user);
   };
-  const handleEditStudent = (student) => {
-    setEditUser(student);
-    setEditRole("student");
-  };
-
-  // User type filter dropdown
-  const handleUserTypeDropdown = (e) => {
-    setUserType(e.target.value);
-      localStorage.setItem("userType", e.target.value);
-    setLoading(true);
-    setTimeout(() => setLoading(false), 200);
-  };
-
-  // Filtered lists for search
-  const filteredTeachers = teachers.filter(
-    (t) =>
-      t.username.toLowerCase().includes(teacherSearch.toLowerCase()) ||
-      t.id?.toLowerCase().includes(teacherSearch.toLowerCase()) ||
-      t.email?.toLowerCase().includes(teacherSearch.toLowerCase())
-  );
-  const filteredStudents = students.filter(
-    (s) =>
-      s.username.toLowerCase().includes(studentSearch.toLowerCase()) ||
-      s.id?.toLowerCase().includes(studentSearch.toLowerCase())
-  );
-
   return (
     <div className="relative min-h-screen bg-gray-900 text-white p-0 md:p-4">
       {/* Header Section */}
@@ -232,351 +194,283 @@ const [userType, setUserType] = useState(() => localStorage.getItem("userType") 
         </div>
       </div>
 
-      {/* Message display */}
-      {message && (
-        <div
-          className={`
-            fixed top-6 left-1/2 transform -translate-x-1/2 z-50
-            px-6 py-3 rounded shadow-lg flex items-center gap-4
-            ${messageType === "success" ? "bg-green-600" : "bg-red-600"}
-            text-white text-center
-            transition-all duration-300
-          `}
-          style={{ minWidth: 200, maxWidth: 400 }}
-        >
-          <span>{message}</span>
-          <button
-            onClick={handleCloseMessage}
-            className="ml-2 text-white font-bold hover:text-gray-200"
-            aria-label="Close"
-          >
-            ×
-          </button>
+      {/* Main Content - Full Screen */}
+      <main className="px-4 py-8">
+        <div className="w-full">
+          {/* Search and Stats Section */}
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+            <div className="flex-1">
+              <div className="relative max-w-md">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaSearch className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder={`Search ${userType}s by name, email, or ID...`}
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <p className="text-blue-300 text-sm mt-2">
+                Search and manage all registered {userType}s
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              {/* User Type Filter */}
+              <select
+                value={userType}
+                onChange={handleUserTypeChange}
+                className="py-3 px-4 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="student">Students</option>
+                <option value="teacher">Teachers</option>
+              </select>
+              
+              {/* Total Count */}
+              <div className="flex items-center bg-gray-800 py-3 px-6 rounded-xl shadow font-semibold text-lg">
+                <span>Total {userType === "teacher" ? "Teachers" : "Students"}:</span>
+                <span className="ml-3 text-2xl font-extrabold text-blue-400">{totalUsers}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Table Section - Full Width */}
+          <div className="bg-gray-900 rounded-xl shadow-xl overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-75"></div>
+                  <p className="mt-4 text-blue-400 text-lg font-semibold">
+                    Loading, please wait...
+                  </p>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-16 text-red-400 text-lg">
+                {error}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-700 text-gray-200 text-sm uppercase">
+                      <th className="py-4 px-6 text-left w-16">
+                        <span className="font-semibold">#</span>
+                      </th>
+                      <th className="py-4 px-6 text-left min-w-[200px]">
+                        <button
+                          onClick={() => handleSort("username")}
+                          className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                        >
+                          Name {getSortIcon("username")}
+                        </button>
+                      </th>
+                      {userType === "teacher" && (
+                        <th className="py-4 px-6 text-left min-w-[250px]">
+                          <button
+                            onClick={() => handleSort("email")}
+                            className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                          >
+                            Email {getSortIcon("email")}
+                          </button>
+                        </th>
+                      )}
+                      <th className="py-4 px-6 text-left min-w-[150px]">
+                        <button
+                          onClick={() => handleSort("id")}
+                          className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                        >
+                          ID {getSortIcon("id")}
+                        </button>
+                      </th>
+                      <th className="py-4 px-6 text-left min-w-[150px]">
+                        <button
+                          onClick={() => handleSort("batch")}
+                          className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                        >
+                          {userType === "teacher" ? "Branch" : "Batch"} {getSortIcon("batch")}
+                        </button>
+                      </th>
+                      <th className="py-4 px-6 text-center min-w-[150px]">
+                        <button
+                          onClick={() => handleSort("createdAt")}
+                          className="flex items-center justify-center font-semibold mx-auto hover:text-blue-300 transition-colors"
+                        >
+                          Created Date {getSortIcon("createdAt")}
+                        </button>
+                      </th>
+                      <th className="py-4 px-6 text-center min-w-[120px]">
+                        <span className="font-semibold">Actions</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.length === 0 ? (
+                      <tr>
+                        <td colSpan={userType === "teacher" ? "7" : "6"} className="py-8 px-6 text-center text-gray-400">
+                          <div className="flex flex-col items-center justify-center">
+                            <FaSearch className="w-12 h-12 text-gray-600 mb-3" />
+                            <p className="text-lg font-medium">No {userType}s found</p>
+                            <p className="text-sm text-gray-500">
+                              {searchTerm ? `No results for "${searchTerm}"` : `No ${userType}s registered yet`}
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      users.map((user, index) => (
+                        <tr
+                          key={user._id}
+                          className="border-t border-gray-700 hover:bg-gray-800/50 transition-colors"
+                        >
+                          <td className="py-4 px-6 text-gray-300 font-medium">
+                            {(currentPage - 1) * itemsPerPage + index + 1}
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex items-center">
+                              <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                                <span className="text-white text-sm font-medium">
+                                  {user.username?.charAt(0)?.toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="font-semibold text-blue-400">
+                                {user.username}
+                              </div>
+                            </div>
+                          </td>
+                          {userType === "teacher" && (
+                            <td className="py-4 px-6 text-gray-300">
+                              {user.email}
+                            </td>
+                          )}
+                          <td className="py-4 px-6 text-gray-300">
+                            {user.id}
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-900/40 text-blue-400 border border-blue-500/30">
+                              {userType === "teacher" ? (user.branch || "N/A") : (user.batch || "N/A")}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-center text-gray-400 text-sm">
+                            {formatDate(user.createdAt)}
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                className="px-3 py-1 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                                onClick={() => handleEditUser(user)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="px-3 py-1 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                onClick={() => handleDeleteUser(user._id)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Always Show Pagination Controls */}
+          <div className="flex justify-center items-center mt-8 gap-2">
+            {/* Previous Button */}
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                currentPage === 1
+                  ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                  : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+              }`}
+            >
+              <FaChevronLeft className="w-4 h-4" />
+              Previous
+            </button>
+
+            {/* Page Numbers - Always show current page info */}
+            <div className="flex gap-1">
+              {totalPages <= 1 ? (
+                <span className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white">
+                  1
+                </span>
+              ) : (
+                [...Array(Math.min(5, totalPages))].map((_, idx) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = idx + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = idx + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + idx;
+                  } else {
+                    pageNum = currentPage - 2 + idx;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        currentPage === pageNum
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages || totalPages <= 1}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                currentPage === totalPages || totalPages <= 1
+                  ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                  : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+              }`}
+            >
+              Next
+              <FaChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Pagination Info */}
+          {totalUsers > 0 && (
+            <div className="text-center mt-4 text-gray-400 text-sm">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+              {Math.min(currentPage * itemsPerPage, totalUsers)} of {totalUsers} {userType}s
+              {totalPages > 1 && (
+                <span className="ml-4">Page {currentPage} of {totalPages}</span>
+              )}
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Filter Row */}
-      <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-        <select
-          value={userType}
-          onChange={handleUserTypeDropdown}
-          className="py-3 px-6 bg-gray-800 text-white rounded-lg shadow"
-        >
-          <option value="student">Students</option>
-          <option value="teacher">Teachers</option>
-        </select>
-        {userType === "teacher" ? (
-          <>
-            <select
-              value={teacherBatch}
-              onChange={(e) => setTeacherBatch(e.target.value)}
-              className="py-3 px-6 bg-gray-800 text-white rounded-lg shadow"
-            >
-              <option value="">All Batches</option>
-              {batches.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
-            <select
-              value={teacherSort}
-              onChange={(e) => setTeacherSort(e.target.value)}
-              className="py-3 px-6 bg-gray-800 text-white rounded-lg shadow"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
-            <input
-              type="text"
-              placeholder="Search by name or ID"
-              value={teacherSearch}
-              onChange={(e) => setTeacherSearch(e.target.value)}
-              className="py-3 px-6 bg-gray-800 text-white rounded-lg shadow"
-            />
-          </>
-        ) : (
-          <>
-            <select
-              value={studentBatch}
-              onChange={(e) => setStudentBatch(e.target.value)}
-              className="py-3 px-6 bg-gray-800 text-white rounded-lg shadow"
-            >
-              <option value="">All Batches</option>
-              {batches.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
-            <select
-              value={studentSort}
-              onChange={(e) => setStudentSort(e.target.value)}
-              className="py-3 px-6 bg-gray-800 text-white rounded-lg shadow"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
-            <input
-              type="text"
-              placeholder="Search by name or ID"
-              value={studentSearch}
-              onChange={(e) => setStudentSearch(e.target.value)}
-              className="py-3 px-6 bg-gray-800 text-white rounded-lg shadow"
-            />
-          </>
-        )}
-      </div>
-
-      {/* Table */}
-      <div className="container mx-auto px-4">
-        {loading ? (
-          <div className="text-center py-10">Loading...</div>
-        ) : userType === "teacher" ? (
-          <div className="bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700">
-            <div className="bg-gradient-to-r from-blue-800 to-indigo-900 py-4 px-6">
-              <h2 className="text-xl font-semibold text-white flex items-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                  />
-                </svg>
-                Teacher Records
-              </h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-700">
-                <thead className="bg-gray-800">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Batches
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-gray-900 divide-y divide-gray-800">
-                  {filteredTeachers.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-8 text-center text-gray-400 bg-gray-950"
-                      >
-                        No teachers found
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredTeachers.map((teacher) => (
-                      <tr
-                        key={teacher._id}
-                        className="hover:bg-gray-800 transition-colors duration-200"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
-                          {teacher.username}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                          {teacher.id}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 font-mono">
-                          {teacher.email}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                          {teacher.batches && teacher.batches.length > 0
-                            ? teacher.batches.map((b) => b.name || b).join(", ")
-                            : "None"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-4">
-                            <button
-                              className="text-blue-400 hover:underline"
-                              onClick={() => handleEditTeacher(teacher)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="text-red-400 hover:underline"
-                              onClick={() => handleDeleteTeacher(teacher._id)}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {/* Pagination */}
-            <div className="p-5 bg-gray-900 flex justify-end items-center">
-              <button
-                disabled={teacherPage === 1}
-                onClick={() => setTeacherPage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1 rounded bg-gray-700 text-white disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <span className="px-4 text-sm">
-                {teacherPage} / {teacherTotalPages || 1}
-              </span>
-              <button
-                disabled={
-                  teacherPage === teacherTotalPages || teacherTotalPages === 0
-                }
-                onClick={() =>
-                  setTeacherPage((p) => Math.min(teacherTotalPages, p + 1))
-                }
-                className="px-3 py-1 rounded bg-gray-700 text-white disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700">
-            <div className="bg-gradient-to-r from-blue-800 to-indigo-900 py-4 px-6">
-              <h2 className="text-xl font-semibold text-white flex items-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                  />
-                </svg>
-                Student Records
-              </h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-700">
-                <thead className="bg-gray-800">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Batch
-                    </th>
-                    <th className="px-0 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-gray-900 divide-y divide-gray-800">
-                  {filteredStudents.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        className="px-6 py-8 text-center text-gray-400 bg-gray-950"
-                      >
-                        No students found
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredStudents.map((student) => (
-                      <tr
-                        key={student._id}
-                        className="hover:bg-gray-800 transition-colors duration-200"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
-                          {student.username}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                          {student.id}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                          {student.batch}
-                        </td>
-                        <td className="px-0 py-4">
-                          <div className="flex items-center gap-4">
-                            <button
-                              className="text-blue-400 hover:underline"
-                              onClick={() => handleEditStudent(student)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="text-red-400 hover:underline"
-                              onClick={() => handleDeleteStudent(student._id)}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {/* Pagination */}
-            <div className="p-5 bg-gray-900 flex justify-end items-center">
-              <button
-                disabled={studentPage === 1}
-                onClick={() => setStudentPage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1 rounded bg-gray-700 text-white disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <span className="px-4 text-sm">
-                {studentPage} / {studentTotalPages || 1}
-              </span>
-              <button
-                disabled={
-                  studentPage === studentTotalPages || studentTotalPages === 0
-                }
-                onClick={() =>
-                  setStudentPage((p) => Math.min(studentTotalPages, p + 1))
-                }
-                className="px-3 py-1 rounded bg-gray-700 text-white disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Edit Modal */}
+      </main>      {/* Edit Modal */}
       {editUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-md">
             <h2 className="text-xl font-bold mb-4 text-white">
-              Edit {editRole === "teacher" ? "Teacher" : "Student"}
+              Edit {userType === "teacher" ? "Teacher" : "Student"}
             </h2>
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  if (editRole === "teacher") {
+                  if (userType === "teacher") {
                     await axiosInstance.post(
                       `/admin/editFaculty/${editUser._id}`,
                       {
@@ -598,107 +492,84 @@ const [userType, setUserType] = useState(() => localStorage.getItem("userType") 
                     );
                   }
                   toast.success(
-                    `${editRole === "teacher" ? "Teacher" : "Student"} updated successfully!`
+                    `${userType === "teacher" ? "Teacher" : "Student"} updated successfully!`
                   );
-                   localStorage.setItem("userType", editRole); // <-- Add this line
                   setEditUser(null);
-                  window.location.reload();
+                  fetchUsers(currentPage, searchTerm, sortBy, sortOrder);
                 } catch (err) {
                   toast.error("Failed to update user.");
                 }
               }}
             >
-              {/* Faculty fields */}
-              {editRole === "teacher" && (
-                <>
-                  <div className="mb-3">
-                    <label className="block text-gray-300 mb-1">Name</label>
-                    <input
-                      className="w-full px-3 py-2 rounded bg-gray-700 text-white"
-                      value={editUser.username}
-                      onChange={(e) =>
-                        setEditUser({ ...editUser, username: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="block text-gray-300 mb-1">Email</label>
-                    <input
-                      className="w-full px-3 py-2 rounded bg-gray-700 text-white"
-                      value={editUser.email}
-                      onChange={(e) =>
-                        setEditUser({ ...editUser, email: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="block text-gray-300 mb-1">
-                      Faculty ID
-                    </label>
-                    <input
-                      className="w-full px-3 py-2 rounded bg-gray-700 text-white"
-                      value={editUser.id}
-                      onChange={(e) =>
-                        setEditUser({ ...editUser, id: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                </>
+              <div className="mb-3">
+                <label className="block text-gray-300 mb-1">Name</label>
+                <input
+                  className="w-full px-3 py-2 rounded bg-gray-700 text-white"
+                  value={editUser.username || ""}
+                  onChange={(e) =>
+                    setEditUser({ ...editUser, username: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              
+              {userType === "teacher" && (
+                <div className="mb-3">
+                  <label className="block text-gray-300 mb-1">Email</label>
+                  <input
+                    type="email"
+                    className="w-full px-3 py-2 rounded bg-gray-700 text-white"
+                    value={editUser.email || ""}
+                    onChange={(e) =>
+                      setEditUser({ ...editUser, email: e.target.value })
+                    }
+                    required
+                  />
+                </div>
               )}
-              {/* Student fields */}
-              {editRole === "student" && (
-                <>
-                  <div className="mb-3">
-                    <label className="block text-gray-300 mb-1">Name</label>
-                    <input
-                      className="w-full px-3 py-2 rounded bg-gray-700 text-white"
-                      value={editUser.username}
-                      onChange={(e) =>
-                        setEditUser({ ...editUser, username: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="block text-gray-300 mb-1">
-                      Student ID
-                    </label>
-                    <input
-                      className="w-full px-3 py-2 rounded bg-gray-700 text-white"
-                      value={editUser.id}
-                      onChange={(e) =>
-                        setEditUser({ ...editUser, id: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="block text-gray-300 mb-1">Batch</label>
-                    <input
-                      className="w-full px-3 py-2 rounded bg-gray-700 text-white"
-                      value={editUser.batch}
-                      onChange={(e) =>
-                        setEditUser({ ...editUser, batch: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                </>
-              )}
+              
+              <div className="mb-3">
+                <label className="block text-gray-300 mb-1">
+                  {userType === "teacher" ? "Faculty ID" : "Student ID"}
+                </label>
+                <input
+                  className="w-full px-3 py-2 rounded bg-gray-700 text-white"
+                  value={editUser.id || ""}
+                  onChange={(e) =>
+                    setEditUser({ ...editUser, id: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              
+              <div className="mb-3">
+                <label className="block text-gray-300 mb-1">
+                  {userType === "teacher" ? "Branch" : "Batch"}
+                </label>
+                <input
+                  className="w-full px-3 py-2 rounded bg-gray-700 text-white"
+                  value={userType === "teacher" ? (editUser.branch || "") : (editUser.batch || "")}
+                  onChange={(e) =>
+                    setEditUser({ 
+                      ...editUser, 
+                      [userType === "teacher" ? "branch" : "batch"]: e.target.value 
+                    })
+                  }
+                  required
+                />
+              </div>
+              
               <div className="flex justify-end gap-2 mt-4">
                 <button
                   type="button"
-                  className="px-4 py-2 rounded bg-gray-600 text-white"
+                  className="px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-700 transition-colors"
                   onClick={() => setEditUser(null)}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-blue-600 text-white"
+                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                 >
                   Save
                 </button>

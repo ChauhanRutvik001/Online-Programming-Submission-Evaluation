@@ -1311,40 +1311,76 @@ const adminController = {
       await session.endSession();
     }
   },
-
   getAllProblems: async (req, res) => {
     try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 7;
-    const skip = (page - 1) * limit;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 20;
+      const search = req.query.search || "";
+      const sortBy = req.query.sortBy || "createdAt";
+      const sortOrder = req.query.sortOrder || "desc";
+      
+      const skip = (page - 1) * limit;
 
-    const [problems, total] = await Promise.all([
-      Problem.find()
-        .populate("createdBy", "username email name") 
-        .populate("assignedBatches", "name")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Problem.countDocuments()
-    ]);
-    const submissionCount=await Promise.all(
-      problems.map(async (problem) => {
-        const count = await Submission.countDocuments({ problem_id: problem._id });
-        return { ...problem, count };
-      })
-    );
-    res.json({
-      success: true,
-      problems:submissionCount,
-      total,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page
-    });
-    
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to fetch problems." });
-  }
+      // Build search query
+      let searchQuery = {};
+      if (search && search.trim()) {
+        const searchRegex = new RegExp(search.trim(), 'i');
+        searchQuery.$or = [
+          { title: searchRegex },
+          { difficulty: searchRegex },
+          { 'createdBy.username': searchRegex },
+          { 'createdBy.name': searchRegex }
+        ];
+      }
+
+      // Build sort object
+      const sortObject = {};
+      if (sortBy === "title") {
+        sortObject.title = sortOrder === "asc" ? 1 : -1;
+      } else if (sortBy === "difficulty") {
+        sortObject.difficulty = sortOrder === "asc" ? 1 : -1;
+      } else if (sortBy === "totalMarks") {
+        sortObject.totalMarks = sortOrder === "asc" ? 1 : -1;
+      } else if (sortBy === "createdBy") {
+        sortObject["createdBy.username"] = sortOrder === "asc" ? 1 : -1;
+      } else {
+        // Default sort by createdAt
+        sortObject.createdAt = sortOrder === "asc" ? 1 : -1;
+      }
+
+      const [problems, total] = await Promise.all([
+        Problem.find(searchQuery)
+          .populate("createdBy", "username email name") 
+          .populate("assignedBatches", "name")
+          .sort(sortObject)
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        Problem.countDocuments(searchQuery)
+      ]);
+
+      const submissionCount = await Promise.all(
+        problems.map(async (problem) => {
+          const count = await Submission.countDocuments({ problem_id: problem._id });
+          return { ...problem, count };
+        })
+      );
+
+      res.json({
+        success: true,
+        problems: submissionCount,
+        total,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+        searchTerm: search,
+        sortBy,
+        sortOrder
+      });
+      
+    } catch (error) {
+      console.error("Error fetching problems:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch problems." });
+    }
   },
 
 };

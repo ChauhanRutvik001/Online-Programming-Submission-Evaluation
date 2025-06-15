@@ -7,31 +7,64 @@ import Problem from '../models/problem.js';
 import mongoose from 'mongoose';
 import { GridFSBucket } from 'mongodb';
 
-const adminFacultyController = {
-    getFaculty: async (req, res) => {
-      const { page = 1, limit = 10 } = req.body;
+const adminFacultyController = {    getFaculty: async (req, res) => {
+      const { 
+        page = 1, 
+        limit = 10, 
+        search = "", 
+        sortBy = "createdAt", 
+        sortOrder = "desc" 
+      } = req.body;
     
       try {
         const skip = (page - 1) * limit;
+        
+        // Build search query
+        let searchQuery = { role: "faculty", isApproved: true };
+        
+        if (search && search.trim()) {
+          const searchRegex = new RegExp(search.trim(), 'i');
+          searchQuery.$or = [
+            { username: searchRegex },
+            { email: searchRegex },
+            { branch: searchRegex }
+          ];
+        }
+        
+        // Build sort object
+        const sortObject = {};
+        if (sortBy === "createdAt") {
+          sortObject.createdAt = sortOrder === "asc" ? 1 : -1;
+        } else if (sortBy === "username") {
+          sortObject.username = sortOrder === "asc" ? 1 : -1;
+        } else if (sortBy === "email") {
+          sortObject.email = sortOrder === "asc" ? 1 : -1;
+        } else if (sortBy === "branch") {
+          sortObject.branch = sortOrder === "asc" ? 1 : -1;
+        } else {
+          // Default sort
+          sortObject.createdAt = -1;
+        }
     
-        // Fetch approved facultys with pagination, sorted by the latest created first
-        const facultys = await User.find({role: "faculty", isApproved: true })
+        // Fetch approved faculty with pagination, search, and sorting
+        const facultys = await User.find(searchQuery)
           .select("username branch email subject createdAt id")
-          .sort({ createdAt: -1 })
+          .sort(sortObject)
           .skip(skip)
-          .limit(limit)
+          .limit(parseInt(limit))
           .lean();
 
-          const facultysWithBatches= await Promise.all(
-            facultys.map(async (faculty) => {
-              const batches = await Batch.find({ faculty: faculty._id })
-                .select("name").lean();
-              return {...faculty, batches: batches.map(batch => batch.name) };
-            })  
-          );
+        // Get batches for each faculty
+        const facultysWithBatches = await Promise.all(
+          facultys.map(async (faculty) => {
+            const batches = await Batch.find({ faculty: faculty._id })
+              .select("name").lean();
+            return { ...faculty, batches: batches.map(batch => batch.name) };
+          })  
+        );
     
-        const totalStudents = await User.countDocuments({ role: "faculty", isApproved: true });
-    
+        // Get total count with search applied
+        const totalStudents = await User.countDocuments(searchQuery);
         const totalPages = Math.ceil(totalStudents / limit);
     
         res.status(200).json({
@@ -39,14 +72,17 @@ const adminFacultyController = {
           message: "Faculty fetched successfully.",
           facultys: facultysWithBatches,
           totalPages,
-          currentPage: page,
-          totalStudents
+          currentPage: parseInt(page),
+          totalStudents,
+          searchTerm: search,
+          sortBy,
+          sortOrder
         });
       } catch (error) {
         console.error("Error in fetching faculty by admin ID:", error);
         res.status(500).json({ success: false, message: "Internal server error." });
       }
-    },      
+    },
     deleteFaculty: async (req, res) => {
         const { facultyId } = req.body;
 

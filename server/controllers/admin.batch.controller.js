@@ -177,22 +177,56 @@ const adminBatchController = {
           error: error.message
         });
       }
-    },
-    getAllBatches: async (req, res) => {
+    },    getAllBatches: async (req, res) => {
       try {
-        const { page = 1, limit = 10, facultyId } = req.body;
+        const { 
+          page = 1, 
+          limit = 10, 
+          facultyId,
+          search = '',
+          sortBy = 'createdAt',
+          sortOrder = 'desc'
+        } = req.query;
+        
         const skip = (page - 1) * limit;
         
         // Build query - filter by faculty if provided
-        const query = facultyId ? { faculty: facultyId } : {};
+        let query = {};
+        if (facultyId) {
+          query.faculty = facultyId;
+        }
+        
+        // Add search functionality
+        if (search && search.trim()) {
+          const searchRegex = new RegExp(search.trim(), 'i');
+          query.$or = [
+            { name: searchRegex },
+            { subject: searchRegex },
+            { description: searchRegex }
+          ];
+        }
+        
+        // Build sort object
+        let sortObj = {};
+        if (sortBy === 'faculty') {
+          // For faculty sorting, we'll sort by populated faculty name
+          sortObj = { 'faculty.username': sortOrder === 'asc' ? 1 : -1 };
+        } else if (sortBy === 'isActive') {
+          sortObj = { isActive: sortOrder === 'asc' ? 1 : -1 };
+        } else if (sortBy === 'name') {
+          sortObj = { name: sortOrder === 'asc' ? 1 : -1 };
+        } else {
+          // Default to createdAt or other fields
+          sortObj = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+        }
         
         // Get batches with pagination
         const batches = await Batch.find(query)
           .populate('faculty', 'username email id')
           .populate('students', 'username id batch semester branch')
-          .sort({ createdAt: -1 })
+          .sort(sortObj)
           .skip(skip)
-          .limit(limit);
+          .limit(parseInt(limit));
           
         const totalBatches = await Batch.countDocuments(query);
         const totalPages = Math.ceil(totalBatches / limit);
@@ -201,8 +235,9 @@ const adminBatchController = {
           success: true,
           batches,
           totalPages,
-          currentPage: page,
-          totalBatches
+          currentPage: parseInt(page),
+          totalBatches,
+          total: totalBatches // For compatibility
         });
       } catch (error) {
         console.error("Error fetching batches:", error);
@@ -212,7 +247,7 @@ const adminBatchController = {
           error: error.message
         });
       }
-    }, 
+    },
     getBatchById: async (req, res) => {
       try {
         const { batchId } = req.params;
