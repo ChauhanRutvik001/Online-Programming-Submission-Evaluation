@@ -133,9 +133,8 @@ const Login = ({ isModal = false, onLoginSuccess }) => {
   const resetForm = () => {
     setIdOrEmail("");
     setPassword("");
-  };
-  return (
-    <div className={`flex ${isModal ? 'min-h-[80vh] rounded-xl' : 'min-h-screen'} bg-gradient-to-b from-gray-900 via-gray-950 to-black overflow-hidden`}>
+  };  return (
+    <div className={`flex ${isModal ? 'min-h-[80vh] rounded-xl' : 'min-h-screen'} bg-gray-900 overflow-hidden`}>
       {/* Left Section with code background for large screens */}
       <motion.div 
         initial={{ opacity: 0, x: -50 }}
@@ -177,12 +176,11 @@ const Login = ({ isModal = false, onLoginSuccess }) => {
           >
             <Terminal className="text-blue-400 w-8 h-8" />
           </motion.div>
-          
-          <motion.h1 
+            <motion.h1 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-3xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400"
+            className="text-3xl font-bold mb-4 text-blue-600"
           >
             Welcome to Codify
           </motion.h1>
@@ -328,12 +326,11 @@ const Login = ({ isModal = false, onLoginSuccess }) => {
                     </button>
                   </div>
                 </div>
-                
-                <motion.button
+                  <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg flex items-center justify-center transition-all duration-300"
+                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-lg flex items-center justify-center transition-all duration-300"
                   disabled={assignLoading}
                 >
                   {assignLoading ? (

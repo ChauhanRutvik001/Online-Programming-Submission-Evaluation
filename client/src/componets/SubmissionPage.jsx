@@ -65,7 +65,7 @@ const SubmissionPage = () => {
       <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl shadow-2xl p-8 border border-gray-700">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+            <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-blue-400">
               Submission History
             </h2>
             <p className="text-gray-400 mt-2">Your recent code submissions</p>

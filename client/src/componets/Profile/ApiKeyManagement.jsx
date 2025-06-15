@@ -159,14 +159,13 @@ const ApiKeyManagement = () => {  const [apiKeys, setApiKeys] = useState([]);
       </div>
     );
   }
-
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-900 rounded-xl shadow-2xl p-8 border border-blue-900/30">
+    <div className="bg-gray-900 rounded-xl shadow-2xl p-8 border border-blue-900/30">
       <div className="mb-8 text-center">
-        <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+        <h2 className="text-3xl font-bold text-blue-400">
           Judge0 API Keys
         </h2>
-        <div className="mt-2 h-1 w-24 mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"></div>
+        <div className="mt-2 h-1 w-24 mx-auto bg-blue-500 rounded-full"></div>
       </div>
 
       {/* Usage Overview */}

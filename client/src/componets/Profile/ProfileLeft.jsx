@@ -123,10 +123,9 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
   };
 
   const combinedLoading = loading || globalLoading;
-
   return (
     <div 
-      className={`sticky top-20 bg-gradient-to-br from-gray-800 to-gray-900 text-white rounded-xl shadow-2xl p-8 border border-gray-700 transition-opacity duration-500 ease-in-out ${
+      className={`sticky top-20 bg-gray-800 text-white rounded-xl shadow-2xl p-8 border border-gray-700 transition-opacity duration-500 ease-in-out ${
         contentReady ? "opacity-100" : "opacity-0"
       }`}
     >
@@ -177,9 +176,7 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
               </div>
             </div>
           )}
-        </div>
-
-        <h2 className="text-2xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 transition-all duration-300">
+        </div>        <h2 className="text-2xl font-bold mb-2 text-blue-400 transition-all duration-300">
           {formData.username || "Your Name"}
         </h2>
 
@@ -212,14 +209,12 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
           >
             <Linkedin size={24} />
           </a>
-        </div>
-
-        <button
+        </div>        <button
           onClick={toggleEdit}
           className={`px-6 py-2 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 ${
             isEditing
-              ? "bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800"
-              : "bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800"
+              ? "bg-red-600 hover:bg-red-700"
+              : "bg-blue-600 hover:bg-blue-700"
           } text-white shadow-lg`}
         >
           {isEditing ? "Cancel Edit" : "Edit Details"}
@@ -234,13 +229,11 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
               accept="image/*"
               onChange={handleFileChange}
               className="hidden"
-            />
-
-            {!selectedFile && (
+            />            {!selectedFile && (
               <button
                 onClick={() => fileInputRef.current && fileInputRef.current.click()}
                 disabled={combinedLoading}
-                className="w-full bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-lg px-4 py-3 shadow-lg hover:from-indigo-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
               >
                 <Upload size={18} />
                 <span>Select New Image</span>
@@ -258,11 +251,10 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
                   >
                     <X size={16} />
                   </button>
-                </div>
-                <button
+                </div>                <button
                   onClick={handleUpdateProfilePic}
                   disabled={combinedLoading}
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg px-4 py-3 shadow-lg hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                  className="w-full bg-green-600 text-white rounded-lg px-4 py-3 shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
                 >
                   {combinedLoading ? (
                     <>
@@ -279,11 +271,10 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
               </div>
             )}
 
-            {profilePic && !selectedFile && (
-              <button
+            {profilePic && !selectedFile && (              <button
                 onClick={handleRemoveImage}
                 disabled={combinedLoading}
-                className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg px-4 py-3 shadow-lg hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                className="w-full bg-red-600 text-white rounded-lg px-4 py-3 shadow-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
               >
                 {combinedLoading ? (
                   <>

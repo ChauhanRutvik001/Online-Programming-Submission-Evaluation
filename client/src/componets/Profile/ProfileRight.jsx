@@ -105,13 +105,12 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user, initial
       </div>
 
       {/* Tab Content */}
-      {activeTab === "profile" && (
-      <div className="bg-gradient-to-br from-gray-900 to-gray-900 rounded-xl shadow-2xl p-8 border border-blue-900/30">
+      {activeTab === "profile" && (      <div className="bg-gray-900 rounded-xl shadow-2xl p-8 border border-blue-900/30">
         <div className="mb-8 text-center">
-          <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+          <h2 className="text-3xl font-bold text-blue-400">
             Profile Information
           </h2>
-          <div className="mt-2 h-1 w-24 mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"></div>
+          <div className="mt-2 h-1 w-24 mx-auto bg-blue-500 rounded-full"></div>
         </div>
 
         <form
@@ -383,15 +382,14 @@ const ProfileRight = ({ formData, handleInputChange, handleSubmit, user, initial
           </div>
 
           {/* Submit Button */}
-          <div className="col-span-2 mt-6" style={getFieldAnimation(12)}>
-            <button
+          <div className="col-span-2 mt-6" style={getFieldAnimation(12)}>            <button
               type="submit"
               disabled={isSubmitting || !isFormTouched}
               className={`w-full p-4 rounded-lg font-medium text-lg transition-all duration-300 transform ${
                 isFormTouched && !isSubmitting ? 'hover:scale-[1.02]' : ''
               } 
-                         bg-gradient-to-r from-blue-500 to-blue-700 ${
-                           isFormTouched && !isSubmitting ? 'hover:from-blue-600 hover:to-blue-800' : 'opacity-70'
+                         bg-blue-600 ${
+                           isFormTouched && !isSubmitting ? 'hover:bg-blue-700' : 'opacity-70'
                          }
                          text-white shadow-xl flex items-center justify-center space-x-3 border border-blue-600`}
             >

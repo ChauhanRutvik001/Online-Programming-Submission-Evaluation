@@ -403,8 +403,7 @@ const Header = ({ onLoginClick }) => {
                       )}
                     </AnimatePresence>
                   </div>
-                  
-                  {/* Make Contest Button */}
+                    {/* Make Contest Button */}
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -412,7 +411,7 @@ const Header = ({ onLoginClick }) => {
                     className={`flex items-center space-x-0.5 sm:space-x-1 px-1 sm:px-1.5 md:px-2 lg:px-3 xl:px-4 py-1.5 xl:py-2 text-white rounded-md font-medium shadow-lg transition-all duration-300 text-xs sm:text-xs md:text-xs lg:text-sm xl:text-sm ${
                       scrolled 
                         ? "bg-blue-600 hover:bg-blue-700" 
-                        : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                        : "bg-blue-600 hover:bg-blue-700"
                     }`}
                   >
                     {isOnMakeContest ? <Home size={12} className="sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 lg:w-[16px] lg:h-[16px] xl:w-[18px] xl:h-[18px]" /> : <Plus size={12} className="sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 lg:w-[16px] lg:h-[16px] xl:w-[18px] xl:h-[18px]" />}
@@ -421,8 +420,7 @@ const Header = ({ onLoginClick }) => {
                 </div>
               )
             )
-          ) : (
-            // For non-authenticated users - ADD THIS LOGIN BUTTON
+          ) : (            // For non-authenticated users - ADD THIS LOGIN BUTTON
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -430,7 +428,7 @@ const Header = ({ onLoginClick }) => {
               className={`flex items-center space-x-1 px-3 sm:px-4 py-1.5 text-white rounded-md font-medium shadow-lg transition-all duration-300 text-xs sm:text-sm ${
                 scrolled 
                   ? "bg-blue-600 hover:bg-blue-700" 
-                  : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                  : "bg-blue-600 hover:bg-blue-700"
               }`}
             >
               <LogIn className="w-4 h-4" />
@@ -526,14 +524,12 @@ const Header = ({ onLoginClick }) => {
               >
                 <LogOut size={16} className="sm:w-[18px] sm:h-[18px]" />
                 <span>Logout</span>
-              </button>
-
-              <button
+              </button>              <button
                 onClick={() => {
                   setIsMenuOpen(false);
                   toggleMakeContest();
                 }}
-                className="flex items-center space-x-2 w-full px-3 py-2.5 rounded-md text-sm sm:text-base font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all"
+                className="flex items-center space-x-2 w-full px-3 py-2.5 rounded-md text-sm sm:text-base font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all"
               >
                 {isOnMakeContest ? <Home size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />}
                 <span>{isOnMakeContest ? "Home" : makeContestButtonText}</span>
