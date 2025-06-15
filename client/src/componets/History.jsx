@@ -59,24 +59,31 @@ const History = () => {
       default:
         return { icon: AlertCircle, color: "gray" };
     }
-  };
+  };  return (
+    <div className="min-h-screen bg-gray-900 text-white flex">
+      {/* Main Content */}
+      <div className="flex-1 bg-gray-900 mt-8">
+        {/* Header Section */}
+        <div className="from-gray-900 mb-8 relative overflow-hidden">
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="mt-16"></div>
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight text-blue-400">
+                  Submission History
+                </h1>
+                <p className="text-gray-400 mt-2">
+                  Complete record of your code submissions
+                </p>
+              </div>
+              <div className="p-4 bg-blue-500/10 rounded-full">
+                <Code size={28} className="text-blue-400" />
+              </div>
+            </div>
+          </div>
+        </div>
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-950 text-white pt-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-blue-400">
-              Submission History
-            </h1>
-            <p className="text-gray-400 mt-2">
-              Complete record of your code submissions
-            </p>
-          </div>
-          <div className="p-4 bg-blue-500/10 rounded-full">
-            <Code size={28} className="text-blue-400" />
-          </div>
-        </header>
+        <div className="container mx-auto px-4">
 
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64">
@@ -114,7 +121,7 @@ const History = () => {
             </button>
           </div>
         ) : (
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl shadow-2xl border border-gray-700 overflow-hidden">
+          <div className="bg-gray-800 rounded-xl shadow-2xl border border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-800/80 border-b border-gray-700">
@@ -249,12 +256,12 @@ const History = () => {
                   }`}
                 >
                   Next
-                  <ChevronRight size={16} className="ml-1" />
-                </button>
+                  <ChevronRight size={16} className="ml-1" />                </button>
               </div>
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

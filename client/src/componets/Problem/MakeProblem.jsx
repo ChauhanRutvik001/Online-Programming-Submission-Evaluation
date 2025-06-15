@@ -181,20 +181,25 @@ const MakeProblem = () => {
     return title && title.length > maxLength
       ? `${title.slice(0, maxLength)}...`
       : title || "Untitled";
-  };
+  };  return (
+    <div className="min-h-screen bg-gray-900 text-white flex">
+      {/* Main Content */}
+      <div className="flex-1 bg-gray-900 mt-8">
+        {/* Header Section */}
+        <div className="from-gray-900 mb-8 relative overflow-hidden">
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="mt-16"></div>
+            <div className="flex justify-between items-center">
+              <h1 className="text-4xl font-bold tracking-tight text-blue-400">Problem Bank</h1>
+            </div>
+          </div>
+        </div>
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-900 text-white">
-      <div className="py-6 px-8 pt-20 flex justify-center items-center">
-        <h1 className="text-3xl font-bold text-white">Problem Bank</h1>
-      </div>
-
-      <div className="max-w-7xl mx-auto p-6">
+        <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          {userRole !== "student" && (
-            <button
+          {userRole !== "student" && (            <button
               onClick={handleCreateProblem}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-md"
+              className="flex items-center gap-2 bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition-all shadow-md"
             >
               <Plus className="w-5 h-5" />
               <span>Add Problem</span>
@@ -386,8 +391,8 @@ const MakeProblem = () => {
                   </tr>
                 )}
               </tbody>
-            </table>
-          </div>
+            </table>          </div>
+        </div>
         </div>
       </div>
 

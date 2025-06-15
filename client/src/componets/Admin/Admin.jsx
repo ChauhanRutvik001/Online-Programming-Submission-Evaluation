@@ -278,8 +278,7 @@ const Admin = () => {
             <div className="absolute inset-0"></div>
             <div className="container mx-auto px-4 relative z-10">
               <div className="mt-16"></div>
-              <div className="flex justify-between items-center">
-                <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
+              <div className="flex justify-between items-center">                <h1 className="text-4xl font-bold tracking-tight text-blue-400">
                   Admin Dashboard
                 </h1>
                 <div className="hidden md:block">
