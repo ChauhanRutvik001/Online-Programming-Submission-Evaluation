@@ -49,7 +49,7 @@ const App = () => {
     );
   }
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 overflow-hidden">
       <NotificationProvider>
         <Body isAuthenticated={isAuthenticated} />
         <Toaster />

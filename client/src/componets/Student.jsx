@@ -138,20 +138,23 @@ const Student = () => {
     .slice()
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 3);
-
   // Get top 3 upcoming due problems
   const topDueProblems = recentProblems.slice(0, 3);
 
-  return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <main className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8 text-blue-400 mt-16">Student Dashboard</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content Area */}
-          <div className="lg:col-span-2 space-y-6">
+  // Get 5 most recent batches (by createdAt or updatedAt)
+  const recentBatches = batches
+    .slice()
+    .sort((a, b) => new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0))
+    .slice(0, 5);
+
+  return (    <div className="min-h-screen bg-gray-900 text-white">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-6 sm:mb-8 text-blue-400 mt-12 sm:mt-16 break-words">Student Dashboard</h1>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">          {/* Main Content Area */}
+          <div className="xl:col-span-2 space-y-4 sm:space-y-6">
             {/* Welcome Section */}
-            <div className="bg-gradient-to-r from-blue-800 to-indigo-900 rounded-xl p-6 shadow-lg">
-              <h2 className="text-xl font-semibold mb-2">Welcome to your Classroom</h2>
+            <div className="bg-gradient-to-r from-blue-800 to-indigo-900 rounded-xl p-4 sm:p-6 shadow-lg">
+              <h2 className="text-lg sm:text-xl font-semibold mb-2">Welcome to your Classroom</h2>
               {loading ? (
                 <div className="space-y-2">
                   <div className="h-4 bg-blue-700/50 rounded w-3/4 relative overflow-hidden">
@@ -162,43 +165,42 @@ const Student = () => {
                   </div>
                 </div>
               ) : (
-                <p className="text-blue-100">
+                <p className="text-blue-100 text-sm sm:text-base">
                   You're enrolled in {batches.length} {batches.length === 1 ? 'batch' : 'batches'}.
                   {recentProblems.length > 0 ? ` You have ${recentProblems.length} recent problems to solve.` : ''}
                 </p>
               )}
             </div>
-            
-            {/* Recent Due Problems */}
-            <div className="bg-gray-800 rounded-lg shadow-lg p-6">
+              {/* Recent Due Problems */}
+            <div className="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
               <div className="flex items-center gap-2 mb-4">
-                <BookOpen className="text-blue-400" />
-                <h2 className="text-xl font-semibold">Recent Due Problems</h2>
+                <BookOpen className="text-blue-400 flex-shrink-0" size={20} />
+                <h2 className="text-lg sm:text-xl font-semibold">Recent Due Problems</h2>
               </div>
               {loading ? (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {[1, 2, 3].map(index => (
-                    <div key={index} className="flex items-center gap-4 p-4 bg-gray-750 rounded-lg border border-gray-700">
-                      <div className="w-16 h-16 bg-gray-700 rounded-lg relative overflow-hidden">
+                    <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-750 rounded-lg border border-gray-700">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-700 rounded-lg relative overflow-hidden flex-shrink-0 self-start sm:self-auto">
                         <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                       </div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-5 bg-gray-700 rounded w-3/4 relative overflow-hidden">
+                      <div className="flex-1 space-y-2 min-w-0">
+                        <div className="h-4 sm:h-5 bg-gray-700 rounded w-3/4 relative overflow-hidden">
                           <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                         </div>
-                        <div className="flex gap-4">
-                          <div className="h-4 bg-gray-700 rounded w-32 relative overflow-hidden">
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                          <div className="h-3 sm:h-4 bg-gray-700 rounded w-28 sm:w-32 relative overflow-hidden">
                             <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                           </div>
-                          <div className="h-4 bg-gray-700 rounded w-24 relative overflow-hidden">
+                          <div className="h-3 sm:h-4 bg-gray-700 rounded w-20 sm:w-24 relative overflow-hidden">
                             <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                           </div>
                         </div>
-                        <div className="h-4 bg-gray-700 rounded w-20 relative overflow-hidden">
+                        <div className="h-3 sm:h-4 bg-gray-700 rounded w-16 sm:w-20 relative overflow-hidden">
                           <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                         </div>
                       </div>
-                      <div className="w-16 h-6 bg-gray-700 rounded-full relative overflow-hidden">
+                      <div className="w-12 h-5 sm:w-16 sm:h-6 bg-gray-700 rounded-full relative overflow-hidden flex-shrink-0 self-start sm:self-auto">
                         <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                       </div>
                     </div>
@@ -213,46 +215,48 @@ const Student = () => {
                   </div>
                 </div>
               ) : topDueProblems.length === 0 ? (
-                <p className="text-gray-400 text-center py-6">No problems assigned yet.</p>
+                <p className="text-gray-400 text-center py-6 text-sm sm:text-base">No problems assigned yet.</p>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {topDueProblems.map(problem => {
                     const completionStatus = getCompletionIcon(problem._id);
                     const daysLeft = getDaysLeft(problem.dueDate);
                     return (
                       <div 
                         key={problem._id} 
-                        className="flex items-center gap-4 p-4 bg-gray-750 rounded-lg border border-gray-700 hover:border-blue-700 cursor-pointer transition group"
+                        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-750 rounded-lg border border-gray-700 hover:border-blue-700 cursor-pointer transition group"
                         onClick={() => navigate(`/problems/${problem._id}/${problem.batchId}`)}
                       >
-                        <div className={`flex items-center justify-center w-16 h-16 rounded-lg ${completionStatus.bgColor} border-2 border-current ${completionStatus.color}`}>
+                        <div className={`flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-lg ${completionStatus.bgColor} border-2 border-current ${completionStatus.color} flex-shrink-0 self-start sm:self-auto`}>
                           {completionStatus.icon}
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-lg group-hover:text-blue-400 transition-colors">{problem.title}</h3>
-                          <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-base sm:text-lg group-hover:text-blue-400 transition-colors truncate" title={problem.title}>
+                            {problem.title}
+                          </h3>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-gray-400 mt-1">
                             <div className="flex items-center gap-1">
-                              <Calendar size={14} />
-                              <span>Assigned: {formatDate(problem.createdAt)}</span>
+                              <Calendar size={12} className="flex-shrink-0" />
+                              <span className="truncate">Assigned: {formatDate(problem.createdAt)}</span>
                             </div>
                             {problem.dueDate && (
                               <div className="flex items-center gap-1">
-                                <Clock size={14} />
-                                <span className={daysLeft === "Due Passed" ? "text-red-400" : "text-blue-300"}>
+                                <Clock size={12} className="flex-shrink-0" />
+                                <span className={`truncate ${daysLeft === "Due Passed" ? "text-red-400" : "text-blue-300"}`}>
                                   {daysLeft}
                                 </span>
                               </div>
                             )}
                           </div>
-                          <div className={`text-sm mt-1 font-medium ${completionStatus.color}`}>
+                          <div className={`text-xs sm:text-sm mt-1 font-medium ${completionStatus.color} truncate`}>
                             {completionStatus.text}
                             {problemStatuses[problem._id]?.score && 
                               ` - ${problemStatuses[problem._id].score}% score`
                             }
                           </div>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium 
+                        <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 self-start sm:self-auto">
+                          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex-shrink-0
                             ${problem.difficulty === 'Easy' ? 'bg-green-900/30 text-green-400' : 
                               problem.difficulty === 'Medium' ? 'bg-yellow-900/30 text-yellow-400' : 
                               'bg-red-900/30 text-red-400'}`}>
@@ -274,38 +278,36 @@ const Student = () => {
                   </button>
                 </div>
               )}
-            </div>
-
-            {/* Recently Assigned Problems */}
-            <div className="bg-gray-800 rounded-lg shadow-lg p-6 mt-6">
+            </div>            {/* Recently Assigned Problems */}
+            <div className="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 mt-4 sm:mt-6">
               <div className="flex items-center gap-2 mb-4">
-                <BookOpen className="text-blue-400" />
-                <h2 className="text-xl font-semibold">Recently Assigned Problems</h2>
+                <BookOpen className="text-blue-400 flex-shrink-0" size={20} />
+                <h2 className="text-lg sm:text-xl font-semibold">Recently Assigned Problems</h2>
               </div>
               {loading ? (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {[1, 2, 3].map(index => (
-                    <div key={index} className="flex items-center gap-4 p-4 bg-gray-750 rounded-lg border border-gray-700">
-                      <div className="w-16 h-16 bg-gray-700 rounded-lg relative overflow-hidden">
+                    <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-750 rounded-lg border border-gray-700">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-700 rounded-lg relative overflow-hidden flex-shrink-0 self-start sm:self-auto">
                         <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                       </div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-5 bg-gray-700 rounded w-3/4 relative overflow-hidden">
+                      <div className="flex-1 space-y-2 min-w-0">
+                        <div className="h-4 sm:h-5 bg-gray-700 rounded w-3/4 relative overflow-hidden">
                           <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                         </div>
-                        <div className="flex gap-4">
-                          <div className="h-4 bg-gray-700 rounded w-32 relative overflow-hidden">
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                          <div className="h-3 sm:h-4 bg-gray-700 rounded w-28 sm:w-32 relative overflow-hidden">
                             <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                           </div>
-                          <div className="h-4 bg-gray-700 rounded w-24 relative overflow-hidden">
+                          <div className="h-3 sm:h-4 bg-gray-700 rounded w-20 sm:w-24 relative overflow-hidden">
                             <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                           </div>
                         </div>
-                        <div className="h-4 bg-gray-700 rounded w-20 relative overflow-hidden">
+                        <div className="h-3 sm:h-4 bg-gray-700 rounded w-16 sm:w-20 relative overflow-hidden">
                           <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                         </div>
                       </div>
-                      <div className="w-16 h-6 bg-gray-700 rounded-full relative overflow-hidden">
+                      <div className="w-12 h-5 sm:w-16 sm:h-6 bg-gray-700 rounded-full relative overflow-hidden flex-shrink-0 self-start sm:self-auto">
                         <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                       </div>
                     </div>
@@ -320,43 +322,45 @@ const Student = () => {
                   </div>
                 </div>
               ) : recentlyAssignedProblems.length === 0 ? (
-                <p className="text-gray-400 text-center py-6">No problems assigned yet.</p>
+                <p className="text-gray-400 text-center py-6 text-sm sm:text-base">No problems assigned yet.</p>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {recentlyAssignedProblems.map(problem => {
                     const completionStatus = getCompletionIcon(problem._id);
                     return (
                       <div 
                         key={problem._id} 
-                        className="flex items-center gap-4 p-4 bg-gray-750 rounded-lg border border-gray-700 hover:border-blue-700 cursor-pointer transition group"
+                        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-750 rounded-lg border border-gray-700 hover:border-blue-700 cursor-pointer transition group"
                         onClick={() => navigate(`/problems/${problem._id}/${problem.batchId}`)}
                       >
-                        <div className={`flex items-center justify-center w-16 h-16 rounded-lg ${completionStatus.bgColor} border-2 border-current ${completionStatus.color}`}>
+                        <div className={`flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-lg ${completionStatus.bgColor} border-2 border-current ${completionStatus.color} flex-shrink-0 self-start sm:self-auto`}>
                           {completionStatus.icon}
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-lg group-hover:text-blue-400 transition-colors">{problem.title}</h3>
-                          <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-base sm:text-lg group-hover:text-blue-400 transition-colors truncate" title={problem.title}>
+                            {problem.title}
+                          </h3>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-gray-400 mt-1">
                             <div className="flex items-center gap-1">
-                              <Calendar size={14} />
-                              <span>Assigned: {formatDate(problem.createdAt)}</span>
+                              <Calendar size={12} className="flex-shrink-0" />
+                              <span className="truncate">Assigned: {formatDate(problem.createdAt)}</span>
                             </div>
                             {problem.dueDate && (
                               <div className="flex items-center gap-1">
-                                <Clock size={14} />
-                                <span>{formatDate(problem.dueDate)}</span>
+                                <Clock size={12} className="flex-shrink-0" />
+                                <span className="truncate">{formatDate(problem.dueDate)}</span>
                               </div>
                             )}
                           </div>
-                          <div className={`text-sm mt-1 font-medium ${completionStatus.color}`}>
+                          <div className={`text-xs sm:text-sm mt-1 font-medium ${completionStatus.color} truncate`}>
                             {completionStatus.text}
                             {problemStatuses[problem._id]?.score &&
                               ` - ${problemStatuses[problem._id].score}% score`
                             }
                           </div>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium 
+                        <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 self-start sm:self-auto">
+                          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex-shrink-0
                             ${problem.difficulty === 'Easy' ? 'bg-green-900/30 text-green-400' : 
                               problem.difficulty === 'Medium' ? 'bg-yellow-900/30 text-yellow-400' : 
                               'bg-red-900/30 text-red-400'}`}>
@@ -380,28 +384,26 @@ const Student = () => {
               )}
             </div>
           </div>
-          
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* My Batches */}
-            <div className="bg-gray-800 rounded-lg shadow-lg p-6">
+            {/* Sidebar */}
+          <div className="space-y-4 sm:space-y-6">            {/* My Batches */}
+            <div className="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
               <div className="flex items-center gap-2 mb-4">
-                <Users className="text-blue-400" />
-                <h2 className="text-xl font-semibold">My Batches</h2>
+                <Users className="text-blue-400 flex-shrink-0" size={20} />
+                <h2 className="text-lg sm:text-xl font-semibold">My Batches</h2>
               </div>
               {loading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map(index => (
                     <div key={index} className="p-3 bg-gray-750 rounded-lg border border-gray-700">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-4 h-4 bg-gray-700 rounded relative overflow-hidden">
+                        <div className="w-4 h-4 bg-gray-700 rounded relative overflow-hidden flex-shrink-0">
                           <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                         </div>
-                        <div className="h-4 bg-gray-700 rounded w-24 relative overflow-hidden">
+                        <div className="h-4 bg-gray-700 rounded w-20 sm:w-24 relative overflow-hidden">
                           <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                         </div>
                       </div>
-                      <div className="h-3 bg-gray-700 rounded w-32 relative overflow-hidden">
+                      <div className="h-3 bg-gray-700 rounded w-24 sm:w-32 relative overflow-hidden">
                         <div className="absolute inset-0 bg-shimmer-gradient bg-shimmer animate-shimmer"></div>
                       </div>
                     </div>
@@ -415,25 +417,34 @@ const Student = () => {
                     </button>
                   </div>
                 </div>
-              ) : batches.length === 0 ? (
-                <p className="text-gray-400 text-center py-4">You're not enrolled in any batches.</p>
+              ) : recentBatches.length === 0 ? (
+                <p className="text-gray-400 text-center py-4 text-sm sm:text-base">You're not enrolled in any batches.</p>
               ) : (
                 <div className="space-y-3">
-                  {batches.map(batch => (
+                  {recentBatches.map(batch => (
                     <div 
                       key={batch._id} 
                       className="p-3 bg-gray-750 rounded-lg border border-gray-700 hover:border-blue-700 cursor-pointer transition"
                       onClick={() => navigate(`/student/batch/${batch._id}`)}
                     >
-                      <h3 className="font-medium flex items-center gap-2">
-                        <School size={16} className="text-blue-400" />
-                        {batch.name}
+                      <h3 className="font-medium flex items-center gap-2 text-sm sm:text-base">
+                        <School size={16} className="text-blue-400 flex-shrink-0" />
+                        <span className="truncate" title={batch.name}>{batch.name}</span>
                       </h3>
                       {batch.subject && (
-                        <p className="text-sm text-gray-400 mt-1">{batch.subject}</p>
+                        <p className="text-xs sm:text-sm text-gray-400 mt-1 truncate" title={batch.subject}>
+                          {batch.subject}
+                        </p>
                       )}
                     </div>
                   ))}
+                  {batches.length > 5 && (
+                    <div className="text-center pt-2">
+                      <p className="text-xs text-gray-500">
+                        Showing {recentBatches.length} of {batches.length} batches
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
               {!loading && (
