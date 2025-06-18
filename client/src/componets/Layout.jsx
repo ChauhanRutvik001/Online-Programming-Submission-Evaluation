@@ -23,17 +23,16 @@ const Layout = () => {
     const routePattern = new RegExp(`^${pattern}$`);
     return routePattern.test(location.pathname);
   });
-
   return (
     <AuthRouter>
-      <div>
+      <div className="min-h-screen bg-gray-900">
         {!isNoHeaderRoute && (
           <Header 
             isAuthenticated={isAuthenticated} 
             onLoginClick={() => setShowLoginModal(true)} 
           />
         )}
-        <main>
+        <main className="bg-gray-900">
           <Outlet context={{ showLoginModal, setShowLoginModal }} />
         </main>
         

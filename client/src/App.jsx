@@ -48,9 +48,8 @@ const App = () => {
       </div>
     );
   }
-
   return (
-    <div>
+    <div className="min-h-screen bg-gray-900">
       <NotificationProvider>
         <Body isAuthenticated={isAuthenticated} />
         <Toaster />

@@ -125,19 +125,19 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
   const combinedLoading = loading || globalLoading;
   return (
     <div 
-      className={`sticky top-20 bg-gray-800 text-white rounded-xl shadow-2xl p-8 border border-gray-700 transition-opacity duration-500 ease-in-out ${
+      className={`lg:sticky lg:top-20 bg-gray-800 text-white rounded-xl shadow-2xl p-4 sm:p-8 border border-gray-700 transition-opacity duration-500 ease-in-out ${
         contentReady ? "opacity-100" : "opacity-0"
       }`}
     >
       <div className="flex flex-col items-center">
-        <div className="relative mb-6">
+        <div className="relative mb-4 sm:mb-6">
           {combinedLoading ? (
-            <div className="w-40 h-40 rounded-full bg-gray-700 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="w-28 h-28 sm:w-40 sm:h-40 rounded-full bg-gray-700 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
             </div>
           ) : (
             <div className="relative group">
-              <div className="w-40 h-40 rounded-full overflow-hidden ring-4 ring-blue-500 shadow-lg transition-all duration-300 hover:ring-blue-400">
+              <div className="w-28 h-28 sm:w-40 sm:h-40 rounded-full overflow-hidden ring-4 ring-blue-500 shadow-lg transition-all duration-300 hover:ring-blue-400">
                 {selectedFile ? (
                   <img
                     src={imagePreview}
@@ -158,7 +158,7 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
                   />
                 ) : (
                   <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                    <User size={80} className="text-gray-400" />
+                    <User size={50} className="text-gray-400" />
                   </div>
                 )}
               </div>
@@ -171,16 +171,17 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
                   className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full transition-all transform hover:scale-110"
                   disabled={combinedLoading}
                 >
-                  <Edit size={20} />
+                  <Edit size={16} />
                 </button>
               </div>
             </div>
           )}
-        </div>        <h2 className="text-2xl font-bold mb-2 text-blue-400 transition-all duration-300">
+        </div>
+        <h2 className="text-xl sm:text-2xl font-bold mb-2 text-blue-400 transition-all duration-300 text-center">
           {formData.username || "Your Name"}
         </h2>
 
-        <div className="flex items-center space-x-4 mb-6 transition-all duration-300">
+        <div className="flex items-center space-x-4 mb-4 sm:mb-6 transition-all duration-300">
           <a
             href={githubURL || "#"}
             target="_blank"
@@ -193,7 +194,7 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
             title={githubURL ? "GitHub Profile" : "No GitHub profile available"}
             onClick={(e) => !githubURL && e.preventDefault()}
           >
-            <Github size={24} />
+            <Github size={20} />
           </a>
           <a
             href={linkedInURL || "#"}
@@ -207,21 +208,23 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
             title={linkedInURL ? "LinkedIn Profile" : "No LinkedIn profile available"}
             onClick={(e) => !linkedInURL && e.preventDefault()}
           >
-            <Linkedin size={24} />
+            <Linkedin size={20} />
           </a>
-        </div>        <button
+        </div>
+        
+        <button
           onClick={toggleEdit}
-          className={`px-6 py-2 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 ${
+          className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 ${
             isEditing
               ? "bg-red-600 hover:bg-red-700"
               : "bg-blue-600 hover:bg-blue-700"
-          } text-white shadow-lg`}
+          } text-white shadow-lg text-sm sm:text-base`}
         >
           {isEditing ? "Cancel Edit" : "Edit Details"}
         </button>
 
         {isEditing && (
-          <div className="mt-6 w-full space-y-4 animate-fade-in">
+          <div className="mt-4 sm:mt-6 w-full space-y-3 animate-fade-in">
             <input
               ref={fileInputRef}
               id="fileInput"
@@ -229,41 +232,45 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
               accept="image/*"
               onChange={handleFileChange}
               className="hidden"
-            />            {!selectedFile && (
+            />
+            
+            {!selectedFile && (
               <button
                 onClick={() => fileInputRef.current && fileInputRef.current.click()}
                 disabled={combinedLoading}
-                className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                className="w-full bg-blue-600 text-white rounded-lg px-3 py-2 sm:px-4 sm:py-3 shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 text-xs sm:text-sm"
               >
-                <Upload size={18} />
+                <Upload size={16} />
                 <span>Select New Image</span>
               </button>
             )}
 
             {selectedFile && (
-              <div className="space-y-3 animate-fade-in">
-                <div className="text-sm text-gray-300 bg-gray-800 p-3 rounded-lg flex items-center">
+              <div className="space-y-2 animate-fade-in">
+                <div className="text-xs sm:text-sm text-gray-300 bg-gray-800 p-2 rounded-lg flex items-center">
                   <div className="flex-1 truncate">{selectedFile.name}</div>
                   <button
                     onClick={() => setSelectedFile(null)}
                     disabled={combinedLoading}
                     className="text-gray-400 hover:text-red-400 ml-2 disabled:opacity-50"
                   >
-                    <X size={16} />
+                    <X size={14} />
                   </button>
-                </div>                <button
+                </div>
+                
+                <button
                   onClick={handleUpdateProfilePic}
                   disabled={combinedLoading}
-                  className="w-full bg-green-600 text-white rounded-lg px-4 py-3 shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                  className="w-full bg-green-600 text-white rounded-lg px-3 py-2 sm:px-4 sm:py-3 shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 text-xs sm:text-sm"
                 >
                   {combinedLoading ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-t-transparent border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent border-white mr-1 sm:mr-2"></div>
                       <span>Uploading...</span>
                     </>
                   ) : (
                     <>
-                      <Upload size={18} />
+                      <Upload size={16} />
                       <span>Upload Profile Picture</span>
                     </>
                   )}
@@ -271,19 +278,20 @@ const ProfileLeft = ({ formData, toggleEdit, isEditing, imageUrl }) => {
               </div>
             )}
 
-            {profilePic && !selectedFile && (              <button
+            {profilePic && !selectedFile && (
+              <button
                 onClick={handleRemoveImage}
                 disabled={combinedLoading}
-                className="w-full bg-red-600 text-white rounded-lg px-4 py-3 shadow-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                className="w-full bg-red-600 text-white rounded-lg px-3 py-2 sm:px-4 sm:py-3 shadow-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 text-xs sm:text-sm"
               >
                 {combinedLoading ? (
                   <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-t-transparent border-white mr-2"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-t-transparent border-white mr-1 sm:mr-2"></div>
                     <span>Removing...</span>
                   </>
                 ) : (
                   <>
-                    <X size={18} />
+                    <X size={16} />
                     <span>Remove Profile Picture</span>
                   </>
                 )}

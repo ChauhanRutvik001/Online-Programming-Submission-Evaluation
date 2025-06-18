@@ -155,28 +155,31 @@ const Profile = () => {
   return (
     <div className="relative min-h-screen bg-gray-900 text-white">
       <section className="pt-16 dark:bg-gray-900">
-        <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 p-4">
-          <div className="md:col-span-1">
-            <ProfileLeft
-              formData={formData}
-              toggleEdit={toggleEdit}
-              isEditing={isEditing}
-              imageUrl={imageUrl || "https://via.placeholder.com/150"} // Placeholder image
-            />
-          </div>          <div className="md:col-span-3">
-            {isEditing || initialTab === 'apikeys' ? (
-              <ProfileRight
+        <div className="container mx-auto p-3 sm:p-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+            <div className="lg:col-span-1">
+              <ProfileLeft
                 formData={formData}
-                handleInputChange={handleInputChange}
-                handleSubmit={handleSubmit}
-                user={user || {}} // Provide an empty object as fallback
-                initialTab={initialTab}
+                toggleEdit={toggleEdit}
+                isEditing={isEditing}
+                imageUrl={imageUrl || "https://via.placeholder.com/150"} // Placeholder image
               />
-            ) : (
-              <div>
+            </div>
+            <div className="lg:col-span-3">
+              {isEditing || initialTab === 'apikeys' ? (
+                <ProfileRight
+                  formData={formData}
+                  handleInputChange={handleInputChange}
+                  handleSubmit={handleSubmit}
+                  user={user || {}} // Provide an empty object as fallback
+                  initialTab={initialTab}
+                />
+              ) : (
+                <div className="overflow-x-auto">
                   <SubmissionPage />
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
