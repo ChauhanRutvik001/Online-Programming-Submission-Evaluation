@@ -4,9 +4,9 @@ import { logout } from "../userSlice"; // Import logout action from userSlice
 
 export const fetchSubmissions = createAsyncThunk(
   "submissions/fetchSubmissions",
-  async (_, { rejectWithValue }) => {
+  async ({ page = 1, limit = 7 } = {}, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.get("/submissions/user/submissions");
+      const response = await axiosInstance.get(`/submissions/user/submissions?page=${page}&limit=${limit}`);
       console.log("Fetched submissions:", response.data.submissions);
       return { submissions: response.data.submissions || [] };
     } catch (error) {

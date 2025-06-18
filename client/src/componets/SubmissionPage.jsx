@@ -11,13 +11,13 @@ const SubmissionPage = () => {
   const { submissions, loading, error } = useSelector((state) => state.submissions);
   const user = useSelector((state) => state.app.user);
     const hasAttemptedFetch = useSelector((state) => state.submissions.hasAttemptedFetch);
-
-  // Only fetch if we haven't attempted yet and are not in profile page
+  // Only fetch if we haven't attempted yet and don't already have submissions
   useEffect(() => {
-    if (user?._id && !hasAttemptedFetch && !loading && !isPageCached("/profile")) {
+    if (user?._id && !hasAttemptedFetch && !loading && submissions.length === 0 && !isPageCached("/profile")) {
+      console.log("SubmissionPage: Fetching submissions");
       dispatch(fetchSubmissions({ page: 1, limit: 7 }));
     }
-  }, [dispatch, user?._id, hasAttemptedFetch, loading]);
+  }, [dispatch, user?._id, hasAttemptedFetch, loading, submissions.length]);
 
   const handleViewMore = () => {
     navigate("/history");
@@ -108,40 +108,47 @@ const SubmissionPage = () => {
             </button>
           </div>
         )}        {!loading && !error && submissions.length > 0 && (
-          <ul className="space-y-2 sm:space-y-3">
-            {submissions.map((submission) => {
-              const status = submission.status || getRandomStatus();
-              const statusColor = getStatusColor(status);
-              return (
-                <li
-                  key={submission._id}
-                  onClick={() => navigate("/submissions/" + submission._id)}
-                  className="bg-gray-800/50 border border-gray-700 hover:border-blue-500/50 p-3 sm:p-4 rounded-lg flex items-center cursor-pointer transition-all duration-300 hover:bg-gray-700/50 group"
-                >
-                  <div className="flex-shrink-0 mr-3 sm:mr-4 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center">
-                    <Code size={16} className="text-blue-400 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="flex-grow min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">                      <h3 className="text-sm sm:text-lg font-medium text-white group-hover:text-blue-400 transition-colors truncate pr-2">
-                        {truncateTitle(submission.problem_id?.title, 40)}
-                      </h3>
-                      <div className={`self-start sm:ml-4 px-2 py-1 rounded-full text-xs font-medium bg-${statusColor}-500/20 text-${statusColor}-400 border border-${statusColor}-500/30 whitespace-nowrap`}>
-                        {status}
+          <div>
+            {/* Debug info - remove in production */}
+            <div className="mb-4 p-2 bg-gray-700 rounded text-xs text-gray-300">
+              Debug: Showing {submissions.length} submissions (expected: 7)
+            </div>
+            <ul className="space-y-2 sm:space-y-3">
+              {submissions.slice(0, 7).map((submission, index) => {
+                const status = submission.status || getRandomStatus();
+                const statusColor = getStatusColor(status);
+                return (
+                  <li
+                    key={submission._id}
+                    onClick={() => navigate("/submissions/" + submission._id)}
+                    className="bg-gray-800/50 border border-gray-700 hover:border-blue-500/50 p-3 sm:p-4 rounded-lg flex items-center cursor-pointer transition-all duration-300 hover:bg-gray-700/50 group"
+                  >
+                    <div className="flex-shrink-0 mr-3 sm:mr-4 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-700 flex items-center justify-center">
+                      <Code size={16} className="text-blue-400 sm:w-5 sm:h-5" />
+                    </div>
+                    <div className="flex-grow min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
+                        <h3 className="text-sm sm:text-lg font-medium text-white group-hover:text-blue-400 transition-colors truncate pr-2">
+                          {truncateTitle(submission.problem_id?.title, 40)}
+                        </h3>
+                        <div className={`self-start sm:ml-4 px-2 py-1 rounded-full text-xs font-medium bg-${statusColor}-500/20 text-${statusColor}-400 border border-${statusColor}-500/30 whitespace-nowrap`}>
+                          {status}
+                        </div>
+                      </div>
+                      <div className="flex items-center mt-1 text-xs sm:text-sm text-gray-400">
+                        <Clock size={12} className="mr-1 sm:w-3.5 sm:h-3.5" />
+                        <span className="truncate">{formatDate(submission.createdAt)}</span>
                       </div>
                     </div>
-                    <div className="flex items-center mt-1 text-xs sm:text-sm text-gray-400">
-                      <Clock size={12} className="mr-1 sm:w-3.5 sm:h-3.5" />
-                      <span className="truncate">{formatDate(submission.createdAt)}</span>
+                    <div className="flex-shrink-0 ml-2 sm:ml-4">
+                      <ChevronRight size={16} className="text-gray-500 group-hover:text-blue-400 transition-colors sm:w-5 sm:h-5" />
                     </div>
-                  </div>
-                  <div className="flex-shrink-0 ml-2 sm:ml-4">
-                    <ChevronRight size={16} className="text-gray-500 group-hover:text-blue-400 transition-colors sm:w-5 sm:h-5" />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}        {!loading && submissions.length > 0 && (
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}{!loading && submissions.length > 0 && (
           <div className="flex justify-center sm:justify-end mt-6 sm:mt-8">
             <button
               className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2 text-sm sm:text-base"

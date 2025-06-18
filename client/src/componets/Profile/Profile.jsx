@@ -93,13 +93,13 @@ const Profile = () => {
     }
   }, [user, reduxDispatch, isCached]);
 
-
   useEffect(() => {
-      if (submissions.length === 0) {
-        console.log("Fetching submissions for the first time");
-        reduxDispatch(fetchSubmissions({ page: 1, limit: 7 }));
-      }
-    }, [dispatch, submissions.length]);
+    // Only fetch if we don't have submissions yet and haven't attempted to fetch
+    if (user?._id && submissions.length === 0) {
+      console.log("Fetching submissions for the first time");
+      reduxDispatch(fetchSubmissions({ page: 1, limit: 7 }));
+    }
+  }, [reduxDispatch, user?._id, submissions.length]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
