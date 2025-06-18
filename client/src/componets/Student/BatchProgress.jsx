@@ -22,26 +22,6 @@ import {
   ChevronRight,
   Eye
 } from 'lucide-react';
-import { toast } from 'react-toastify';
-import { 
-  Users, 
-  Book, 
-  TrendingUp, 
-  Target, 
-  Award, 
-  BarChart3, 
-  PieChart, 
-  ChevronLeft,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  XCircle,
-  Activity,
-  User,
-  Star,
-  ChevronRight,
-  Eye
-} from 'lucide-react';
 
 const StudentBatchProgress = () => {
   const { batchId } = useParams();
