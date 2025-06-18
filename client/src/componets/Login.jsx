@@ -136,97 +136,99 @@ const Login = ({ isModal = false, onLoginSuccess }) => {
   };  return (
     <div className={`flex ${isModal ? 'min-h-[80vh] rounded-xl' : 'min-h-screen'} bg-gray-900 overflow-hidden`}>
       {/* Left Section with code background for large screens */}
-      <motion.div 
-        initial={{ opacity: 0, x: -50 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6 }}
-        className="hidden lg:flex lg:w-1/2 relative items-center justify-center p-8"
-      >
-        <div className="absolute inset-0 overflow-hidden opacity-20">
-          {/* Animated background elements */}
-          {[...Array(8)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-40 h-40 bg-blue-500/10 rounded-full"
-              style={{
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                scale: [1, 1.5, 1],
-                opacity: [0.1, 0.3, 0.1],
-                x: [0, Math.random() * 50, 0],
-                y: [0, Math.random() * 50, 0],
-              }}
-              transition={{
-                duration: 10 + Math.random() * 10,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          ))}
-        </div>
-        
-        <div className="relative z-10 text-center max-w-md">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.3, type: "spring" }}
-            className="mx-auto w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-6"
-          >
-            <Terminal className="text-blue-400 w-8 h-8" />
-          </motion.div>
-            <motion.h1 
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="text-3xl font-bold mb-4 text-blue-600"
-          >
-            Welcome to Codify
-          </motion.h1>
-          
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-gray-300 mb-8"
-          >
-            Your gateway to programming excellence. Challenge yourself, compete with peers, and elevate your coding skills.
-          </motion.p>
-          
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="grid grid-cols-2 gap-4 text-left"
-          >
-            {[
-              { text: "500+ Active Students", delay: 0.7 },
-              { text: "100+ Programming Problems", delay: 0.8 },
-              { text: "Real-time Rankings", delay: 0.9 },
-              { text: "Multi-language Support", delay: 1.0 },
-            ].map((item, index) => (
+      {!isFirstTime && (
+        <motion.div 
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
+          className="hidden lg:flex lg:w-1/2 relative items-center justify-center p-8"
+        >
+          <div className="absolute inset-0 overflow-hidden opacity-20">
+            {/* Animated background elements */}
+            {[...Array(8)].map((_, i) => (
               <motion.div
-                key={index}
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: item.delay }}
-                className="flex items-center space-x-2"
-              >
-                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                <span className="text-sm text-gray-400">{item.text}</span>
-              </motion.div>
+                key={i}
+                className="absolute w-40 h-40 bg-blue-500/10 rounded-full"
+                style={{
+                  top: `${Math.random() * 100}%`,
+                  left: `${Math.random() * 100}%`,
+                }}
+                animate={{
+                  scale: [1, 1.5, 1],
+                  opacity: [0.1, 0.3, 0.1],
+                  x: [0, Math.random() * 50, 0],
+                  y: [0, Math.random() * 50, 0],
+                }}
+                transition={{
+                  duration: 10 + Math.random() * 10,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
             ))}
-          </motion.div>
-        </div>
-      </motion.div>
+          </div>
+          
+          <div className="relative z-10 text-center max-w-md">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.3, type: "spring" }}
+              className="mx-auto w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-6"
+            >
+              <Terminal className="text-blue-400 w-8 h-8" />
+            </motion.div>
+              <motion.h1 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="text-3xl font-bold mb-4 text-blue-600"
+            >
+              Welcome to Codify
+            </motion.h1>
+            
+            <motion.p
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-gray-300 mb-8"
+            >
+              Your gateway to programming excellence. Challenge yourself, compete with peers, and elevate your coding skills.
+            </motion.p>
+            
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="grid grid-cols-2 gap-4 text-left"
+            >
+              {[
+                { text: "500+ Active Students", delay: 0.7 },
+                { text: "100+ Programming Problems", delay: 0.8 },
+                { text: "Real-time Rankings", delay: 0.9 },
+                { text: "Multi-language Support", delay: 1.0 },
+              ].map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: item.delay }}
+                  className="flex items-center space-x-2"
+                >
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <span className="text-sm text-gray-400">{item.text}</span>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
 
-      {/* Right Section - Login Form */}
+      {/* Right Section - Login or Password Change Form */}
       <motion.div
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6 }}
-        className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8"
+        className={`w-full ${!isFirstTime ? 'lg:w-1/2' : ''} flex items-center justify-center p-4 sm:p-8`}
       >
         <div className="w-full max-w-md">
           {isFirstTime ? (

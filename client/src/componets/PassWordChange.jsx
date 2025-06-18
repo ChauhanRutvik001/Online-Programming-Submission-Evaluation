@@ -3,7 +3,7 @@ import axiosInstance from "../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, CheckCircle, Key, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, CheckCircle, Key, ShieldCheck, X } from "lucide-react";
 
 const PasswordChange = ({ id, isModal = false, onBackToLogin }) => {
   const [oldPassword, setOldPassword] = useState("");
@@ -15,15 +15,6 @@ const PasswordChange = ({ id, isModal = false, onBackToLogin }) => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  
-  // Password strength indicators
-  // const [passwordStrength, setPasswordStrength] = useState({
-  //   length: false,
-  //   uppercase: false,
-  //   lowercase: false,
-  //   number: false,
-  //   special: false
-  // });
   
   const handleNewPasswordChange = (e) => {
     const password = e.target.value;
@@ -97,42 +88,50 @@ const PasswordChange = ({ id, isModal = false, onBackToLogin }) => {
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.3 }}
-      className="bg-gray-800/70 backdrop-blur-sm border border-gray-700 rounded-xl p-6 sm:p-8 shadow-xl"
+      className="bg-gray-800/70 backdrop-blur-sm border border-gray-700 rounded-xl p-4 sm:p-6 shadow-xl relative max-h-[90vh] overflow-y-auto mx-auto w-full"
     >
-      <div className="mb-6 text-center">
+      {/* Close button - always visible */}
+      {onBackToLogin && (
+        <button
+          onClick={onBackToLogin}
+          className="absolute top-2 right-2 z-10 p-1.5 bg-gray-700 rounded-full text-gray-300 hover:bg-gray-600 transition-colors"
+          aria-label="Close"
+        >
+          <X size={18} />
+        </button>
+      )}
+      
+      <div className="mb-4 text-center">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.4, type: "spring" }}
           className="mx-auto"
         >
-          <div className="mx-auto w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-4">
-            <Key className="text-blue-400 w-8 h-8" />
+          <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-3">
+            <Key className="text-blue-400 w-6 h-6 sm:w-8 sm:h-8" />
           </div>
         </motion.div>
-        <h2 className="mt-4 text-xl font-bold text-white">
-          Welcome to Codify
+        <h2 className="mt-2 text-lg sm:text-xl font-bold text-white">
+          Change Password
         </h2>
-        <p className="mt-1 text-gray-400 text-sm">
-          Please change your default password to continue
-        </p>
       </div>
       
       {error && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-3 bg-red-900/20 border border-red-800/30 rounded-lg text-sm text-red-400"
+          className="mb-4 p-2 sm:p-3 bg-red-900/20 border border-red-800/30 rounded-lg text-xs sm:text-sm text-red-400"
         >
           {error}
         </motion.div>
       )}
       
       <form onSubmit={handleSubmit}>
-        <div className="mb-5 space-y-1.5">
+        <div className="mb-4 space-y-1">
           <label
             htmlFor="oldPassword"
-            className="block text-sm font-medium text-gray-300"
+            className="block text-xs sm:text-sm font-medium text-gray-300"
           >
             Current Password
           </label>
@@ -145,24 +144,24 @@ const PasswordChange = ({ id, isModal = false, onBackToLogin }) => {
                 setOldPassword(e.target.value);
                 setError("");
               }}
-              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-500"
-              placeholder="Enter your temporary password"
+              className="w-full px-3 py-2 sm:px-4 sm:py-3 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-500 text-sm"
+              placeholder="Enter current password"
               required
             />
             <button
               type="button"
               onClick={() => setShowOldPassword(!showOldPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+              className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
             >
-              {showOldPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showOldPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
         </div>
         
-        <div className="mb-4 space-y-1.5">
+        <div className="mb-4 space-y-1">
           <label
             htmlFor="newPassword"
-            className="block text-sm font-medium text-gray-300"
+            className="block text-xs sm:text-sm font-medium text-gray-300"
           >
             New Password
           </label>
@@ -172,62 +171,24 @@ const PasswordChange = ({ id, isModal = false, onBackToLogin }) => {
               id="newPassword"
               value={newPassword}
               onChange={handleNewPasswordChange}
-              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-500"
-              placeholder="Create a strong password"
+              className="w-full px-3 py-2 sm:px-4 sm:py-3 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-500 text-sm"
+              placeholder="Create new password"
               required
             />
             <button
               type="button"
               onClick={() => setShowNewPassword(!showNewPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+              className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
             >
-              {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
         </div>
         
-        {/* Password strength indicators
-        <motion.div 
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ 
-            opacity: newPassword ? 1 : 0,
-            height: newPassword ? "auto" : 0
-          }}
-          className="mb-5 p-3 bg-gray-900/60 rounded-md border border-gray-700 overflow-hidden"
-        >
-          <p className="text-xs text-gray-400 mb-2 flex items-center">
-            <ShieldCheck size={14} className="inline mr-1 text-blue-400" />
-            Your password must have:
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { label: "At least 8 characters", check: passwordStrength.length },
-              { label: "One uppercase letter", check: passwordStrength.uppercase },
-              { label: "One lowercase letter", check: passwordStrength.lowercase },
-              { label: "One number", check: passwordStrength.number },
-              { label: "One special character", check: passwordStrength.special },
-            ].map((requirement, index) => (
-              <div 
-                key={index}
-                className={`flex items-center space-x-1.5 text-xs ${
-                  requirement.check ? "text-green-400" : "text-gray-500"
-                }`}
-              >
-                <CheckCircle 
-                  size={12} 
-                  className={requirement.check ? "text-green-400" : "text-gray-600"} 
-                  fill={requirement.check ? "rgba(74, 222, 128, 0.2)" : "transparent"}
-                />
-                <span>{requirement.label}</span>
-              </div>
-            ))}
-          </div>
-        </motion.div> */}
-        
-        <div className="mb-6 space-y-1.5">
+        <div className="mb-4 space-y-1">
           <label
             htmlFor="confirmPassword"
-            className="block text-sm font-medium text-gray-300"
+            className="block text-xs sm:text-sm font-medium text-gray-300"
           >
             Confirm New Password
           </label>
@@ -240,22 +201,22 @@ const PasswordChange = ({ id, isModal = false, onBackToLogin }) => {
                 setConfirmPassword(e.target.value);
                 setError("");
               }}
-              className={`w-full px-4 py-3 bg-gray-700/50 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-500 ${
+              className={`w-full px-3 py-2 sm:px-4 sm:py-3 bg-gray-700/50 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-500 text-sm ${
                 confirmPassword && newPassword !== confirmPassword
                   ? "border-red-500"
                   : confirmPassword && newPassword === confirmPassword
                   ? "border-green-500"
                   : "border-gray-600"
               }`}
-              placeholder="Confirm your new password"
+              placeholder="Confirm your password"
               required
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+              className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
             >
-              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
           
@@ -277,30 +238,21 @@ const PasswordChange = ({ id, isModal = false, onBackToLogin }) => {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           type="submit"
-          className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg flex items-center justify-center transition-all duration-300"
+          className="w-full py-2 sm:py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg flex items-center justify-center transition-all duration-300 text-sm"
           disabled={isLoading}
         >
           {isLoading ? (
             <div className="flex items-center space-x-2">
-              <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-              <span>Updating password...</span>
+              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+              <span>Updating...</span>
             </div>
           ) : (
             <div className="flex items-center space-x-2">
-              <CheckCircle size={18} />
+              <CheckCircle size={16} />
               <span>Set New Password</span>
             </div>
           )}
         </motion.button>
-        
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-6 text-center text-sm text-gray-500"
-        >
-          <p>This is a one-time password change required for new accounts</p>
-        </motion.div>
       </form>
     </motion.div>
   );
