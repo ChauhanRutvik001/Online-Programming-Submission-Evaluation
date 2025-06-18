@@ -17,11 +17,12 @@ export const getRecentDueProblems = async (req, res) => {
     let problemsWithBatch = [];
     for (const batch of batches) {
       // Get all assigned problems for this batch
-      const problems = await Problem.find({ _id: { $in: batch.assignedProblems } })
-        .select("_id title difficulty createdAt batchDueDates");
+      const problems = await Problem.find({
+        _id: { $in: batch.assignedProblems },
+      }).select("_id title difficulty createdAt batchDueDates");
 
       // For each problem, extract the due date for this batch
-      problems.forEach(problem => {
+      problems.forEach((problem) => {
         const entry = (problem.batchDueDates || []).find(
           (b) => b.batch?.toString() === batch._id.toString()
         );
@@ -41,7 +42,7 @@ export const getRecentDueProblems = async (req, res) => {
     // Filter to only upcoming due dates
     const now = new Date();
     problemsWithBatch = problemsWithBatch
-      .filter(p => p.dueDate && new Date(p.dueDate) >= now)
+      .filter((p) => p.dueDate && new Date(p.dueDate) >= now)
       .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
       .slice(0, 5); // Top 5 soonest due
 
@@ -131,11 +132,12 @@ export const createProblem = async (req, res) => {
       tags,
       totalMarks,
       createdBy,
-    });    const createdProblem = await problem.save();
-    
+    });
+    const createdProblem = await problem.save();
+
     // If the problem is created successfully, we can send the notification
     // But at this point, it's not assigned to any batches yet
-    
+
     res.status(201).json(createdProblem);
   } catch (error) {
     console.error("Error creating problem:", error);
@@ -146,42 +148,138 @@ export const createProblem = async (req, res) => {
 // Backend code (Express.js route handler)
 export const getProblems = async (req, res) => {
   try {
-    let problems;
     const { isAdmin, id: userId } = req.user;
+    // Get pagination params with defaults (page 1, limit 20)
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
 
-    if (isAdmin === "admin" || isAdmin === "faculty") {
-      problems = await Problem.find({})
-        .populate('createdBy', 'name username email')
-        .sort({ createdAt: -1 });
+    let query;
+    let totalProblems;
+
+    if (isAdmin === "admin") {
+      // Admin sees all problems
+      query = Problem.find({});
+      totalProblems = await Problem.countDocuments({});
     } else if (isAdmin === "faculty") {
-      problems = await Problem.find({ createdBy: userId })
-        .populate('createdBy', 'name username email')
-        .sort({ createdAt: -1 });
+      // Faculty sees ALL problems (created by anyone)
+      query = Problem.find({});
+      totalProblems = await Problem.countDocuments({});
     } else if (isAdmin === "student") {
       // Find batches this student belongs to
       const batches = await Batch.find({ students: userId });
-      const batchIds = batches.map(batch => batch._id);
-      
-      // Find problems that are assigned to any of these batches
-      problems = await Problem.find({ assignedBatches: { $in: batchIds } })
-        .populate('createdBy', 'name username email')
+      const batchIds = batches.map((batch) => batch._id);
+
+      // Create queries for both methods of problem assignment
+      const batchDueDatesQuery = { "batchDueDates.batch": { $in: batchIds } };
+      const assignedBatchesQuery = {
+        assignedBatches: { $in: batchIds },
+        "batchDueDates.batch": { $nin: batchIds },
+      };
+
+      // Get total count for pagination
+      const count1 = await Problem.countDocuments(batchDueDatesQuery);
+      const count2 = await Problem.countDocuments(assignedBatchesQuery);
+      totalProblems = count1 + count2; // This is approximate due to potential duplicates
+
+      // For students, we'll handle pagination after combining results
+      // since we need to filter out duplicates
+      const problemsFromBatchDueDates = await Problem.find(batchDueDatesQuery)
+        .populate("createdBy", "name username email")
         .sort({ createdAt: -1 });
+
+      const problemsFromAssignedBatches = await Problem.find(
+        assignedBatchesQuery
+      )
+        .populate("createdBy", "name username email")
+        .sort({ createdAt: -1 });
+
+      // Combine both results and remove duplicates
+      const allProblems = [
+        ...problemsFromBatchDueDates,
+        ...problemsFromAssignedBatches,
+      ];
+      const uniqueProblems = allProblems.filter(
+        (problem, index, self) =>
+          index ===
+          self.findIndex((p) => p._id.toString() === problem._id.toString())
+      );
+
+      // Manual pagination for the special case of students
+      const paginatedProblems = uniqueProblems
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(skip, skip + limit);
+
+      // Map problems to include permissions
+      const problems = paginatedProblems.map((problem) => {
+        const isCreator =
+          problem.createdBy && problem.createdBy._id.toString() === userId;
+
+        return {
+          _id: problem._id,
+          title: problem.title,
+          difficulty: problem.difficulty,
+          createdAt: problem.createdAt,
+          createdBy: problem.createdBy
+            ? {
+                name: problem.createdBy.name || problem.createdBy.username,
+                _id: problem.createdBy._id,
+              }
+            : null,
+          permissions: {
+            canEdit: isAdmin === "admin" || isCreator,
+            canDelete: isAdmin === "admin" || isCreator,
+          },
+        };
+      });
+
+      // Return paginated response for students
+      return res.json({
+        problems,
+        totalProblems,
+        totalPages: Math.ceil(totalProblems / limit),
+        currentPage: page,
+        success: true,
+      });
     } else {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
+    // For admin and faculty, apply standard pagination
+    const problems = await query
+      .populate("createdBy", "name username email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // Add permission flags to each problem
     res.json({
-      problems: problems.map(problem => ({
-        _id: problem._id,
-        title: problem.title,
-        difficulty: problem.difficulty,
-        createdAt: problem.createdAt,
-        createdBy: problem.createdBy ? {
-          name: problem.createdBy.name || problem.createdBy.username,
-          _id: problem.createdBy._id
-        } : null
-      })),
-      totalProblems: problems.length,
+      problems: problems.map((problem) => {
+        // Check if current user is the creator of this problem
+        const isCreator =
+          problem.createdBy &&
+          problem.createdBy._id.toString() === userId.toString();
+
+        return {
+          _id: problem._id,
+          title: problem.title,
+          difficulty: problem.difficulty,
+          createdAt: problem.createdAt,
+          createdBy: problem.createdBy
+            ? {
+                name: problem.createdBy.name || problem.createdBy.username,
+                _id: problem.createdBy._id,
+              }
+            : null,
+          permissions: {
+            canEdit: isAdmin === "admin" || isCreator,
+            canDelete: isAdmin === "admin" || isCreator,
+          },
+        };
+      }),
+      totalProblems,
+      totalPages: Math.ceil(totalProblems / limit),
+      currentPage: page,
       success: true,
     });
   } catch (error) {
@@ -411,8 +509,8 @@ export const getStudents = async (req, res) => {
     ]);
 
     // Prepare a structured response to include semester, branch, and batch-wise breakdowns
-    const semesterBranchBatchWiseCountResult = semesterBranchBatchWiseCount.reduce(
-      (acc, { _id, count }) => {
+    const semesterBranchBatchWiseCountResult =
+      semesterBranchBatchWiseCount.reduce((acc, { _id, count }) => {
         const { semester, branch, batch } = _id;
         if (!acc[semester]) {
           acc[semester] = {}; // Initialize object for each semester
@@ -425,9 +523,7 @@ export const getStudents = async (req, res) => {
         }
         acc[semester][branch][batch] += count; // Aggregate the count for each batch in each branch and semester
         return acc;
-      },
-      {}
-    );
+      }, {});
 
     // Send the students data along with total and counts
     console.log(
@@ -452,64 +548,130 @@ export const getStudents = async (req, res) => {
 };
 
 // Get problem by ID
+// Updated getProblemById function to allow faculty to access any problem
 export const getProblemById = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("welcome");
-    const problem = await Problem.findById(id).select(
-      "-createdAt -updatedAt -testCases"
-    );
+
+    // Find the problem with populated fields for better data access
+    const problem = await Problem.findById(id)
+      .populate("createdBy", "username name email")
+      .populate({
+        path: "batchDueDates.batch",
+        select: "name batchCode faculty",
+      });
 
     if (!problem) {
       return res.status(404).json({ message: "Problem not found" });
     }
 
-    // Ensure req.user is properly populated
-    if (!req.user) {
-      return res.status(403).json({ message: "Unauthorized access" });
+    // Ensure user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "Authentication required" });
     }
 
-    const { id: userId, isAdmin } = req.user;
-    console.log("req.user", req.user);
+    const userId = req.user.id;
+    const userRole = req.user.isAdmin; // "admin", "faculty", "student"
 
-    // Admins have unrestricted access
-    if (isAdmin === "faculty" || isAdmin === "admin") {
-      return res.json(problem);
+    console.log("Access check for problem:", {
+      problemId: id,
+      userId,
+      userRole,
+      problemCreator: problem.createdBy?._id || problem.createdBy,
+    });
+
+    // IMPORTANT: Allow any faculty to view any problem (for assignment purposes)
+    // This is the key change needed to fix your issue
+    if (userRole === "faculty" || userRole === "admin") {
+      // For admin and faculty, return the complete problem object
+      return res.status(200).json({ problem });
     }
 
-    // Faculty can access only the problems they created
-    if (isAdmin === "faculty") {
-      if (problem.createdBy.toString() !== userId.toString()) {
-        return res
-          .status(403)
-          .json({ message: "You are not allowed to access this problem" });
+    // For problem creator, allow access
+    const isCreator =
+      problem.createdBy &&
+      (problem.createdBy._id
+        ? problem.createdBy._id.toString() === userId
+        : problem.createdBy.toString() === userId);
+
+    if (isCreator) {
+      return res.status(200).json({ problem });
+    }
+
+    // For students, check if the problem is assigned to their batch
+    if (userRole === "student") {
+      // Get student's batches
+      const student = await user.findById(userId);
+      const studentBatches = await Batch.find({ students: userId });
+
+      if (!student || !studentBatches || studentBatches.length === 0) {
+        return res.status(403).json({
+          message: "You are not allowed to access this problem",
+          reason: "No batches found for this student",
+        });
       }
-      return res.json(problem);
-    }    // Students can only access problems assigned to batches they belong to
-    if (isAdmin === "student") {
-      // Find the batches this student belongs to
-      const batches = await Batch.find({ students: userId });
-      const batchIds = batches.map(batch => batch._id.toString());
-      
-      // Check if any of these batches are assigned to the problem
-      const isAssigned = problem.assignedBatches.some(
-        batchId => batchIds.includes(batchId.toString())
+
+      const studentBatchIds = studentBatches.map((batch) =>
+        batch._id.toString()
       );
-      
-      if (!isAssigned) {
-        return res
-          .status(403)
-          .json({ message: "You are not allowed to access this problem" });
+      // Check if problem is assigned to any of student's batches
+      const assignedBatchIds = problem.assignedBatches.map((bId) =>
+        bId.toString()
+      );
+      const batchDueDateBatchIds = problem.batchDueDates
+        .filter((bd) => bd.batch)
+        .map((bd) =>
+          typeof bd.batch === "object"
+            ? bd.batch._id.toString()
+            : bd.batch.toString()
+        );
+
+      // Combine both arrays for a complete check
+      const allBatchIds = [
+        ...new Set([...assignedBatchIds, ...batchDueDateBatchIds]),
+      ];
+
+      const hasAccess = studentBatchIds.some((batchId) =>
+        allBatchIds.includes(batchId)
+      );
+
+      if (hasAccess) {
+        // For students, filter out sensitive information
+        const filteredProblem = {
+          _id: problem._id,
+          title: problem.title,
+          description: problem.description,
+          difficulty: problem.difficulty,
+          category: problem.category,
+          constraints: problem.constraints,
+          inputFormat: problem.inputFormat,
+          outputFormat: problem.outputFormat,
+          sampleInput: problem.sampleInput,
+          sampleOutput: problem.sampleOutput,
+          createdAt: problem.createdAt,
+          updatedAt: problem.updatedAt,
+          // Include batch due dates for student's batches only
+          batchDueDates: problem.batchDueDates.filter((bd) => {
+            const batchId =
+              bd.batch &&
+              (typeof bd.batch === "object"
+                ? bd.batch._id.toString()
+                : bd.batch.toString());
+            return studentBatchIds.includes(batchId);
+          }),
+        };
+
+        return res.status(200).json({ problem: filteredProblem });
       }
-      
-      return res.json(problem);
     }
 
-    // Default deny for other roles
-    return res
-      .status(403)
-      .json({ message: "You are not allowed to access this problem" });
+    // If we get here, user doesn't have access
+    return res.status(403).json({
+      message: "You are not allowed to access this problem",
+      role: userRole,
+    });
   } catch (error) {
+    console.error("Error getting problem by ID:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -639,7 +801,7 @@ export const deleteProblem = async (req, res) => {
     await Problem.deleteOne({ _id: req.params.id });
 
     // Delete all related codes
-    await Code.deleteMany({ problemId: req.params.id });    // Delete all related submissions
+    await Code.deleteMany({ problemId: req.params.id }); // Delete all related submissions
     await Submission.deleteMany({ problem_id: req.params.id });
 
     res.json({ message: "Problem and all related data removed" });
@@ -648,6 +810,7 @@ export const deleteProblem = async (req, res) => {
   }
 };
 
+// Assign problem to batches
 // Assign problem to batches
 // Assign problem to batches
 export const assignProblemToBatches = async (req, res) => {
@@ -668,60 +831,80 @@ export const assignProblemToBatches = async (req, res) => {
     // Check authorization - only faculty or admin can assign
     const userId = req.user.id;
     const userRole = req.user.isAdmin;
-    console.log("userRole", userRole);
+
     if (userRole !== "admin" && userRole !== "faculty") {
-      return res.status(403).json({ message: "Unauthorized to assign this problem to batches" });
+      return res
+        .status(403)
+        .json({ message: "Unauthorized to assign this problem to batches" });
     }
 
     // Extract batchIds for permission check
-    const batchIds = batchDueDates.map(b => b.batchId);
-    console.log("batchIds", batchIds);
+    const batchIds = batchDueDates.map((b) => b.batchId);
+
     // Verify all batches exist and are accessible to this faculty
     const batches = await Batch.find({
       _id: { $in: batchIds },
-      $or: [
-        { faculty: userId },
-        { createdBy: userId }
-      ]
+      $or: [{ faculty: userId }, { createdBy: userId }],
     });
 
-    const foundBatchIds = batches.map(b => b._id.toString());
-    console.log("foundBatchIds", foundBatchIds);
-    const missingBatchIds = batchIds.filter(id => !foundBatchIds.includes(id));
+    const foundBatchIds = batches.map((b) => b._id.toString());
+    const missingBatchIds = batchIds.filter(
+      (id) => !foundBatchIds.includes(id)
+    );
 
     if (missingBatchIds.length > 0) {
       return res.status(400).json({
-        message: "Some batches don't exist or you don't have permission to assign to them.",
-        missingBatchIds
-      }); 
+        message:
+          "Some batches don't exist or you don't have permission to assign to them.",
+        missingBatchIds,
+      });
     }
 
-    // Add batches to assignedBatches if not already there, and update batchDueDates
+    // Process each batch due date entry
     for (const { batchId, dueDate } of batchDueDates) {
+      console.log(`Processing batch ${batchId} with due date:`, dueDate);
+
+      // Validate the due date if it exists
+      if (dueDate) {
+        // Parse the date with explicit handling for time
+        const selectedDate = new Date(dueDate);
+        const currentDate = new Date();
+
+        if (selectedDate < currentDate) {
+          return res.status(400).json({
+            message: `Due date cannot be in the past for batch ${batchId}`,
+          });
+        }
+      }
+
       // Add to assignedBatches if not present
-      if (!problem.assignedBatches.map(b => b.toString()).includes(batchId)) {
+      if (!problem.assignedBatches.map((b) => b.toString()).includes(batchId)) {
         problem.assignedBatches.push(batchId);
       }
 
-      // Update or add due date for this batch
-      const idx = problem.batchDueDates.findIndex(b => b.batch.toString() === batchId);
-      if (idx > -1) {
-        // Handle null dueDate (clear due date but keep batch assigned)
+      // Find if this batch already has an entry in batchDueDates
+      const existingIndex = problem.batchDueDates.findIndex(
+        (b) => b.batch && b.batch.toString() === batchId
+      );
+
+      // IMPORTANT: Store the exact ISO string to preserve timezone information
+      const exactDueDate = dueDate ? new Date(dueDate) : null;
+
+      if (existingIndex > -1) {
+        // Update existing entry
         if (dueDate === null) {
-          // Remove the dueDate field entirely instead of setting to null
-          // This updates the document to remove the field
-          problem.batchDueDates[idx].dueDate = undefined;
-        } else {
-          problem.batchDueDates[idx].dueDate = new Date(dueDate);
+          // If dueDate is explicitly null, remove the dueDate field
+          problem.batchDueDates[existingIndex].dueDate = undefined;
+        } else if (dueDate) {
+          // Store exact date object
+          problem.batchDueDates[existingIndex].dueDate = exactDueDate;
         }
       } else {
-        // For new batch assignments
-        if (dueDate === null) {
-          // If no due date, just add the batch reference without a dueDate field
-          problem.batchDueDates.push({ batch: batchId });
-        } else {
-          problem.batchDueDates.push({ batch: batchId, dueDate: new Date(dueDate) });
-        }
+        // Create new entry for this batch
+        problem.batchDueDates.push({
+          batch: batchId,
+          dueDate: exactDueDate,
+        });
       }
 
       // Update the batch to include this problem in its assignedProblems array
@@ -732,16 +915,16 @@ export const assignProblemToBatches = async (req, res) => {
       );
     }
 
-    await problem.save(); // Save the problem with the updated batch assignments and due dates
+    await problem.save();
 
-    // Send notifications to students in the batches (your existing notification code)
-    // ...
-
-    const totalStudentCount = batches.reduce((count, batch) => count + batch.students.length, 0);
+    const totalStudentCount = batches.reduce(
+      (count, batch) => count + batch.students.length,
+      0
+    );
 
     res.status(200).json({
       message: `Problem assigned to ${batches.length} batches with access for ${totalStudentCount} students.`,
-      problem
+      problem,
     });
   } catch (error) {
     console.error("Error assigning problem to batches:", error);
@@ -749,7 +932,11 @@ export const assignProblemToBatches = async (req, res) => {
   }
 };
 
+// Update getProblemBatches to include full date/time information
+
 // Unassign problem from batches
+// Unassign problem from batches
+// Fix for unassignBatches function in problem.controller.js
 export const unassignBatches = async (req, res) => {
   const { id } = req.params; // Problem ID
   const { batchIds } = req.body; // Array of batch IDs to unassign
@@ -759,43 +946,118 @@ export const unassignBatches = async (req, res) => {
   }
 
   try {
+    console.log(
+      `Unassigning batches ${batchIds.join(", ")} from problem ${id}`
+    );
+
     // Find the problem
     const problem = await Problem.findById(id);
     if (!problem) {
       return res.status(404).json({ message: "Problem not found" });
     }
 
-    // Check authorization - only the creator or admin can unassign
+    // Check authorization - faculty can unassign batches they manage
     const userId = req.user.id;
     const userRole = req.user.isAdmin;
 
-    if (problem.createdBy.toString() !== userId.toString() && userRole !== "admin") {
-      return res.status(403).json({ message: "Unauthorized to unassign batches from this problem" });
-    }    // Get all batches to be unassigned
-    const batchesToUnassign = await Batch.find({ _id: { $in: batchIds } });
-    
-    // Remove the batches from assignedBatches
-    problem.assignedBatches = problem.assignedBatches.filter(
-      batchId => !batchIds.includes(batchId.toString())
+    // For security, if not admin or creator, verify faculty has access to these batches
+    if (
+      userRole !== "admin" &&
+      (!problem.createdBy || problem.createdBy.toString() !== userId)
+    ) {
+      // For faculty, check if they have access to these batches
+      if (userRole === "faculty") {
+        const accessibleBatches = await Batch.find({
+          _id: { $in: batchIds },
+          $or: [{ faculty: userId }, { createdBy: userId }],
+        });
+
+        const accessibleBatchIds = accessibleBatches.map((b) =>
+          b._id.toString()
+        );
+        const inaccessibleBatchIds = batchIds.filter(
+          (id) => !accessibleBatchIds.includes(id)
+        );
+
+        if (inaccessibleBatchIds.length > 0) {
+          return res.status(403).json({
+            message:
+              "You don't have permission to unassign some of these batches",
+            inaccessibleBatchIds,
+          });
+        }
+      } else {
+        return res.status(403).json({
+          message: "Unauthorized to unassign batches from this problem",
+        });
+      }
+    }
+
+    console.log(
+      "Before unassign - Problem assigned batches:",
+      problem.assignedBatches.map((b) => b.toString())
     );
-    
+    console.log(
+      "Before unassign - Problem batch due dates:",
+      problem.batchDueDates.map((bd) => ({
+        batch: bd.batch ? bd.batch.toString() : null,
+        dueDate: bd.dueDate,
+      }))
+    );
+
+    // Remove the batches from assignedBatches array
+    problem.assignedBatches = problem.assignedBatches.filter((batchId) => {
+      const batchIdStr = batchId.toString();
+      return !batchIds.includes(batchIdStr);
+    });
+
+    // Remove the batches from batchDueDates array
+    problem.batchDueDates = problem.batchDueDates.filter((batchDue) => {
+      if (!batchDue.batch) return true; // Keep entries without a batch reference
+
+      const batchIdStr = batchDue.batch.toString();
+      return !batchIds.includes(batchIdStr);
+    });
+
+    console.log(
+      "After unassign - Problem assigned batches:",
+      problem.assignedBatches.map((b) => b.toString())
+    );
+    console.log(
+      "After unassign - Problem batch due dates:",
+      problem.batchDueDates.map((bd) => ({
+        batch: bd.batch ? bd.batch.toString() : null,
+        dueDate: bd.dueDate,
+      }))
+    );
+
     // Remove this problem from assignedProblems in each batch
     for (const batchId of batchIds) {
-      await Batch.findByIdAndUpdate(
-        batchId,
-        { $pull: { assignedProblems: id } }
-      );
+      await Batch.findByIdAndUpdate(batchId, {
+        $pull: { assignedProblems: id },
+      });
     }
-    
+
+    // Save the updated problem
     await problem.save();
 
     res.status(200).json({
-      message: `${batchIds.length} batches unassigned from problem successfully`,
-      problem
+      success: true,
+      message: `Problem successfully unassigned from ${batchIds.length} batches`,
+      unassignedBatchIds: batchIds,
+      problem: {
+        _id: problem._id,
+        title: problem.title,
+        assignedBatches: problem.assignedBatches,
+        batchDueDateCount: problem.batchDueDates.length,
+      },
     });
   } catch (error) {
     console.error("Error unassigning batches from problem:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -812,17 +1074,19 @@ export const getProblemsByBatch = async (req, res) => {
     }
 
     if (!batch.students.includes(userId)) {
-      return res.status(403).json({ message: "You are not a member of this batch" });
-    }    // Find all problems assigned to this batch using the assignedProblems field in the batch
+      return res
+        .status(403)
+        .json({ message: "You are not a member of this batch" });
+    } // Find all problems assigned to this batch using the assignedProblems field in the batch
     const fullBatch = await Batch.findById(batchId).populate({
-      path: 'assignedProblems',
-      select: '_id title difficulty createdAt dueDate createdBy',
+      path: "assignedProblems",
+      select: "_id title difficulty createdAt dueDate createdBy",
       populate: {
-        path: 'createdBy',
-        select: 'username firstName lastName'
-      }
+        path: "createdBy",
+        select: "username firstName lastName",
+      },
     });
-    
+
     const problems = fullBatch.assignedProblems || [];
 
     res.json({
@@ -837,39 +1101,46 @@ export const getProblemsByBatch = async (req, res) => {
 };
 
 // Get all batches assigned to a problem
+// Get all batches assigned to a problem
 export const getProblemBatches = async (req, res) => {
   const { id } = req.params; // Problem ID
-  
+
   try {
+    // Find the problem with its batch assignments
     const problem = await Problem.findById(id).populate({
-      path: 'assignedBatches',
-      select: 'name description students subject',
-      populate: {
-        path: 'students',
-        select: 'username firstName lastName id email',
-        model: 'User'
-      }
+      path: "assignedBatches",
+      select: "name students createdAt",
     });
-    
+
     if (!problem) {
       return res.status(404).json({ message: "Problem not found" });
     }
-    
-    const userId = req.user.id;
-    const userRole = req.user.isAdmin;
-    
-    if (problem.createdBy.toString() !== userId.toString() && userRole !== "admin") {
-      return res.status(403).json({ message: "Unauthorized to view batches for this problem" });
-    }
-    
-    res.status(200).json({
-      batches: problem.assignedBatches,
-      success: true
+
+    // Restructure data to include due dates
+    const batchesWithDueDates = problem.assignedBatches.map((batch) => {
+      // Find due date for this batch
+      const dueDateEntry = problem.batchDueDates.find(
+        (bd) => bd.batch && bd.batch.toString() === batch._id.toString()
+      );
+
+      // Return batch with its due date - return exact date string to preserve time
+      return {
+        _id: batch._id,
+        name: batch.name,
+        students: batch.students,
+        createdAt: batch.createdAt,
+        dueDate: dueDateEntry?.dueDate
+          ? dueDateEntry.dueDate.toISOString()
+          : null,
+      };
     });
-    
+
+    res.status(200).json({
+      batches: batchesWithDueDates,
+    });
   } catch (error) {
-    console.error("Error fetching problem batches:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Error getting problem batches:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -888,8 +1159,13 @@ export const updateProblemDueDate = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.isAdmin;
 
-    if (problem.createdBy.toString() !== userId.toString() && userRole !== "admin") {
-      return res.status(403).json({ message: "Unauthorized to edit this problem" });
+    if (
+      problem.createdBy.toString() !== userId.toString() &&
+      userRole !== "admin"
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized to edit this problem" });
     }
 
     // Update due date
@@ -911,127 +1187,141 @@ export const updateProblemDueDate = async (req, res) => {
 export const getProblemDetails = async (req, res) => {
   try {
     const { id } = req.params;
-    const { query = "", page = 1, limit = 3, facultyOnly = "false" } = req.query;
+    const {
+      query = "",
+      page = 1,
+      limit = 3,
+      facultyOnly = "false",
+    } = req.query;
     const isFacultyOnly = facultyOnly === "true";
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
-    
+
     // Find the problem and populate related fields
     const problem = await Problem.findById(id)
-      .populate('createdBy', 'name username email')
+      .populate("createdBy", "name username email")
       .populate({
-        path: 'batchDueDates.batch',
-        select: 'name description subject students faculty createdAt',
+        path: "batchDueDates.batch",
+        select: "name description subject students faculty createdAt",
         populate: {
-          path: 'students',
-          select: 'name'
-        }
+          path: "students",
+          select: "name",
+        },
       })
-      .populate('tags')
+      .populate("tags")
       .lean();
-    
+
     if (!problem) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "Problem not found" 
+        message: "Problem not found",
       });
     }
-    
+
     // Filter batches by faculty if requested
     let filteredBatches = problem.batchDueDates || [];
-    
+
     if (isFacultyOnly && req.user.isAdmin === "faculty") {
       // Get faculty's batches
-      const facultyBatches = await Batch.find({ 
-        $or: [
-          { faculty: req.user.id },
-          { createdBy: req.user.id }
-        ]
-      }).select('_id');
-      
-      const facultyBatchIds = facultyBatches.map(b => b._id.toString());
-      
+      const facultyBatches = await Batch.find({
+        $or: [{ faculty: req.user.id }, { createdBy: req.user.id }],
+      }).select("_id");
+
+      const facultyBatchIds = facultyBatches.map((b) => b._id.toString());
+
       // Filter problem batches to only include faculty's batches
-      filteredBatches = filteredBatches.filter(
-        bd => facultyBatchIds.includes(bd.batch?._id?.toString() || bd.batch?.toString())
+      filteredBatches = filteredBatches.filter((bd) =>
+        facultyBatchIds.includes(
+          bd.batch?._id?.toString() || bd.batch?.toString()
+        )
       );
     }
-    
+
     // Get submission statistics for this problem
     const submissionStats = await Submission.aggregate([
       { $match: { problem_id: new mongoose.Types.ObjectId(id) } },
-      { $group: {
+      {
+        $group: {
           _id: "$status",
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
-    
+
     // Format the submission stats
     const stats = {
       total: 0,
       accepted: 0,
       rejected: 0,
-      pending: 0
+      pending: 0,
     };
-    
-    submissionStats.forEach(stat => {
+
+    submissionStats.forEach((stat) => {
       if (stat._id === "accepted") stats.accepted = stat.count;
       else if (stat._id === "rejected") stats.rejected = stat.count;
       else if (stat._id === "pending") stats.pending = stat.count;
       stats.total += stat.count;
     });
-    
+
     // Add submission stats to the problem object
     problem.submissionStats = stats;
-    
+
     // Filter batches if search query is provided
-    if (query) { // Only filter if query is provided
-      filteredBatches = filteredBatches.filter(batchDue => {
+    if (query) {
+      // Only filter if query is provided
+      filteredBatches = filteredBatches.filter((batchDue) => {
         if (!batchDue.batch) return false;
-        
+
         // Search in batch name
-        if (batchDue.batch.name && 
-            batchDue.batch.name.toLowerCase().includes(query.toLowerCase())) {
+        if (
+          batchDue.batch.name &&
+          batchDue.batch.name.toLowerCase().includes(query.toLowerCase())
+        ) {
           return true;
         }
-        
+
         // Search in subject
-        if (batchDue.batch.subject && 
-            batchDue.batch.subject.toLowerCase().includes(query.toLowerCase())) {
+        if (
+          batchDue.batch.subject &&
+          batchDue.batch.subject.toLowerCase().includes(query.toLowerCase())
+        ) {
           return true;
         }
-        
+
         // Search in description
-        if (batchDue.batch.description && 
-            batchDue.batch.description.toLowerCase().includes(query.toLowerCase())) {
+        if (
+          batchDue.batch.description &&
+          batchDue.batch.description.toLowerCase().includes(query.toLowerCase())
+        ) {
           return true;
         }
-        
+
         return false;
       });
     }
-    
+
     // Calculate pagination data
     const totalBatches = filteredBatches.length;
     const totalPages = Math.ceil(totalBatches / limitNum);
-    
+
     // Apply pagination if requested
     if (req.query.page) {
       const startIndex = (pageNum - 1) * limitNum;
       const endIndex = pageNum * limitNum;
-      
+
       // Add student counts before pagination
-      filteredBatches = filteredBatches.map(batchDue => {
+      filteredBatches = filteredBatches.map((batchDue) => {
         if (batchDue.batch) {
-          batchDue.submissionCount = batchDue.batch.students ? batchDue.batch.students.length : 0;
+          batchDue.submissionCount = batchDue.batch.students
+            ? batchDue.batch.students.length
+            : 0;
         }
         return batchDue;
       });
-      
+
       // Get just the batches for this page
       const paginatedBatches = filteredBatches.slice(startIndex, endIndex);
-      
+
       // Return the paginated response
       return res.json({
         success: true,
@@ -1042,32 +1332,34 @@ export const getProblemDetails = async (req, res) => {
           currentPage: pageNum,
           limit: limitNum,
           hasNextPage: pageNum < totalPages,
-          hasPrevPage: pageNum > 1
-        }
+          hasPrevPage: pageNum > 1,
+        },
       });
     }
-    
+
     // If no pagination requested, process all batches
     if (problem.batchDueDates) {
-      problem.batchDueDates = problem.batchDueDates.map(batchDue => {
+      problem.batchDueDates = problem.batchDueDates.map((batchDue) => {
         if (batchDue.batch) {
           // Count submissions from this batch's students
-          batchDue.submissionCount = batchDue.batch.students ? batchDue.batch.students.length : 0;
+          batchDue.submissionCount = batchDue.batch.students
+            ? batchDue.batch.students.length
+            : 0;
         }
         return batchDue;
       });
     }
-    
+
     // Return the full response
     res.json({
       success: true,
-      problem
+      problem,
     });
   } catch (error) {
     console.error("Error fetching problem details:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Internal server error" 
+      message: "Internal server error",
     });
   }
 };

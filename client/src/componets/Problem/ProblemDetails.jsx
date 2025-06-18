@@ -236,7 +236,7 @@ const ProblemDetails = () => {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Left column: Problem details */}
           <div className="flex-1">
-            <div className="bg-gray-800 rounded-xl shadow-xl overflow-hidden mb-8 border border-gray-700">
+            <div className="bg-gray-800 rounded-2xl shadow-2xl overflow-hidden mb-8 border border-gray-700">
               <div className="bg-gradient-to-r from-blue-900 to-indigo-900 h-2 w-full" />
               <div className="p-6 border-b border-gray-700">
                 <div className="flex flex-wrap gap-4 items-center mb-3">
@@ -349,7 +349,7 @@ const ProblemDetails = () => {
           </div>
           
           {/* Right column: Assigned batches with search and pagination */}
-          <div className="lg:w-1/3">
+          <div className="lg:w-2/5">
             <div className="bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-700 sticky top-24">
               <div className="bg-gradient-to-r from-purple-900 to-indigo-900 h-2 w-full" />
               <div className="p-6 border-b border-gray-700">

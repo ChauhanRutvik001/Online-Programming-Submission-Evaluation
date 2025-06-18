@@ -250,7 +250,7 @@ const BatchDetails = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           className="text-blue-400 hover:underline font-semibold text-left"
-                          onClick={() => navigate(`/problems/${problem._id}`)}
+                          onClick={() => navigate(`/problems/${problem._id}/${batchId}`)}
                         >
                           {problem.title}
                         </button>

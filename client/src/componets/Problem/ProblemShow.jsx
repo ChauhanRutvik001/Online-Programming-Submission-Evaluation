@@ -20,6 +20,8 @@ const ProblemShow = () => {
   const [activeTab, setActiveTab] = useState("statement");
   const [latestSubmission, setLatestSubmission] = useState(null); // Store latest submission
   const [isPastDue, setIsPastDue] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const codeTemplates = {
     java: "public class Solution {\n  public static void main(String[] args) {\n    // Your code here\n  }\n}",
@@ -40,10 +42,11 @@ const ProblemShow = () => {
 
   useEffect(() => {
     const fetchProblem = async () => {
+      setLoading(true);
       try {
         const response = await axiosInstance.get(`/problems/${id}`);
-        setProblem(response.data);
-        console.log("Problem Data:", response.data);
+        setProblem(response.data.problem || response.data);
+        setError(null);
         // Check if problem is past due date for this batch
         if (batchId && response.data.batchDueDates && response.data.batchDueDates.length > 0) {
           console.log("Batch Due Dates:", response.data.batchDueDates);
@@ -60,8 +63,11 @@ const ProblemShow = () => {
         } else {
           setIsPastDue(false);
         }
-      } catch (error) {
-        toast.error("Failed to load problem data");
+      } catch (err) {
+        console.error("Error fetching problem:", err);
+        setError(err.response?.data?.message || "Failed to load problem");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -92,6 +98,27 @@ const ProblemShow = () => {
 
   const dueDate = batchId && problem ? getBatchDueDate(problem, batchId) : null;
   const isBatchPastDue = dueDate ? new Date() > new Date(dueDate) : false;
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-t-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-900/40 border border-red-800 text-red-200 px-4 py-3 rounded">
+          <p className="font-medium">Error loading problem</p>
+          <p className="mt-1">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!problem) {
     return (
@@ -125,20 +152,99 @@ const ProblemShow = () => {
             >
               <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path>
             </svg>
-          </button>          <div className="flex justify-between items-center mb-4">
+          </button>
+          <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-extrabold text-white tracking-tight">
               {problem.title}
             </h1>
-            {batchId && dueDate && (
-              <div
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  isBatchPastDue
-                    ? "bg-red-900/20 text-red-400"
-                    : "bg-blue-900/20 text-blue-400"
-                }`}
-              >
-                {isBatchPastDue ? "Due date passed: " : "Due: "}
-                {formatDueDate(dueDate)}
+            {batchId && problem.batchDueDates && (
+              <div className="ml-auto flex items-center">
+                {(() => {
+                  // Find the due date for this batch
+                  const batchDueDate = problem.batchDueDates.find((bd) => {
+                    if (!bd || !bd.batch) return false;
+                    const bdBatchId =
+                      typeof bd.batch === "object"
+                        ? bd.batch._id
+                        : bd.batch.toString();
+                    return bdBatchId === batchId;
+                  });
+
+                  if (!batchDueDate || !batchDueDate.dueDate) {
+                    return (
+                      <div className="text-gray-400 text-sm flex items-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 mr-1"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <span>No due date</span>
+                      </div>
+                    );
+                  }
+
+                  const dueDate = new Date(batchDueDate.dueDate);
+                  const now = new Date();
+                  const isPastDue = dueDate < now;
+
+                  // Format the date
+                  const dateOptions = {
+                    month: "short",
+                    day: "numeric",
+                  };
+                  const timeOptions = {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  };
+
+                  const dateFormatted = dueDate.toLocaleDateString(
+                    undefined,
+                    dateOptions
+                  );
+                  const timeFormatted = dueDate.toLocaleTimeString(
+                    undefined,
+                    timeOptions
+                  );
+
+                  return (
+                    <div
+                      className={`px-3 py-1.5 rounded-md border ${
+                        isPastDue
+                          ? "border-red-700 bg-red-900/30 text-red-400"
+                          : "border-blue-700 bg-blue-900/30 text-blue-400"
+                      } text-sm flex items-center`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 mr-1.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <span>
+                        <span className="font-medium">Due: </span>
+                        {dateFormatted} at {timeFormatted}
+                        {isPastDue && " (Past Due)"}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>

@@ -30,22 +30,37 @@ const MakeProblem = () => {
     key: "createdAt",
     direction: "desc",
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     const role = user.role;
     setUserRole(role);
-    fetchProblems();
+    fetchProblems(1);
   }, [user]);
 
-  const fetchProblems = async () => {
+  const fetchProblems = async (page = currentPage) => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get(`/problems/problems`);
-      const { problems: allProblems } = response.data;
-      console.log("Fetched problems:", allProblems);
+      console.log(`Fetching problems page ${page}`);
+
+      const response = await axiosInstance.get(
+        `/problems/problems?page=${page}&limit=20`
+      );
+      const {
+        problems: allProblems,
+        totalPages: pages,
+        currentPage: returnedPage,
+      } = response.data;
+
+      console.log(
+        `Received ${allProblems.length} problems, total pages: ${pages}, current page: ${returnedPage}`
+      );
+
       setProblems(allProblems);
+      setTotalPages(pages || 1);
+      setCurrentPage(returnedPage || page);
     } catch (error) {
-      toast.error("Error fetching problems!");
       console.error("Error fetching problems:", error);
     } finally {
       setLoading(false);
@@ -78,7 +93,12 @@ const MakeProblem = () => {
     setShowDeleteModal(true);
   };
 
-  const handleDashboardConfirmation = (problemId, title, difficulty, createdAt) => {
+  const handleDashboardConfirmation = (
+    problemId,
+    title,
+    difficulty,
+    createdAt
+  ) => {
     navigate(`/dashboard/${problemId}`, {
       state: {
         problemTitle: title,
@@ -112,21 +132,23 @@ const MakeProblem = () => {
     if (sortConfig !== null) {
       sortableProblems.sort((a, b) => {
         // Handle nested fields like createdBy.name
-        if (sortConfig.key.includes('.')) {
-          const keys = sortConfig.key.split('.');
+        if (sortConfig.key.includes(".")) {
+          const keys = sortConfig.key.split(".");
           let aValue = a;
           let bValue = b;
-          
+
           // Navigate through the nested object
           for (const key of keys) {
             aValue = aValue?.[key];
             bValue = bValue?.[key];
           }
-          
+
           // Handle undefined values
-          if (aValue === undefined) return sortConfig.direction === 'asc' ? -1 : 1;
-          if (bValue === undefined) return sortConfig.direction === 'asc' ? 1 : -1;
-          
+          if (aValue === undefined)
+            return sortConfig.direction === "asc" ? -1 : 1;
+          if (bValue === undefined)
+            return sortConfig.direction === "asc" ? 1 : -1;
+
           if (aValue < bValue) {
             return sortConfig.direction === "asc" ? -1 : 1;
           }
@@ -181,25 +203,60 @@ const MakeProblem = () => {
     return title && title.length > maxLength
       ? `${title.slice(0, maxLength)}...`
       : title || "Untitled";
-  };  return (
-    <div className="min-h-screen bg-gray-900 text-white flex">
-      {/* Main Content */}
-      <div className="flex-1 bg-gray-900 mt-8">
-        {/* Header Section */}
-        <div className="from-gray-900 mb-8 relative overflow-hidden">
-          <div className="container mx-auto px-4 relative z-10">
-            <div className="mt-16"></div>
-            <div className="flex justify-between items-center">
-              <h1 className="text-4xl font-bold tracking-tight text-blue-400">Problem Bank</h1>
-            </div>
-          </div>
-        </div>
+  };
 
-        <div className="container mx-auto px-4">
+  const canEditDelete = (problem) => {
+    // Check if user is admin - admins can edit anything
+    if (user?.isAdmin === "admin" || user?.role === "admin") return true;
+
+    // For safety, check if we have both user and problem data
+    if (!problem || !problem.createdBy || !user) {
+      return false;
+    }
+
+    // FIXED: Compare MongoDB _id instead of username/id
+    const creatorId = String(problem.createdBy._id);
+    const userId = String(user._id); // Use _id not id
+
+    // Debug this comparison
+    if (problems.indexOf(problem) < 3) {
+      console.log(`Permission check for "${problem.title}":`, {
+        creatorId,
+        userId,
+        isCreator: creatorId === userId,
+      });
+    }
+
+    // Return true if current user is the creator
+    return creatorId === userId;
+  };
+  // Add this function to your MakeProblem component (after fetchProblems but before return statement)
+  const handlePageChange = (newPage) => {
+    // Only proceed if it's a valid page
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      console.log(`Changing to page ${newPage}`);
+      setCurrentPage(newPage);
+      fetchProblems(newPage);
+    }
+  };
+
+  // Add this useEffect for debugging user state
+  useEffect(() => {
+    console.log("Current user from Redux:", user);
+  }, [user]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-900 text-white">
+      <div className="py-6 px-8 pt-20 flex justify-center items-center">
+        <h1 className="text-3xl font-bold text-white">Problem Bank</h1>
+      </div>
+
+      <div className="max-w-7xl mx-auto p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          {userRole !== "student" && (            <button
+          {userRole !== "student" && (
+            <button
               onClick={handleCreateProblem}
-              className="flex items-center gap-2 bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition-all shadow-md"
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-md"
             >
               <Plus className="w-5 h-5" />
               <span>Add Problem</span>
@@ -300,7 +357,9 @@ const MakeProblem = () => {
                       </td>
                       <td
                         className="py-4 px-6"
-                        onClick={() => navigate(`/problem-details/${problem._id}`)}
+                        onClick={() =>
+                          navigate(`/problem-details/${problem._id}`)
+                        }
                       >
                         <div className="font-semibold capitalize text-blue-400 hover:text-blue-300 cursor-pointer transition-colors">
                           {truncateTitle(
@@ -332,22 +391,33 @@ const MakeProblem = () => {
                       {userRole !== "student" && (
                         <td className="py-4 px-6">
                           <div className="flex items-center justify-center gap-2">
-                            <button
-                              className="p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-colors"
-                              title="Edit"
-                              onClick={() => handleEditProblem(problem._id)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              className="p-2 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors"
-                              title="Delete"
-                              onClick={() =>
-                                handleDeleteConfirmation(problem._id)
-                              }
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {/* Edit button - only for creator/admin */}
+                            {canEditDelete(problem) && (
+                              <button
+                                className="p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-colors"
+                                title="Edit"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditProblem(problem._id);
+                                }}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            )}
+
+                            {/* Delete button - only for creator/admin */}
+                            {canEditDelete(problem) && (
+                              <button
+                                className="p-2 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors"
+                                title="Delete"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteConfirmation(problem._id);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
                               className="p-2 rounded-lg bg-green-600/20 text-green-400 hover:bg-green-600/40 transition-colors"
                               title="Dashboard"
@@ -391,8 +461,39 @@ const MakeProblem = () => {
                   </tr>
                 )}
               </tbody>
-            </table>          </div>
+            </table>
+          </div>
         </div>
+
+        {/* Pagination controls */}
+        <div className="flex justify-center mt-6 gap-2">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`px-4 py-2 rounded-md ${
+              currentPage === 1
+                ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`}
+          >
+            Previous
+          </button>
+
+          <span className="px-4 py-2 text-gray-300">
+            Page {currentPage} of {totalPages}
+          </span>
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages || totalPages === 0}
+            className={`px-4 py-2 rounded-md ${
+              currentPage === totalPages || totalPages === 0
+                ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`}
+          >
+            Next
+          </button>
         </div>
       </div>
 
