@@ -464,7 +464,7 @@ const AdminStudentRegister = () => {
                   >
                     <option value="">Select Batch</option>
                     {validBatches.map((batch) => (
-                      <option key={batch} value={batch}>{batch.toUpperCase()}</option>
+                      <option key={batch} value={batch}>{batch?.toUpperCase()}</option>
                     ))}
                   </select>
                 </div>
@@ -677,7 +677,7 @@ const AdminStudentRegister = () => {
                               {student.username}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 font-mono">
-                              {student.batch.toUpperCase()}
+                              {student.batch?.toUpperCase()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                               {student.semester}
@@ -886,7 +886,7 @@ const AdminStudentRegister = () => {
                                     {item.username}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                    {item.batch.toUpperCase()}
+                                    {item.batch?.toUpperCase()}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                                     {item.semester}

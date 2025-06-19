@@ -797,14 +797,22 @@ export const deleteProblem = async (req, res) => {
         .json({ message: "Unauthorized to delete this problem" });
     }
 
+    // Remove references to this problem from all batches
+    await Batch.updateMany(
+      { assignedProblems: req.params.id },
+      { $pull: { assignedProblems: req.params.id } }
+    );
+
     // Delete the problem
     await Problem.deleteOne({ _id: req.params.id });
 
     // Delete all related codes
-    await Code.deleteMany({ problemId: req.params.id }); // Delete all related submissions
+    await Code.deleteMany({ problemId: req.params.id }); 
+    
+    // Delete all related submissions
     await Submission.deleteMany({ problem_id: req.params.id });
 
-    res.json({ message: "Problem and all related data removed" });
+    res.json({ message: "Problem and all related data removed, and removed from all batches" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -981,8 +989,7 @@ export const unassignBatches = async (req, res) => {
 
         if (inaccessibleBatchIds.length > 0) {
           return res.status(403).json({
-            message:
-              "You don't have permission to unassign some of these batches",
+            message: "You don't have permission to unassign some of these batches",
             inaccessibleBatchIds,
           });
         }
