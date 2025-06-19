@@ -276,11 +276,11 @@ const facultyController = {
         error: error.message
       });
     }
-  },
-  // Get batch progress analytics for faculty
+  },  // Get batch progress analytics for faculty
   getBatchProgress: async (req, res) => {
     try {
       const { batchId } = req.params;
+      const { page = 1, limit = 10 } = req.query;
       const facultyId = req.user.id;
 
       // First verify the faculty has access to this batch
@@ -295,10 +295,68 @@ const facultyController = {
           success: false,
           message: "Batch not found or you don't have access to it",
         });
-      }      // Get all problems assigned to this batch
+      }
+
+      // Calculate pagination for problems
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const totalProblemsCount = batch.assignedProblems.length;
+      const totalPages = Math.ceil(totalProblemsCount / parseInt(limit));
+
+      // Get paginated problems assigned to this batch
       const problems = await Problem.find({
         _id: { $in: batch.assignedProblems },
-      }).select("_id title difficulty createdAt dueDate totalMarks");
+      })
+      .select("_id title difficulty createdAt batchDueDates totalMarks")
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: 1 });
+
+      // Get all problems for calculating complete statistics (non-paginated)
+      const allProblems = await Problem.find({
+        _id: { $in: batch.assignedProblems },
+      }).select("_id title difficulty createdAt batchDueDates totalMarks");
+
+      // Map problems to include only the due date for this batch
+      const problemsWithDueDate = problems.map(problem => {
+        let dueDate = null;
+        if (problem.batchDueDates && problem.batchDueDates.length > 0) {
+          const entry = problem.batchDueDates.find(
+            (b) => b.batch?.toString() === batchId
+          );
+          if (entry) {
+            dueDate = entry.dueDate;
+          }
+        }
+        return {
+          _id: problem._id,
+          title: problem.title,
+          difficulty: problem.difficulty,
+          createdAt: problem.createdAt,
+          totalMarks: problem.totalMarks || 100,
+          dueDate,
+        };
+      });
+
+      // Map all problems for complete statistics
+      const allProblemsWithDueDate = allProblems.map(problem => {
+        let dueDate = null;
+        if (problem.batchDueDates && problem.batchDueDates.length > 0) {
+          const entry = problem.batchDueDates.find(
+            (b) => b.batch?.toString() === batchId
+          );
+          if (entry) {
+            dueDate = entry.dueDate;
+          }
+        }
+        return {
+          _id: problem._id,
+          title: problem.title,
+          difficulty: problem.difficulty,
+          createdAt: problem.createdAt,
+          totalMarks: problem.totalMarks || 100,
+          dueDate,
+        };
+      });
 
       // Get all student IDs in this batch
       const batchStudentIds = batch.students.map((student) => student._id);
@@ -309,20 +367,26 @@ const facultyController = {
         problem_id: { $in: batch.assignedProblems },
       })
         .populate("user_id", "username id")
-        .populate("problem_id", "title difficulty");
-
-      // Calculate progress statistics
+        .populate("problem_id", "title difficulty");      // Calculate progress statistics
       const progressStats = {
         totalStudents: batch.students.length,
-        totalProblems: problems.length,
+        totalProblems: allProblemsWithDueDate.length, // Use all problems count
         submissionStats: {},
         problemStats: {},
         studentStats: {},
         overallProgress: {},
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalProblems: totalProblemsCount,
+          limit: parseInt(limit),
+          hasNextPage: parseInt(page) < totalPages,
+          hasPrevPage: parseInt(page) > 1
+        }
       };
 
-      // Calculate per-problem statistics
-      problems.forEach((problem) => {
+      // Calculate per-problem statistics for all problems (for complete stats)
+      allProblemsWithDueDate.forEach((problem) => {
         const problemSubmissions = submissions.filter(
           (sub) => sub.problem_id._id.toString() === problem._id.toString()
         );
@@ -385,7 +449,7 @@ const facultyController = {
         let totalMarksEarned = 0;
         let totalPossibleMarks = 0;
         const submissionDates = []; // For tie-breaking        // Calculate total possible marks for all problems in the batch
-        problems.forEach((problem) => {
+        allProblemsWithDueDate.forEach((problem) => {
           totalPossibleMarks += problem.totalMarks || 100;
         });
 
@@ -398,9 +462,7 @@ const facultyController = {
           ) {
             studentBestByProblem[problemId] = sub;
           }
-        });
-
-        Object.values(studentBestByProblem).forEach((sub) => {
+        });        Object.values(studentBestByProblem).forEach((sub) => {
           const problemId = sub.problem_id._id.toString();
           
           problemsAttempted.add(problemId);
@@ -415,14 +477,16 @@ const facultyController = {
           ) {
             problemsCompleted.add(problemId);
           }
-        });        // Calculate submission timing sum for tie-breaking (sum of timestamps)
+        });
+
+        // Calculate submission timing sum for tie-breaking (sum of timestamps)
         const submissionTimingSum = submissionDates.reduce((sum, date) => sum + date.getTime(), 0);
 
         // Create problem details for this student
         const problemDetails = {};
         Object.values(studentBestByProblem).forEach((sub) => {
           const problemId = sub.problem_id._id.toString();
-          const problem = problems.find(p => p._id.toString() === problemId);
+          const problem = allProblemsWithDueDate.find(p => p._id.toString() === problemId);
           const problemTotalMarks = problem ? problem.totalMarks : 100;
           
           let status = 'attempted';
@@ -503,9 +567,7 @@ const facultyController = {
         averageAttemptsPerStudent: (
           submissions.length / progressStats.totalStudents
         ).toFixed(1),
-      };
-
-      return res.status(200).json({
+      };      return res.status(200).json({
         success: true,
         batch: {
           _id: batch._id,
@@ -515,7 +577,7 @@ const facultyController = {
           semester: batch.semester,
         },
         progressStats,
-        problems,
+        problems: problemsWithDueDate, // return paginated problems with due dates
       });
     } catch (error) {
       console.error("Error fetching batch progress:", error);

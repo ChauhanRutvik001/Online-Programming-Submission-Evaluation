@@ -22,17 +22,16 @@ const Layout = () => {
     const pattern = route.replace(/:\w+/g, "[^/]+");
     const routePattern = new RegExp(`^${pattern}$`);
     return routePattern.test(location.pathname);
-  });
-  return (
+  });  return (
     <AuthRouter>
-      <div className="min-h-screen bg-gray-900">
+      <div className="min-h-screen w-full bg-gray-900 overflow-x-hidden">
         {!isNoHeaderRoute && (
           <Header 
             isAuthenticated={isAuthenticated} 
             onLoginClick={() => setShowLoginModal(true)} 
           />
         )}
-        <main className="bg-gray-900">
+        <main className="bg-gray-900 w-full">
           <Outlet context={{ showLoginModal, setShowLoginModal }} />
         </main>
         

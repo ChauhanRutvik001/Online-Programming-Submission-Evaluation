@@ -135,7 +135,7 @@ const AdminRegister = () => {
         </div>
       </div>
 
-      {/* Main Content - Full Screen */}
+      {/* Main Content */}
       <main className="px-4 py-8">
         <div className="w-full">
           {/* Search and Stats Section */}
@@ -163,7 +163,7 @@ const AdminRegister = () => {
             </div>
           </div>
 
-          {/* Table Section - Full Width */}
+          {/* Table Section with Long Name Handling */}
           <div className="bg-gray-900 rounded-xl shadow-xl overflow-hidden">
             {loading ? (
               <div className="flex justify-center items-center h-64">
@@ -180,13 +180,13 @@ const AdminRegister = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
+                <table className="w-full border-collapse table-fixed min-w-[1000px]">
                   <thead>
                     <tr className="bg-gray-700 text-gray-200 text-sm uppercase">
-                      <th className="py-4 px-6 text-left w-16">
+                      <th className="py-4 px-6 text-left w-[5%]">
                         <span className="font-semibold">#</span>
                       </th>
-                      <th className="py-4 px-6 text-left min-w-[200px]">
+                      <th className="py-4 px-6 text-left w-[18%]">
                         <button
                           onClick={() => handleSort("username")}
                           className="flex items-center font-semibold hover:text-blue-300 transition-colors"
@@ -194,7 +194,7 @@ const AdminRegister = () => {
                           Username {getSortIcon("username")}
                         </button>
                       </th>
-                      <th className="py-4 px-6 text-left min-w-[250px]">
+                      <th className="py-4 px-6 text-left w-[22%]">
                         <button
                           onClick={() => handleSort("email")}
                           className="flex items-center font-semibold hover:text-blue-300 transition-colors"
@@ -202,7 +202,7 @@ const AdminRegister = () => {
                           Email {getSortIcon("email")}
                         </button>
                       </th>
-                      <th className="py-4 px-6 text-center w-32">
+                      <th className="py-4 px-6 text-center w-[10%]">
                         <button
                           onClick={() => handleSort("branch")}
                           className="flex items-center justify-center font-semibold mx-auto hover:text-blue-300 transition-colors"
@@ -210,10 +210,10 @@ const AdminRegister = () => {
                           Branch {getSortIcon("branch")}
                         </button>
                       </th>
-                      <th className="py-4 px-6 text-left min-w-[300px]">
+                      <th className="py-4 px-6 text-left w-[30%]">
                         <span className="font-semibold">Assigned Batches</span>
                       </th>
-                      <th className="py-4 px-6 text-center min-w-[150px]">
+                      <th className="py-4 px-6 text-center w-[15%]">
                         <button
                           onClick={() => handleSort("createdAt")}
                           className="flex items-center justify-center font-semibold mx-auto hover:text-blue-300 transition-colors"
@@ -231,7 +231,11 @@ const AdminRegister = () => {
                             <FaSearch className="w-12 h-12 text-gray-600 mb-3" />
                             <p className="text-lg font-medium">No faculty found</p>
                             <p className="text-sm text-gray-500">
-                              {searchTerm ? `No results for "${searchTerm}"` : "No faculty members registered yet"}
+                              {searchTerm ? (
+                                <>
+                                  No results for "<span className="max-w-[200px] inline-block truncate align-bottom" title={searchTerm}>{searchTerm}</span>"
+                                </>
+                              ) : "No faculty members registered yet"}
                             </p>
                           </div>
                         </td>
@@ -248,21 +252,32 @@ const AdminRegister = () => {
                           </td>
                           <td className="py-4 px-6">
                             <div className="flex items-center">
-                              <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                              <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
                                 <span className="text-white text-sm font-medium">
                                   {faculty.username?.charAt(0)?.toUpperCase()}
                                 </span>
                               </div>
-                              <div className="font-semibold text-blue-400 hover:text-blue-300 transition-colors">
+                              <div 
+                                className="font-semibold text-blue-400 hover:text-blue-300 transition-colors truncate"
+                                title={faculty.username}
+                              >
                                 {faculty.username}
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 px-6 text-gray-300">
-                            {faculty.email}
+                          <td className="py-4 px-6">
+                            <div 
+                              className="text-gray-300 truncate" 
+                              title={faculty.email}
+                            >
+                              {faculty.email}
+                            </div>
                           </td>
                           <td className="py-4 px-6 text-center">
-                            <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium bg-blue-900/40 text-blue-400 border border-blue-500/30">
+                            <span 
+                              className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium bg-blue-900/40 text-blue-400 border border-blue-500/30 max-w-full truncate"
+                              title={faculty?.branch?.toUpperCase() || "N/A"}
+                            >
                               {faculty?.branch?.toUpperCase() || "N/A"}
                             </span>
                           </td>
@@ -272,7 +287,8 @@ const AdminRegister = () => {
                                 {faculty.batches.slice(0, 3).map((batch, idx) => (
                                   <span
                                     key={idx}
-                                    className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-900/40 text-green-400 border border-green-500/30"
+                                    className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-900/40 text-green-400 border border-green-500/30 max-w-[120px] truncate"
+                                    title={typeof batch === "string" ? batch : batch.name}
                                   >
                                     {typeof batch === "string" ? batch : batch.name}
                                   </span>
@@ -302,7 +318,7 @@ const AdminRegister = () => {
             )}
           </div>
 
-          {/* Always Show Pagination Controls */}
+          {/* Pagination controls - no changes needed */}
           <div className="flex justify-center items-center mt-8 gap-2">
             {/* Previous Button */}
             <button

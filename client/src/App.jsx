@@ -37,10 +37,9 @@ const App = () => {
 
     checkAuth();
   }, [dispatch]);
-
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-screen bg-gradient-to-br from-gray-900 to-gray-950 text-white">
+      <div className="flex flex-col items-center justify-center w-full h-screen bg-gradient-to-br from-gray-900 to-gray-950 text-white overflow-hidden">
         <LoaderPinwheel size={60} className="animate-spin text-blue-400" />
         <p className="mt-4 text-xl text-blue-400 font-medium">
           Checking authentication...

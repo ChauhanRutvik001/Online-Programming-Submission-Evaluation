@@ -200,8 +200,9 @@ const BatchManagement = () => {
 
       {/* Main Content */}
       <main className="px-4 py-8">
-        <div className="w-full">          {/* Search and Controls Section */}
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+        <div className="w-full">
+          {/* Search and Controls Section */}
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-8 gap-4">
             <div className="flex-1">
               <div className="relative max-w-md">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -220,9 +221,9 @@ const BatchManagement = () => {
               </p>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
               {/* Faculty Filter */}
-              <div className="w-full md:w-64">
+              <div className="w-full sm:w-64">
                 <select
                   value={facultyFilter}
                   onChange={handleFacultyFilterChange}
@@ -230,31 +231,40 @@ const BatchManagement = () => {
                 >
                   <option value="">All Faculty</option>
                   {facultyList.map((faculty) => (
-                    <option key={faculty._id} value={faculty._id}>
-                      {faculty.username} ({faculty.email})
+                    <option 
+                      key={faculty._id} 
+                      value={faculty._id}
+                      title={`${faculty.username} (${faculty.email})`}
+                    >
+                      {faculty.username.length > 20 
+                        ? faculty.username.substring(0, 18) + '...' 
+                        : faculty.username} ({faculty.email.length > 20 
+                          ? faculty.email.substring(0, 18) + '...' 
+                          : faculty.email})
                     </option>
                   ))}
-                </select>              </div>
+                </select>
+              </div>
               
               {/* Total Count */}
               <div className="flex items-center bg-gray-800 py-3 px-6 rounded-xl shadow font-semibold text-lg">
-                <span>Total Batches:</span>
+                <span>Total:</span>
                 <span className="ml-3 text-2xl font-extrabold text-blue-400">{totalBatches}</span>
               </div>
               
               {/* Create Batch Button */}
               <button
-                className="flex items-center gap-2 py-3 px-6 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-200 active:scale-95"
+                className="flex items-center gap-2 py-3 px-6 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-200 active:scale-95 whitespace-nowrap"
                 onClick={() => navigate("/admin/batch/batches/create")}
               >
                 <FaPlus className="h-5 w-5" />
-                Create Batch
+                <span className="hidden sm:inline">Create Batch</span>
+                <span className="sm:hidden">New</span>
               </button>
             </div>
           </div>
     
-
-          {/* Table Section */}
+          {/* Table Section with Improved Responsiveness */}
           <div className="bg-gray-900 rounded-xl shadow-xl overflow-hidden">
             {loading ? (
               <div className="flex justify-center items-center h-64">
@@ -273,9 +283,11 @@ const BatchManagement = () => {
                     No batches found
                   </p>
                   <p className="text-sm text-gray-500 mb-4">
-                    {searchTerm
-                      ? `No results for "${searchTerm}"`
-                      : "No batches created yet"}
+                    {searchTerm ? (
+                      <>
+                        No results for "<span className="max-w-[200px] inline-block truncate align-bottom" title={searchTerm}>{searchTerm}</span>"
+                      </>
+                    ) : "No batches created yet"}
                   </p>
                   <button
                     onClick={() => navigate("/admin/batch/batches/create")}
@@ -287,154 +299,257 @@ const BatchManagement = () => {
                 </div>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-gray-700 text-gray-200 text-sm uppercase">
-                      <th className="py-4 px-6 text-left w-16">
-                        <span className="font-semibold">#</span>
-                      </th>
-                      <th className="py-4 px-6 text-left min-w-[200px]">
-                        <button
-                          onClick={() => handleSort("name")}
-                          className="flex items-center font-semibold hover:text-blue-300 transition-colors"
-                        >
-                          Batch Name {getSortIcon("name")}
-                        </button>
-                      </th>
-                      <th className="py-4 px-6 text-left min-w-[250px]">
-                        <button
-                          onClick={() => handleSort("faculty")}
-                          className="flex items-center font-semibold hover:text-blue-300 transition-colors"
-                        >
-                          Faculty {getSortIcon("faculty")}
-                        </button>
-                      </th>
-                      <th className="py-4 px-6 text-center w-32">
-                        <span className="font-semibold">Students</span>
-                      </th>
-                      <th className="py-4 px-6 text-center w-32">
-                        <button
-                          onClick={() => handleSort("isActive")}
-                          className="flex items-center justify-center font-semibold mx-auto hover:text-blue-300 transition-colors"
-                        >
-                          Status {getSortIcon("isActive")}
-                        </button>
-                      </th>
-                      <th className="py-4 px-6 text-center min-w-[150px]">
-                        <button
-                          onClick={() => handleSort("createdAt")}
-                          className="flex items-center justify-center font-semibold mx-auto hover:text-blue-300 transition-colors"
-                        >
-                          Created Date {getSortIcon("createdAt")}
-                        </button>
-                      </th>
-                      <th className="py-4 px-6 text-center min-w-[150px]">
-                        <span className="font-semibold">Actions</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {batches.map((batch, index) => (
-                      <tr
-                        key={batch._id}
-                        className="border-t border-gray-700 hover:bg-gray-800/50 transition-colors"
-                      >
-                        <td className="py-4 px-6 text-gray-300 font-medium">
-                          {(currentPage - 1) * itemsPerPage + index + 1}
-                        </td>
-                        <td className="py-4 px-6">
-                          <div>
-                            <div className="font-semibold text-blue-400">
-                              {batch.name}
-                            </div>
-                            {batch.subject && (
-                              <div className="text-xs text-gray-400 mt-1">
-                                {batch.subject}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div>
-                            <div className="font-medium text-gray-200">
-                              {batch.faculty
-                                ? batch.faculty.username
-                                : "Not assigned"}
-                            </div>
-                            {batch.faculty && (
-                              <div className="text-xs text-gray-400 mt-1">
-                                {batch.faculty.email}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium bg-blue-900/40 text-blue-400 border border-blue-500/30">
-                            {batch.students ? batch.students.length : 0}{" "}
-                            students
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <span
-                            className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${
-                              batch.isActive
-                                ? "bg-green-900/40 text-green-400 border border-green-500/30"
-                                : "bg-red-900/40 text-red-400 border border-red-500/30"
-                            }`}
+              <>
+                {/* Mobile Card View (below sm breakpoint) */}
+                <div className="sm:hidden">
+                  {batches.map((batch, index) => (
+                    <div 
+                      key={batch._id}
+                      className="border-t border-gray-700 p-4 hover:bg-gray-800/50"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="min-w-0 flex-1">
+                          <div 
+                            className="font-semibold text-blue-400 truncate text-lg"
+                            title={batch.name}
                           >
-                            {batch.isActive ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-center text-gray-400 text-sm">
-                          {formatDate(batch.createdAt)}
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center justify-center gap-2">
-                            <Link
-                              to={`/admin/batch/batches/${batch._id}`}
-                              className="p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-colors"
-                              title="Edit"
-                            >
-                              <FaEdit className="w-4 h-4" />
-                            </Link>
-                            <button
-                              onClick={() => openDeleteModal(batch._id)}
-                              className="p-2 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors"
-                              title="Delete"
-                            >
-                              <FaTrash className="w-4 h-4" />
-                            </button>
+                            {batch.name}
                           </div>
-                        </td>
+                          {batch.subject && (
+                            <div 
+                              className="text-sm text-gray-400 truncate"
+                              title={batch.subject}
+                            >
+                              {batch.subject}
+                            </div>
+                          )}
+                        </div>
+                        <span 
+                          className={`ml-2 flex-shrink-0 px-2 py-1 rounded-full text-xs font-medium ${
+                            batch.isActive
+                              ? "bg-green-900/40 text-green-400 border border-green-500/30"
+                              : "bg-red-900/40 text-red-400 border border-red-500/30"
+                          }`}
+                        >
+                          {batch.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div>
+                          <div className="text-xs text-gray-500">Faculty</div>
+                          <div 
+                            className="text-sm text-gray-200 truncate"
+                            title={batch.faculty ? batch.faculty.username : "Not assigned"}
+                          >
+                            {batch.faculty ? batch.faculty.username : "Not assigned"}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-xs text-gray-500">Students</div>
+                          <div className="text-sm text-blue-400 font-medium">
+                            {batch.students ? batch.students.length : 0} students
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-xs text-gray-500">Created</div>
+                          <div className="text-sm text-gray-400">
+                            {formatDate(batch.createdAt).split(' ')[0]}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-xs text-gray-500">Index</div>
+                          <div className="text-sm text-gray-400">
+                            #{(currentPage - 1) * itemsPerPage + index + 1}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end gap-2 mt-2">
+                        <Link
+                          to={`/admin/batch/batches/${batch._id}`}
+                          className="p-3 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-colors"
+                          title="Edit"
+                        >
+                          <FaEdit className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => openDeleteModal(batch._id)}
+                          className="p-3 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors"
+                          title="Delete"
+                        >
+                          <FaTrash className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop/Tablet Table View (sm and above) */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="w-full border-collapse table-fixed">
+                    <thead>
+                      <tr className="bg-gray-700 text-gray-200 text-xs sm:text-sm uppercase">
+                        <th className="py-3 sm:py-4 px-2 sm:px-4 text-left w-[5%]">
+                          <span className="font-semibold">#</span>
+                        </th>
+                        <th className="py-3 sm:py-4 px-2 sm:px-4 text-left w-[25%] lg:w-[23%]">
+                          <button
+                            onClick={() => handleSort("name")}
+                            className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                          >
+                            Batch Name {getSortIcon("name")}
+                          </button>
+                        </th>
+                        <th className="py-3 sm:py-4 px-2 sm:px-4 text-left w-[30%] lg:w-[27%]">
+                          <button
+                            onClick={() => handleSort("faculty")}
+                            className="flex items-center font-semibold hover:text-blue-300 transition-colors"
+                          >
+                            Faculty {getSortIcon("faculty")}
+                          </button>
+                        </th>
+                        <th className="py-3 sm:py-4 px-2 sm:px-4 text-center w-[10%]">
+                          <span className="font-semibold">Students</span>
+                        </th>
+                        <th className="py-3 sm:py-4 px-2 sm:px-4 text-center w-[10%]">
+                          <button
+                            onClick={() => handleSort("isActive")}
+                            className="flex items-center justify-center font-semibold mx-auto hover:text-blue-300 transition-colors"
+                          >
+                            Status {getSortIcon("isActive")}
+                          </button>
+                        </th>
+                        <th className="hidden md:table-cell py-3 sm:py-4 px-2 sm:px-4 text-center w-[15%]">
+                          <button
+                            onClick={() => handleSort("createdAt")}
+                            className="flex items-center justify-center font-semibold mx-auto hover:text-blue-300 transition-colors"
+                          >
+                            Created {getSortIcon("createdAt")}
+                          </button>
+                        </th>
+                        <th className="py-3 sm:py-4 px-2 sm:px-4 text-center w-[10%]">
+                          <span className="font-semibold">Actions</span>
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {batches.map((batch, index) => (
+                        <tr
+                          key={batch._id}
+                          className="border-t border-gray-700 hover:bg-gray-800/50 transition-colors"
+                        >
+                          <td className="py-3 sm:py-4 px-2 sm:px-4 text-gray-300 font-medium">
+                            {(currentPage - 1) * itemsPerPage + index + 1}
+                          </td>
+                          <td className="py-3 sm:py-4 px-2 sm:px-4 min-w-0">
+                            <div className="min-w-0">
+                              <div 
+                                className="font-semibold text-blue-400 truncate"
+                                title={batch.name}
+                              >
+                                {batch.name}
+                              </div>
+                              {batch.subject && (
+                                <div 
+                                  className="text-xs text-gray-400 mt-1 truncate"
+                                  title={batch.subject}
+                                >
+                                  {batch.subject}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 sm:py-4 px-2 sm:px-4 min-w-0">
+                            <div className="min-w-0">
+                              <div 
+                                className="font-medium text-gray-200 truncate"
+                                title={batch.faculty ? batch.faculty.username : "Not assigned"}
+                              >
+                                {batch.faculty
+                                  ? batch.faculty.username
+                                  : "Not assigned"}
+                              </div>
+                              {batch.faculty && (
+                                <div 
+                                  className="text-xs text-gray-400 mt-1 truncate"
+                                  title={batch.faculty.email}
+                                >
+                                  {batch.faculty.email}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 sm:py-4 px-2 sm:px-4 text-center">
+                            <span className="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium bg-blue-900/40 text-blue-400 border border-blue-500/30">
+                              {batch.students ? batch.students.length : 0}
+                            </span>
+                          </td>
+                          <td className="py-3 sm:py-4 px-2 sm:px-4 text-center">
+                            <span
+                              className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium ${
+                                batch.isActive
+                                  ? "bg-green-900/40 text-green-400 border border-green-500/30"
+                                  : "bg-red-900/40 text-red-400 border border-red-500/30"
+                              }`}
+                            >
+                              {batch.isActive ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                          <td className="hidden md:table-cell py-3 sm:py-4 px-2 sm:px-4 text-center text-gray-400 text-xs">
+                            {formatDate(batch.createdAt)}
+                          </td>
+                          <td className="py-3 sm:py-4 px-2 sm:px-4">
+                            <div className="flex items-center justify-center gap-2">
+                              <Link
+                                to={`/admin/batch/batches/${batch._id}`}
+                                className="p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-colors"
+                                title="Edit"
+                              >
+                                <FaEdit className="w-4 h-4" />
+                              </Link>
+                              <button
+                                onClick={() => openDeleteModal(batch._id)}
+                                className="p-2 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors"
+                                title="Delete"
+                              >
+                                <FaTrash className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
 
-          {/* Always Show Pagination Controls */}
-          <div className="flex justify-center items-center mt-8 gap-2">
+          {/* Responsive Pagination Controls */}
+          <div className="flex flex-wrap justify-center items-center mt-8 gap-2">
             {/* Previous Button */}
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg font-medium transition-colors ${
                 currentPage === 1
                   ? "bg-gray-800 text-gray-500 cursor-not-allowed"
                   : "bg-gray-700 text-gray-200 hover:bg-gray-600"
               }`}
             >
-              <FaChevronLeft className="w-4 h-4" />
-              Previous
+              <FaChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Previous</span>
+              <span className="sm:hidden">Prev</span>
             </button>
 
             {/* Page Numbers */}
             <div className="flex gap-1">
               {totalPages <= 1 ? (
-                <span className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white">
+                <span className="px-3 sm:px-4 py-2 rounded-lg font-medium bg-blue-600 text-white">
                   1
                 </span>
               ) : (
@@ -454,7 +569,7 @@ const BatchManagement = () => {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors ${
                         currentPage === pageNum
                           ? "bg-blue-600 text-white"
                           : "bg-gray-700 text-gray-200 hover:bg-gray-600"
@@ -473,20 +588,21 @@ const BatchManagement = () => {
                 setCurrentPage(Math.min(totalPages, currentPage + 1))
               }
               disabled={currentPage === totalPages || totalPages <= 1}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg font-medium transition-colors ${
                 currentPage === totalPages || totalPages <= 1
                   ? "bg-gray-800 text-gray-500 cursor-not-allowed"
                   : "bg-gray-700 text-gray-200 hover:bg-gray-600"
               }`}
             >
-              Next
-              <FaChevronRight className="w-4 h-4" />
+              <span className="hidden sm:inline">Next</span>
+              <span className="sm:hidden">Next</span>
+              <FaChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
             </button>
           </div>
 
           {/* Pagination Info */}
           {totalBatches > 0 && (
-            <div className="text-center mt-4 text-gray-400 text-sm">
+            <div className="text-center mt-4 text-gray-400 text-xs sm:text-sm">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
               {Math.min(currentPage * itemsPerPage, totalBatches)} of{" "}
               {totalBatches} batches

@@ -52,8 +52,131 @@ export const getUserSubmissions = async (req, res) => {
   }
 };
 
-// Route to get all submissions
+// Route to get submissions for a specific problem with pagination
 export const getAllSubmissionsForProblem = async (req, res) => {
+  try {
+    const {
+      problem_id,
+      page = 1,
+      limit = 10,
+      search = "",
+      sortBy = "username",
+      sortOrder = "asc",
+    } = req.query;
+
+    // Validate page and limit
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+
+    if (
+      isNaN(pageNum) ||
+      isNaN(limitNum) ||
+      pageNum < 1 ||
+      limitNum < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pagination parameters",
+      });
+    }
+
+    // Calculate skip value for pagination
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build search query
+    let searchQuery = {};
+    if (problem_id) {
+      searchQuery.problem_id = problem_id;
+    }
+
+    // Add text search capabilities
+    if (search) {
+      searchQuery = {
+        ...searchQuery,
+        $or: [
+          { "user_id.username": { $regex: search, $options: "i" } },
+          { "user_id.id": { $regex: search, $options: "i" } },
+          { "user_id.batch": { $regex: search, $options: "i" } },
+          { "user_id.branch": { $regex: search, $options: "i" } },
+        ],
+      };
+    }
+
+    // Create sort object
+    const sortOptions = {};
+    if (sortBy === "username") {
+      sortOptions["user_id.username"] = sortOrder === "asc" ? 1 : -1;
+    } else if (sortBy === "id") {
+      sortOptions["user_id.id"] = sortOrder === "asc" ? 1 : -1;
+    } else if (sortBy === "batch") {
+      sortOptions["user_id.batch"] = sortOrder === "asc" ? 1 : -1;
+    } else if (sortBy === "branch") {
+      sortOptions["user_id.branch"] = sortOrder === "asc" ? 1 : -1;
+    } else if (sortBy === "semester") {
+      sortOptions["user_id.semester"] = sortOrder === "asc" ? 1 : -1;
+    } else if (sortBy === "marks") {
+      sortOptions["totalMarks"] = sortOrder === "asc" ? 1 : -1;
+    } else if (sortBy === "createdAt") {
+      sortOptions["createdAt"] = sortOrder === "asc" ? 1 : -1;
+    } else {
+      sortOptions["createdAt"] = -1; // Default sort by creation date (newest first)
+    }
+
+    // Get total count for pagination
+    const totalSubmissions = await Submission.countDocuments(searchQuery);
+
+    // Get submissions with pagination, sorting, and populate
+    const submissions = await Submission.find(searchQuery)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limitNum)
+      .populate({
+        path: "user_id",
+        select: "username id branch batch semester email",
+      })
+      .populate({
+        path: "problem_id",
+        select: "title",
+      });
+
+    // Get unique student submissions with highest marks
+    // Get all submissions, group by user_id and return the one with highest marks
+    const uniqueStudents = {};
+    submissions.forEach((submission) => {
+      const userId = submission.user_id._id.toString();
+      if (
+        !uniqueStudents[userId] ||
+        submission.numberOfTestCasePass >
+          uniqueStudents[userId].numberOfTestCasePass
+      ) {
+        uniqueStudents[userId] = submission;
+      }
+    });
+
+    const uniqueSubmissions = Object.values(uniqueStudents);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalSubmissions / limitNum);
+
+    return res.status(200).json({
+      success: true,
+      submissions: uniqueSubmissions,
+      totalSubmissions,
+      totalPages,
+      currentPage: pageNum,
+    });
+  } catch (error) {
+    console.error("Error getting submissions:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error getting submissions",
+      error: error.message,
+    });
+  }
+};
+
+// Route to get all submissions
+export const getAllSubmissionsForProblemOld = async (req, res) => {
   const { problem_id } = req.query;
   console.log("Route to get all submissions for specific problem by admin");
 
@@ -150,7 +273,9 @@ export const getAllSubmissionsForUser = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "An error occurred while fetching submissions." });
+    res.status(500).json({
+      message: "An error occurred while fetching submissions.",
+    });
   }
 };
 
@@ -224,7 +349,6 @@ export const getSubmissionById = async (req, res) => {
             }
       );
     }
-    
 
     // Admin can see all submissions, so no restrictions here
 
@@ -319,49 +443,37 @@ export const getSubmissionById = async (req, res) => {
 
 // Route to get ALL submissions for analytics (not just highest marks per student)
 export const getAllSubmissionsForAnalytics = async (req, res) => {
-  const { problem_id } = req.query;
-  console.log("Route to get ALL submissions for analytics for specific problem");
-
   try {
-    // Fetch ALL submissions for the given problem_id (not filtered to highest marks)
-    const submissions = await Submission.find(
-      { problem_id },
-      {
-        language: 1,
-        status: 1,
-        numberOfTestCase: 1,
-        numberOfTestCasePass: 1,
-        _id: 1,
-        createdAt: 1,
-        totalMarks: 1,
-        testCaseResults: 1,
-        execution_time: 1,
-        memory_usage: 1,
-      }
-    ).populate({
-      path: "user_id",
-      select: "id username batch branch semester _id role",
-      match: { role: "student" }, // Only include users with role 'student'
-    });
+    const { problem_id } = req.query;
 
-    // Filter out submissions where user_id is null (non-students)
-    const filteredSubmissions = submissions.filter(
-      (submission) => submission.user_id
-    );
-
-    if (filteredSubmissions.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No submissions found for the given problem ID." });
+    let query = {};
+    if (problem_id) {
+      query.problem_id = problem_id;
     }
 
-    res.status(200).json({
-      message: "All submissions retrieved successfully for analytics",
-      submissions: filteredSubmissions,
-      totalSubmissions: filteredSubmissions.length,
+    const submissions = await Submission.find(query)
+      .populate({
+        path: "user_id",
+        select: "username id branch batch semester email",
+      })
+      .populate({
+        path: "problem_id",
+        select: "title",
+      });
+
+    const totalSubmissions = submissions.length;
+
+    return res.status(200).json({
+      success: true,
+      submissions,
+      totalSubmissions,
     });
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ message: error.message });
+    console.error("Error getting analytics submissions:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error getting analytics submissions",
+      error: error.message,
+    });
   }
 };

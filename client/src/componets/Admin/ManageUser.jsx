@@ -8,13 +8,15 @@ import {
   FaChevronRight,
   FaSort,
   FaSortUp,
-  FaSortDown
+  FaSortDown,
+  FaEdit,
+  FaTrash
 } from "react-icons/fa";
 import ConfirmationModal from "../ConfirmationModal";
 import { toast } from "react-hot-toast";
 
 const ManageUser = () => {
-  // Data states
+  // States remain the same
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -24,19 +26,15 @@ const ManageUser = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
-
-  // UI state for user type selection
   const [userType, setUserType] = useState(() => localStorage.getItem("userType") || "student");
-
-  // Edit modal state
   const [editUser, setEditUser] = useState(null);
-  const navigate = useNavigate();
-
-  // Confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
 
   const itemsPerPage = 10;
+  const navigate = useNavigate();
+
+  // All functions remain the same
   const fetchUsers = async (page, search = "", sort = "createdAt", order = "desc") => {
     try {
       setLoading(true);
@@ -162,23 +160,23 @@ const ManageUser = () => {
   };
   return (
     <div className="relative min-h-screen bg-gray-900 text-white p-0 md:p-4">
-      {/* Header Section */}
-      <div className="py-6 mb-8 border-b border-blue-900">
+      {/* Header Section - Optimized for all screen sizes */}
+      <div className="py-4 sm:py-6 mb-4 sm:mb-8 border-b border-blue-900">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center mt-14">
-            <div className="flex items-center mb-4 md:mb-0">
-              <FaUser className="h-8 w-8 mr-3 text-blue-300" />
-              <h1 className="text-3xl font-bold tracking-tight">
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-12 sm:mt-14 gap-3">
+            <div className="flex items-center mb-3 sm:mb-0">
+              <FaUser className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-blue-300" />
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 User Management
               </h1>
             </div>
             <button
-              className="py-2.5 px-6 flex items-center bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-200 active:scale-95"
+              className="w-full sm:w-auto py-2 sm:py-2.5 px-4 sm:px-6 flex items-center justify-center bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all duration-200 active:scale-95"
               onClick={() => navigate(-1)}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-2"
+                className="h-4 w-4 sm:h-5 sm:w-5 mr-2"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
@@ -194,13 +192,13 @@ const ManageUser = () => {
         </div>
       </div>
 
-      {/* Main Content - Full Screen */}
-      <main className="px-4 py-8">
+      {/* Main Content - Improved for all screen sizes */}
+      <main className="px-3 sm:px-4 py-4 sm:py-8">
         <div className="w-full">
-          {/* Search and Stats Section */}
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+          {/* Search and Stats Section - More responsive layout */}
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-6 gap-4">
             <div className="flex-1">
-              <div className="relative max-w-md">
+              <div className="relative max-w-full sm:max-w-md">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaSearch className="h-5 w-5 text-gray-400" />
                 </div>
@@ -209,7 +207,7 @@ const ManageUser = () => {
                   placeholder={`Search ${userType}s by name, email, or ID...`}
                   value={searchTerm}
                   onChange={handleSearchChange}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <p className="text-blue-300 text-sm mt-2">
@@ -217,49 +215,49 @@ const ManageUser = () => {
               </p>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
               {/* User Type Filter */}
               <select
                 value={userType}
                 onChange={handleUserTypeChange}
-                className="py-3 px-4 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full sm:w-auto py-2.5 px-4 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="student">Students</option>
                 <option value="teacher">Teachers</option>
               </select>
               
               {/* Total Count */}
-              <div className="flex items-center bg-gray-800 py-3 px-6 rounded-xl shadow font-semibold text-lg">
-                <span>Total {userType === "teacher" ? "Teachers" : "Students"}:</span>
-                <span className="ml-3 text-2xl font-extrabold text-blue-400">{totalUsers}</span>
+              <div className="flex items-center w-full sm:w-auto bg-gray-800 py-2.5 px-4 sm:px-6 rounded-lg shadow font-semibold text-base sm:text-lg">
+                <span>Total:</span>
+                <span className="ml-2 sm:ml-3 text-xl sm:text-2xl font-extrabold text-blue-400">{totalUsers}</span>
               </div>
             </div>
           </div>
 
-          {/* Table Section - Full Width */}
+          {/* Table Section - With proper scrolling and responsive design */}
           <div className="bg-gray-900 rounded-xl shadow-xl overflow-hidden">
             {loading ? (
               <div className="flex justify-center items-center h-64">
                 <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-75"></div>
-                  <p className="mt-4 text-blue-400 text-lg font-semibold">
+                  <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-t-4 border-blue-500 border-opacity-75"></div>
+                  <p className="mt-4 text-blue-400 text-base sm:text-lg font-semibold">
                     Loading, please wait...
                   </p>
                 </div>
               </div>
             ) : error ? (
-              <div className="text-center py-16 text-red-400 text-lg">
+              <div className="text-center py-12 sm:py-16 text-red-400 text-base sm:text-lg">
                 {error}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
+              <div className="w-full overflow-x-auto">
+                <table className="w-full border-collapse min-w-[900px]">
                   <thead>
-                    <tr className="bg-gray-700 text-gray-200 text-sm uppercase">
-                      <th className="py-4 px-6 text-left w-16">
+                    <tr className="bg-gray-700 text-gray-200 text-xs sm:text-sm uppercase">
+                      <th className="py-3 sm:py-4 px-3 sm:px-6 text-left w-[5%]">
                         <span className="font-semibold">#</span>
                       </th>
-                      <th className="py-4 px-6 text-left min-w-[200px]">
+                      <th className="py-3 sm:py-4 px-3 sm:px-6 text-left w-[20%]">
                         <button
                           onClick={() => handleSort("username")}
                           className="flex items-center font-semibold hover:text-blue-300 transition-colors"
@@ -268,7 +266,7 @@ const ManageUser = () => {
                         </button>
                       </th>
                       {userType === "teacher" && (
-                        <th className="py-4 px-6 text-left min-w-[250px]">
+                        <th className="py-3 sm:py-4 px-3 sm:px-6 text-left w-[25%]">
                           <button
                             onClick={() => handleSort("email")}
                             className="flex items-center font-semibold hover:text-blue-300 transition-colors"
@@ -277,7 +275,7 @@ const ManageUser = () => {
                           </button>
                         </th>
                       )}
-                      <th className="py-4 px-6 text-left min-w-[150px]">
+                      <th className="py-3 sm:py-4 px-3 sm:px-6 text-left w-[15%]">
                         <button
                           onClick={() => handleSort("id")}
                           className="flex items-center font-semibold hover:text-blue-300 transition-colors"
@@ -285,7 +283,7 @@ const ManageUser = () => {
                           ID {getSortIcon("id")}
                         </button>
                       </th>
-                      <th className="py-4 px-6 text-left min-w-[150px]">
+                      <th className="py-3 sm:py-4 px-3 sm:px-6 text-left w-[15%]">
                         <button
                           onClick={() => handleSort("batch")}
                           className="flex items-center font-semibold hover:text-blue-300 transition-colors"
@@ -293,15 +291,15 @@ const ManageUser = () => {
                           {userType === "teacher" ? "Branch" : "Batch"} {getSortIcon("batch")}
                         </button>
                       </th>
-                      <th className="py-4 px-6 text-center min-w-[150px]">
+                      <th className="py-3 sm:py-4 px-3 sm:px-6 text-center w-[15%]">
                         <button
                           onClick={() => handleSort("createdAt")}
                           className="flex items-center justify-center font-semibold mx-auto hover:text-blue-300 transition-colors"
                         >
-                          Created Date {getSortIcon("createdAt")}
+                          Created {getSortIcon("createdAt")}
                         </button>
                       </th>
-                      <th className="py-4 px-6 text-center min-w-[120px]">
+                      <th className="py-3 sm:py-4 px-3 sm:px-6 text-center w-[10%]">
                         <span className="font-semibold">Actions</span>
                       </th>
                     </tr>
@@ -311,10 +309,14 @@ const ManageUser = () => {
                       <tr>
                         <td colSpan={userType === "teacher" ? "7" : "6"} className="py-8 px-6 text-center text-gray-400">
                           <div className="flex flex-col items-center justify-center">
-                            <FaSearch className="w-12 h-12 text-gray-600 mb-3" />
-                            <p className="text-lg font-medium">No {userType}s found</p>
+                            <FaSearch className="w-10 h-10 sm:w-12 sm:h-12 text-gray-600 mb-3" />
+                            <p className="text-base sm:text-lg font-medium">No {userType}s found</p>
                             <p className="text-sm text-gray-500">
-                              {searchTerm ? `No results for "${searchTerm}"` : `No ${userType}s registered yet`}
+                              {searchTerm ? (
+                                <>
+                                  No results for "<span className="max-w-[200px] inline-block truncate align-bottom" title={searchTerm}>{searchTerm}</span>"
+                                </>
+                              ) : `No ${userType}s registered yet`}
                             </p>
                           </div>
                         </td>
@@ -325,50 +327,89 @@ const ManageUser = () => {
                           key={user._id}
                           className="border-t border-gray-700 hover:bg-gray-800/50 transition-colors"
                         >
-                          <td className="py-4 px-6 text-gray-300 font-medium">
+                          {/* Index Cell */}
+                          <td className="py-3 sm:py-4 px-3 sm:px-6 text-gray-300 font-medium">
                             {(currentPage - 1) * itemsPerPage + index + 1}
                           </td>
-                          <td className="py-4 px-6">
+                          
+                          {/* Username Cell - FIXED */}
+                          <td className="py-3 sm:py-4 px-3 sm:px-6">
                             <div className="flex items-center">
-                              <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center mr-3">
-                                <span className="text-white text-sm font-medium">
-                                  {user.username?.charAt(0)?.toUpperCase()}
+                              <div className="h-8 w-8 sm:h-10 sm:w-10 bg-blue-600 rounded-full flex-shrink-0 flex items-center justify-center mr-2 sm:mr-3">
+                                <span className="text-white text-xs sm:text-sm font-medium">
+                                  {user.username?.charAt(0)?.toUpperCase() || "?"}
                                 </span>
                               </div>
-                              <div className="font-semibold text-blue-400">
-                                {user.username}
+                              <div className="min-w-0 w-full max-w-[200px]">
+                                <div 
+                                  className="font-semibold text-blue-400 truncate"
+                                  title={user.username}
+                                >
+                                  {user.username}
+                                </div>
                               </div>
                             </div>
                           </td>
+                          
+                          {/* Email Cell - FIXED */}
                           {userType === "teacher" && (
-                            <td className="py-4 px-6 text-gray-300">
-                              {user.email}
+                            <td className="py-3 sm:py-4 px-3 sm:px-6">
+                              <div className="max-w-[200px] min-w-0">
+                                <div 
+                                  className="text-gray-300 truncate"
+                                  title={user.email}
+                                >
+                                  {user.email}
+                                </div>
+                              </div>
                             </td>
                           )}
-                          <td className="py-4 px-6 text-gray-300">
-                            {user.id}
+                          
+                          {/* ID Cell - FIXED */}
+                          <td className="py-3 sm:py-4 px-3 sm:px-6">
+                            <div className="max-w-[120px] min-w-0">
+                              <div 
+                                className="text-gray-300 truncate" 
+                                title={user.id}
+                              >
+                                {user.id}
+                              </div>
+                            </div>
                           </td>
-                          <td className="py-4 px-6">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-900/40 text-blue-400 border border-blue-500/30">
-                              {userType === "teacher" ? (user.branch || "N/A") : (user.batch || "N/A")}
-                            </span>
+                          
+                          {/* Batch/Branch Cell - FIXED */}
+                          <td className="py-3 sm:py-4 px-3 sm:px-6">
+                            <div className="min-w-0">
+                              <span 
+                                className="inline-block max-w-[120px] px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-blue-900/40 text-blue-400 border border-blue-500/30 truncate"
+                                title={userType === "teacher" ? (user.branch || "N/A") : (user.batch || "N/A")}
+                              >
+                                {userType === "teacher" ? (user.branch || "N/A") : (user.batch || "N/A")}
+                              </span>
+                            </div>
                           </td>
-                          <td className="py-4 px-6 text-center text-gray-400 text-sm">
+                          
+                          {/* Date Cell */}
+                          <td className="py-3 sm:py-4 px-3 sm:px-6 text-center text-gray-400 text-xs sm:text-sm">
                             {formatDate(user.createdAt)}
                           </td>
-                          <td className="py-4 px-6">
+                          
+                          {/* Actions Cell */}
+                          <td className="py-3 sm:py-4 px-3 sm:px-6">
                             <div className="flex items-center justify-center gap-2">
                               <button
-                                className="px-3 py-1 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                                className="p-1.5 sm:p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-colors"
                                 onClick={() => handleEditUser(user)}
+                                title="Edit"
                               >
-                                Edit
+                                <FaEdit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               </button>
                               <button
-                                className="px-3 py-1 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                className="p-1.5 sm:p-2 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors"
                                 onClick={() => handleDeleteUser(user._id)}
+                                title="Delete"
                               >
-                                Delete
+                                <FaTrash className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               </button>
                             </div>
                           </td>
@@ -381,26 +422,27 @@ const ManageUser = () => {
             )}
           </div>
 
-          {/* Always Show Pagination Controls */}
-          <div className="flex justify-center items-center mt-8 gap-2">
+          {/* Responsive Pagination Controls */}
+          <div className="flex flex-wrap justify-center items-center mt-6 sm:mt-8 gap-1 sm:gap-2">
             {/* Previous Button */}
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg font-medium transition-colors ${
                 currentPage === 1
                   ? "bg-gray-800 text-gray-500 cursor-not-allowed"
                   : "bg-gray-700 text-gray-200 hover:bg-gray-600"
               }`}
             >
-              <FaChevronLeft className="w-4 h-4" />
-              Previous
+              <FaChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Previous</span>
+              <span className="sm:hidden">Prev</span>
             </button>
 
-            {/* Page Numbers - Always show current page info */}
+            {/* Page Numbers */}
             <div className="flex gap-1">
               {totalPages <= 1 ? (
-                <span className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white">
+                <span className="px-3 sm:px-4 py-2 rounded-lg font-medium bg-blue-600 text-white">
                   1
                 </span>
               ) : (
@@ -420,7 +462,7 @@ const ManageUser = () => {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors ${
                         currentPage === pageNum
                           ? "bg-blue-600 text-white"
                           : "bg-gray-700 text-gray-200 hover:bg-gray-600"
@@ -437,20 +479,21 @@ const ManageUser = () => {
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages || totalPages <= 1}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg font-medium transition-colors ${
                 currentPage === totalPages || totalPages <= 1
                   ? "bg-gray-800 text-gray-500 cursor-not-allowed"
                   : "bg-gray-700 text-gray-200 hover:bg-gray-600"
               }`}
             >
-              Next
-              <FaChevronRight className="w-4 h-4" />
+              <span className="hidden sm:inline">Next</span>
+              <span className="sm:hidden">Next</span>
+              <FaChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
             </button>
           </div>
 
           {/* Pagination Info */}
           {totalUsers > 0 && (
-            <div className="text-center mt-4 text-gray-400 text-sm">
+            <div className="text-center mt-3 sm:mt-4 text-gray-400 text-xs sm:text-sm">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
               {Math.min(currentPage * itemsPerPage, totalUsers)} of {totalUsers} {userType}s
               {totalPages > 1 && (
@@ -459,11 +502,13 @@ const ManageUser = () => {
             </div>
           )}
         </div>
-      </main>      {/* Edit Modal */}
+      </main>
+      
+      {/* Edit Modal - Improved responsiveness */}
       {editUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 text-white">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg sm:text-xl font-bold mb-4 text-white">
               Edit {userType === "teacher" ? "Teacher" : "Student"}
             </h2>
             <form
@@ -562,14 +607,14 @@ const ManageUser = () => {
               <div className="flex justify-end gap-2 mt-4">
                 <button
                   type="button"
-                  className="px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-700 transition-colors"
+                  className="px-3 sm:px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-700 transition-colors"
                   onClick={() => setEditUser(null)}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                  className="px-3 sm:px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                 >
                   Save
                 </button>
@@ -579,7 +624,7 @@ const ManageUser = () => {
         </div>
       )}
 
-      {/* Confirmation Modal for Delete */}
+      {/* Confirmation Modal for Delete - Keep as is */}
       {showDeleteModal && (
         <ConfirmationModal
           isOpen={showDeleteModal}

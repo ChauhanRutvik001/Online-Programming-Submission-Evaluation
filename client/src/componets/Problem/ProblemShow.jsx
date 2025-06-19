@@ -153,12 +153,22 @@ const ProblemShow = () => {
               <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path>
             </svg>
           </button>
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-extrabold text-white tracking-tight">
-              {problem.title}
-            </h1>
+          
+          {/* FIXED: Proper flex layout with truncation */}
+          <div className="flex flex-col sm:flex-row sm:items-center mb-4 gap-2">
+            {/* Title with truncation - FIXED */}
+            <div className="w-0 flex-1 min-w-0">
+              <h1 
+                className="text-2xl font-extrabold text-white tracking-tight truncate"
+                title={problem.title}
+              >
+                {problem.title}
+              </h1>
+            </div>
+            
+            {/* Due date badge - Guaranteed visible */}
             {batchId && problem.batchDueDates && (
-              <div className="ml-auto flex items-center">
+              <div className="flex-shrink-0">
                 {(() => {
                   // Find the due date for this batch
                   const batchDueDate = problem.batchDueDates.find((bd) => {
@@ -175,7 +185,7 @@ const ProblemShow = () => {
                       <div className="text-gray-400 text-sm flex items-center">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 mr-1"
+                          className="h-4 w-4 mr-1 flex-shrink-0"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -225,7 +235,7 @@ const ProblemShow = () => {
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 mr-1.5"
+                        className="h-4 w-4 mr-1.5 flex-shrink-0"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"

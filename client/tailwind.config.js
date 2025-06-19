@@ -10,6 +10,9 @@ export default {
         'height': 'height',
         'spacing': 'margin, padding',
       },
+      backgroundColor: {
+        'app-bg': '#111827', // This is the same as bg-gray-900
+      },
       rotate: {
         'y-1': 'rotateY(1deg)',
         'y-180': 'rotateY(180deg)',
