@@ -99,6 +99,22 @@ const ProblemShow = () => {
   const dueDate = batchId && problem ? getBatchDueDate(problem, batchId) : null;
   const isBatchPastDue = dueDate ? new Date() > new Date(dueDate) : false;
 
+  useEffect(() => {
+    if (problem && batchId && problem.batchDueDates) {
+      const batchDueDate = problem.batchDueDates.find(bd => {
+        if (!bd || !bd.batch) return false;
+        const bdBatchId = typeof bd.batch === "object" ? bd.batch._id : bd.batch.toString();
+        return bdBatchId === batchId;
+      });
+
+      if (batchDueDate && batchDueDate.dueDate) {
+        const dueDate = new Date(batchDueDate.dueDate);
+        const now = new Date();
+        setIsPastDue(dueDate < now);
+      }
+    }
+  }, [problem, batchId]);
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -154,21 +170,21 @@ const ProblemShow = () => {
             </svg>
           </button>
           
-          {/* FIXED: Proper flex layout with truncation */}
-          <div className="flex flex-col sm:flex-row sm:items-center mb-4 gap-2">
-            {/* Title with truncation - FIXED */}
-            <div className="w-0 flex-1 min-w-0">
+          {/* Title Section - FIXED for all screen sizes */}
+          <div className="mb-4">
+            {/* Problem Title - Always visible with proper truncation */}
+            <div className="mb-2">
               <h1 
-                className="text-2xl font-extrabold text-white tracking-tight truncate"
+                className="text-xl sm:text-2xl font-extrabold text-white tracking-tight line-clamp-2 sm:line-clamp-1"
                 title={problem.title}
               >
                 {problem.title}
               </h1>
             </div>
             
-            {/* Due date badge - Guaranteed visible */}
+            {/* Due date badge - Separate from title for better small screen layout */}
             {batchId && problem.batchDueDates && (
-              <div className="flex-shrink-0">
+              <div className="mt-2">
                 {(() => {
                   // Find the due date for this batch
                   const batchDueDate = problem.batchDueDates.find((bd) => {

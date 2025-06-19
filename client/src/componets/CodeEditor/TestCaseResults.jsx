@@ -131,11 +131,11 @@ const TestCaseResults = ({
           onClick={handleSubmit}
           disabled={isLoading || submitLoading || runLoading || isPastDue}
           className={`px-4 py-2 rounded-lg shadow-md text-white transition-all duration-200 ${
-            submitLoading ? "bg-gray-500" : isPastDue ? "bg-gray-500" : "bg-green-600 hover:bg-green-500"
+            submitLoading ? "bg-gray-500" : isPastDue ? "bg-red-800" : "bg-green-600 hover:bg-green-500"
           }`}
           title={isPastDue ? "Submission deadline has passed" : ""}
         >
-          {submitLoading ? "Submitting..." : isPastDue ? "Past Due Date" : "Submit Code"}
+          {submitLoading ? "Submitting..." : isPastDue ? "Submission Closed" : "Submit Code"}
         </button>        <button 
           onClick={handleSaveCode} 
           disabled={saveStatus === 'saving'}
@@ -243,6 +243,19 @@ const TestCaseResults = ({
             {/* No results available */}
           </div>
         )
+      )}
+
+      {/* Notification for past due submissions */}
+      {isPastDue && (
+        <div className="mt-3 px-3 py-2 bg-red-900/30 border border-red-700 rounded-lg text-red-400 text-sm">
+          <div className="flex items-start">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v4a1 1 0 102 0V7z" clipRule="evenodd" />
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 7a1 1 0 112 0v4a1 1 0 11-2 0V7z" clipRule="evenodd" />
+            </svg>
+            <span>The submission deadline for this problem has passed.</span>
+          </div>
+        </div>
       )}
     </div>
   );

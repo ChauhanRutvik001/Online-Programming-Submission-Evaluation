@@ -261,9 +261,6 @@ const AdminProblems = () => {
                           Created {getSortIcon("createdAt")}
                         </button>
                       </th>
-                      <th className="py-3 sm:py-4 px-2 sm:px-4 text-center w-[8%]">
-                        <span className="font-semibold">View</span>
-                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -364,18 +361,6 @@ const AdminProblems = () => {
                           </td>
                           <td className="hidden lg:table-cell py-3 sm:py-4 px-2 sm:px-6 text-center text-gray-300 text-xs">
                             {formatDate(problem.createdAt)}
-                          </td>
-                          <td className="py-3 sm:py-4 px-2 sm:px-4 text-center">
-                            <button 
-                              className="p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                viewProblem(problem._id);
-                              }}
-                              title="View Problem Details"
-                            >
-                              <FaEye className="w-4 h-4 mx-auto" />
-                            </button>
                           </td>
                         </tr>
                       ))

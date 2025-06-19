@@ -54,8 +54,8 @@ const Support = () => {
                       <Mail size={20} className="text-blue-400 mt-1 mr-3 flex-shrink-0" />
                       <div>
                         <p className="text-sm font-medium text-gray-300">Email</p>
-                        <a href="mailto:hod.it@charusat.ac.in" className="text-blue-400 hover:text-blue-300 transition-colors">
-                          hod.it@charusat.ac.in
+                        <a href="mailto:22it015@charusat.edu.in" className="text-blue-400 hover:text-blue-300 transition-colors">
+                          22it015@charusat.edu.in, 22it111@charusat.edu.in
                         </a>
                       </div>
                     </div>
