@@ -78,7 +78,7 @@ const MakeContest = () => {
     try {
       setLoading(true);
       const response = await axiosInstance.get("/contests");
-      console.log("Fetched contests response:", response.data); // Debug statement
+      // console.log("Fetched contests response:", response.data); // Debug statement
       // Assuming the contests are directly in response.data
       setContests(Array.isArray(response.data) ? response.data : []);
     } catch (error) {

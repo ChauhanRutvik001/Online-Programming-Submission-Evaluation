@@ -18,7 +18,7 @@ const StudentTable = ({
     direction: "asc",
   });
 
-  console.log(users);
+  // console.log(users);
 
   // Apply filters
   const filteredUsers = users.filter((user) => {

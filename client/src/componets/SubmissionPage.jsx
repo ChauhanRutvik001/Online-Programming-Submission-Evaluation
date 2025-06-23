@@ -14,7 +14,7 @@ const SubmissionPage = () => {
   // Only fetch if we haven't attempted yet and don't already have submissions
   useEffect(() => {
     if (user?._id && !hasAttemptedFetch && !loading && submissions.length === 0 && !isPageCached("/profile")) {
-      console.log("SubmissionPage: Fetching submissions");
+      // console.log("SubmissionPage: Fetching submissions");
       dispatch(fetchSubmissions({ page: 1, limit: 7 }));
     }
   }, [dispatch, user?._id, hasAttemptedFetch, loading, submissions.length]);

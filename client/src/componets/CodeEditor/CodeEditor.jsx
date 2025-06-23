@@ -97,7 +97,7 @@ int main() {
         codeByLanguage: codeToSave,
       });
 
-      console.log("Auto-save response:", response.data);
+      // console.log("Auto-save response:", response.data);
       
       // Handle no-change response
       if (response.data.isNoChange) {
@@ -111,7 +111,7 @@ int main() {
       
       // Optional: Show subtle success indication
       if (process.env.NODE_ENV === 'development') {
-        console.log('Auto-saved at:', response.data.timestamp);
+        // console.log('Auto-saved at:', response.data.timestamp);
       }
     } catch (error) {
       console.error("Auto-save error:", error);

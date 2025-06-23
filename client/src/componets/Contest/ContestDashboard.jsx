@@ -49,7 +49,7 @@ const ContestDashboard = () => {
       setLoading(true);
       const queryParams = new URLSearchParams(filters);
       const response = await axiosInstance.get(`/contests/${id}/dashboard?${queryParams}`);
-      console.log(response.data)
+      // console.log(response.data)
       setDashboardData(response.data);
     } catch (error) {
       console.error("Error fetching dashboard:", error);

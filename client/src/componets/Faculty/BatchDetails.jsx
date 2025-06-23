@@ -45,11 +45,11 @@ const BatchDetails = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get(`/faculty/batches/${batchId}`);
-      console.log('Batch details response:', response.data);
+      // console.log('Batch details response:', response.data);
       if (response.data.success) {
         setBatch(response.data.batch);
       }
-      console.log(response.data);
+      // console.log(response.data);
     } catch (error) {
       console.error('Error fetching batch details:', error);
       toast.error('Failed to load batch details');

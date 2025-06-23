@@ -49,7 +49,7 @@ const Contest = () => {
         try {
           const response = await axiosInstance.get(`/contests/${id}`);
           const contestData = response.data;
-          console.log("Contest Data:", contestData);
+          // console.log("Contest Data:", contestData);
           setContest(contestData);
 
           const startTime = new Date(contestData.start_time).getTime();

@@ -85,7 +85,7 @@ const BatchAssignedStudents = () => {
 
             if (!isMounted) return;
 
-            console.log("Problem data:", problem);
+            // console.log("Problem data:", problem);
 
             // Store all batch IDs from our loaded batches for later comparison
             const myBatchIds = loadedBatches.map((batch) => batch._id);
@@ -191,10 +191,10 @@ const BatchAssignedStudents = () => {
 
       // Convert to ISO string immediately to preserve the exact time
       const isoDate = selectedDate.toISOString();
-      console.log(`Setting due date for batch ${batchId}:`, {
-        rawInput: newDueDate,
-        convertedISO: isoDate,
-      });
+      // console.log(`Setting due date for batch ${batchId}:`, {
+      //   rawInput: newDueDate,
+      //   convertedISO: isoDate,
+      // });
 
       setBatchDueDates((prev) =>
         prev.some((b) => b.batchId === batchId)
@@ -225,19 +225,19 @@ const BatchAssignedStudents = () => {
     setProcessing(true);
     setError(""); // Clear any previous errors
 
-    console.log("Changes to save:", {
-      problemId,
-      selectedBatchIds,
-      assignedBatchIds,
-      batchesToUnassign,
-      batchDueDates,
-      originalBatchDueDates,
-    });
+    // console.log("Changes to save:", {
+    //   problemId,
+    //   selectedBatchIds,
+    //   assignedBatchIds,
+    //   batchesToUnassign,
+    //   batchDueDates,
+    //   originalBatchDueDates,
+    // });
 
     try {
       // 1. First handle unassignments if needed
       if (batchesToUnassign.length > 0) {
-        console.log("Unassigning batches:", batchesToUnassign);
+        // console.log("Unassigning batches:", batchesToUnassign);
 
         try {
           const unassignResponse = await axiosInstance.post(
@@ -247,7 +247,7 @@ const BatchAssignedStudents = () => {
             }
           );
 
-          console.log("Unassign response:", unassignResponse.data);
+          // console.log("Unassign response:", unassignResponse.data);
         } catch (unassignError) {
           console.error("Error unassigning batches:", unassignError);
           toast.error(
@@ -308,10 +308,10 @@ const BatchAssignedStudents = () => {
               if (!isNaN(dateObj.getTime())) {
                 // Keep the exact time by using the full ISO string
                 formattedDate = dateObj.toISOString();
-                console.log(
-                  `Formatted date for batch ${batchId}:`,
-                  formattedDate
-                );
+                // console.log(
+                //   `Formatted date for batch ${batchId}:`,
+                //   formattedDate
+                // );
               }
             }
 
@@ -321,7 +321,7 @@ const BatchAssignedStudents = () => {
             };
           });
 
-          console.log("Sending updates for batches:", batchDueDatesToSend);
+          // console.log("Sending updates for batches:", batchDueDatesToSend);
 
           // Validate that all batch IDs are valid
           if (batchDueDatesToSend.some((item) => !item.batchId)) {
@@ -342,7 +342,7 @@ const BatchAssignedStudents = () => {
               }
             );
 
-            console.log("Assign response:", assignResponse.data);
+            // console.log("Assign response:", assignResponse.data);
           } catch (assignError) {
             console.error("Error assigning batches:", assignError);
             toast.error(
@@ -402,10 +402,10 @@ const BatchAssignedStudents = () => {
         setBatchDueDates(refreshedBatchDueDates);
         setOriginalBatchDueDates([...refreshedBatchDueDates]);
 
-        console.log("After refresh - Updated state:", {
-          assignedBatchIds: accessibleRefreshedBatchIds,
-          batchDueDates: refreshedBatchDueDates,
-        });
+        // console.log("After refresh - Updated state:", {
+        //   assignedBatchIds: accessibleRefreshedBatchIds,
+        //   batchDueDates: refreshedBatchDueDates,
+        // });
       } catch (refreshError) {
         console.error("Failed to refresh problem data:", refreshError);
       } finally {
@@ -426,7 +426,7 @@ const BatchAssignedStudents = () => {
   const handleClearDueDate = (e, batchId) => {
     e.stopPropagation();
     e.preventDefault();
-    console.log(`Clearing due date for batch ${batchId}`);
+    // console.log(`Clearing due date for batch ${batchId}`);
 
     // Explicitly set to null
     setBatchDueDates((prev) =>
@@ -462,7 +462,7 @@ const BatchAssignedStudents = () => {
         // Update state with fresh data from backend
         setBatchDueDates(freshDueDates);
         setOriginalBatchDueDates([...freshDueDates]);
-        console.log("Updated batch data after save:", freshDueDates);
+        // console.log("Updated batch data after save:", freshDueDates);
       }
     } catch (error) {
       console.error("Error refreshing batch data:", error);

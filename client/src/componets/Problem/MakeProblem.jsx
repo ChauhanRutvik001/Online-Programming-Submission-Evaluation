@@ -42,7 +42,7 @@ const MakeProblem = () => {
   const fetchProblems = async (page = currentPage) => {
     try {
       setLoading(true);
-      console.log(`Fetching problems page ${page}`);
+      // console.log(`Fetching problems page ${page}`);
 
       const response = await axiosInstance.get(
         `/problems/problems?page=${page}&limit=20`
@@ -53,9 +53,9 @@ const MakeProblem = () => {
         currentPage: returnedPage,
       } = response.data;
 
-      console.log(
-        `Received ${allProblems.length} problems, total pages: ${pages}, current page: ${returnedPage}`
-      );
+      // console.log(
+      //   `Received ${allProblems.length} problems, total pages: ${pages}, current page: ${returnedPage}`
+      // );
 
       setProblems(allProblems);
       setTotalPages(pages || 1);
@@ -234,7 +234,7 @@ const MakeProblem = () => {
   const handlePageChange = (newPage) => {
     // Only proceed if it's a valid page
     if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
-      console.log(`Changing to page ${newPage}`);
+      // console.log(`Changing to page ${newPage}`);
       setCurrentPage(newPage);
       fetchProblems(newPage);
     }
@@ -242,7 +242,7 @@ const MakeProblem = () => {
 
   // Add this useEffect for debugging user state
   useEffect(() => {
-    console.log("Current user from Redux:", user);
+    // console.log("Current user from Redux:", user);
   }, [user]);
 
   return (

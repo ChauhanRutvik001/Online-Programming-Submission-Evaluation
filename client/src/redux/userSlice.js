@@ -9,8 +9,8 @@ export const fetchProfilePicThunk = createAsyncThunk(
         app: { user },
       } = getState();
       const avatarId = user?.profile?.avatar;
-      console.log("avatarId", avatarId);
-      console.log("user", user);
+      // console.log("avatarId", avatarId);
+      // console.log("user", user);
       if (!avatarId) return null;
       console.log("fetching profile pic");
       const response = await axiosInstance.get("/user/profile/upload-avatar", {

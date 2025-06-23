@@ -113,7 +113,7 @@ const Admin = () => {
         const response = await axiosInstance.get(
           "/admin/batch/dashboard-stats"
         );
-        console.log("Dashboard Stats Response:", response.data);
+        // console.log("Dashboard Stats Response:", response.data);
         if (response.data && response.data.success) {
           setStats({
             students: response.data.studentCount || 0,

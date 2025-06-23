@@ -71,7 +71,7 @@ const notificationService = initNotificationService(io, connectedUsers);
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log("DB Connected");
+    // console.log("DB Connected");
     server.listen(PORT, process.env.ALL_IP, () => {
       console.log(`Server running on http://localhost:${PORT}`);
       console.log(`Socket.IO running on http://localhost:${PORT}`);

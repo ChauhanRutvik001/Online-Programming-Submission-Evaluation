@@ -90,7 +90,7 @@ const Login = ({ isModal = false, onLoginSuccess }) => {
       try {
         await dispatch(fetchProfilePicThunk());
       } catch (profileError) {
-        console.log("Profile pic fetch error:", profileError);
+        // console.log("Profile pic fetch error:", profileError);
         // Don't show error to user for profile pic issues
       }
       

@@ -25,7 +25,7 @@ export const NotificationProvider = ({ children }) => {
   // Initialize socket connection
   useEffect(() => {
     if (user && user._id && !socketRef.current) {
-      console.log('Initializing socket connection for user:', user._id);
+      // console.log('Initializing socket connection for user:', user._id);
       
       // Instead of trying to access HttpOnly cookies directly,
       // we'll request a socket token from the server
@@ -54,7 +54,7 @@ export const NotificationProvider = ({ children }) => {
 
           // Connection handlers
           newSocket.on('connect', () => {
-            console.log('Connected to notification server');
+            // console.log('Connected to notification server');
             setConnected(true);
             
             // Authenticate user with socket server
@@ -65,13 +65,13 @@ export const NotificationProvider = ({ children }) => {
           });
 
           newSocket.on('disconnect', () => {
-            console.log('Disconnected from notification server');
+            // console.log('Disconnected from notification server');
             setConnected(false);
           });
 
           // Handle real-time notifications
           newSocket.on('newNotification', (notification) => {
-            console.log('New notification received:', notification);
+            // console.log('New notification received:', notification);
             
             // Add notification to state
             setNotifications(prev => [notification, ...prev]);

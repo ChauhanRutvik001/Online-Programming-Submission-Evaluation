@@ -141,23 +141,23 @@ const AdminApiKeyManagement = () => {
   }, []);
   const fetchAdminApiKeys = async () => {
     try {
-      console.log("🔄 Fetching admin API keys...");
+      // console.log("🔄 Fetching admin API keys...");
       const response = await axiosInstance.get("/admin/api-keys");
       if (response.data.success) {
-        console.log(
-          "✅ Admin API keys fetched:",
-          response.data.apiKeys?.length || 0,
-          "keys"
-        );
-        console.log(
-          "📋 API Keys data:",
-          response.data.apiKeys?.map((k) => ({
-            id: k.id,
-            name: k.name,
-            isActive: k.isActive,
-            dailyLimit: k.dailyLimit,
-          }))
-        );
+        // console.log(
+        //   "✅ Admin API keys fetched:",
+        //   response.data.apiKeys?.length || 0,
+        //   "keys"
+        // );
+        // console.log(
+        //   "📋 API Keys data:",
+        //   response.data.apiKeys?.map((k) => ({
+        //     id: k.id,
+        //     name: k.name,
+        //     isActive: k.isActive,
+        //     dailyLimit: k.dailyLimit,
+        //   }))
+        // );
         setAdminApiKeys(response.data.apiKeys || []);
       } else {
         console.warn(
@@ -189,15 +189,15 @@ const AdminApiKeyManagement = () => {
   };
   const fetchUsage = async () => {
     try {
-      console.log("📊 Fetching usage statistics...");
+      // console.log("📊 Fetching usage statistics...");
       const response = await axiosInstance.get("/admin/api-keys/usage");
       if (response.data.success) {
-        console.log("✅ Usage statistics fetched:", response.data.usage);
-        console.log("📈 Usage details:", {
-          totalLimit: response.data.usage.totalLimit,
-          activeKeysCount: response.data.usage.activeKeysCount,
-          totalKeys: response.data.usage.totalKeys,
-        });
+        // console.log("✅ Usage statistics fetched:", response.data.usage);
+        // console.log("📈 Usage details:", {
+        //   totalLimit: response.data.usage.totalLimit,
+        //   activeKeysCount: response.data.usage.activeKeysCount,
+        //   totalKeys: response.data.usage.totalKeys,
+        // });
         setUsage(response.data.usage);
       } else {
         console.warn(
@@ -318,9 +318,9 @@ const AdminApiKeyManagement = () => {
   const handleToggleKeyStatus = async (apiKeyId, currentStatus) => {
     try {
       const newStatus = !currentStatus;
-      console.log(
-        `🔄 Toggling API key ${apiKeyId} from ${currentStatus} to ${newStatus}`
-      );
+      // console.log(
+      //   `🔄 Toggling API key ${apiKeyId} from ${currentStatus} to ${newStatus}`
+      // );
 
       // Set loading state for this specific toggle
       setToggleLoading((prev) => ({ ...prev, [apiKeyId]: true }));
@@ -334,12 +334,12 @@ const AdminApiKeyManagement = () => {
         isActive: newStatus,
       });
 
-      console.log("Toggle response:", response.data);
+      // console.log("Toggle response:", response.data);
       if (response.data.success) {
         // Short delay for UI consistency, atomic update should be immediate
         await new Promise((resolve) => setTimeout(resolve, 200));
 
-        console.log("🔄 Refreshing data after atomic update...");
+        // console.log("🔄 Refreshing data after atomic update...");
 
         // Fetch data sequentially to ensure consistency
         await fetchAdminApiKeys();
@@ -349,7 +349,7 @@ const AdminApiKeyManagement = () => {
           `API key ${newStatus ? "enabled" : "disabled"} successfully`,
           { id: `toggle-key-${apiKeyId}` }
         );
-        console.log("✅ Data refresh completed");
+        // console.log("✅ Data refresh completed");
       } else {
         toast.error("Failed to toggle API key status", {
           id: `toggle-key-${apiKeyId}`,
@@ -384,7 +384,7 @@ const AdminApiKeyManagement = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <button
-                  onClick={() => navigate("/admin")}
+                  onClick={() => navigate(-1)}
                   className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
                 >
                   <ArrowLeft className="w-5 h-5 text-gray-400" />
@@ -427,7 +427,7 @@ const AdminApiKeyManagement = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate("/admin")}
+                onClick={() => navigate(-1)}
                 className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-400" />

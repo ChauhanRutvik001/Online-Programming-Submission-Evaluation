@@ -54,7 +54,7 @@ const FacultyBatchProgress = () => {
       setLoading(true);
       try {
         const response = await axiosInstance.get(`/faculty/batches/${batchId}/progress?page=${currentPage}&limit=10`);
-        console.log('Batch Progress Response:', response.data);
+        // console.log('Batch Progress Response:', response.data);
         if (response.data.success) {
           setBatch(response.data.batch);
           setProgressStats(response.data.progressStats);

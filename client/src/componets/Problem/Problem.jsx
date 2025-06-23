@@ -82,7 +82,7 @@ const ProblemForm = () => {
     try {
       // console.log("Problem data --->", problemData);
       const response = await axiosInstance.post("/problems", problemData);
-      console.log("Problem created successfully:", response.data);
+      // console.log("Problem created successfully:", response.data);
     } catch (error) {
       console.error("Error creating problem:", error);
     }

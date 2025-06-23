@@ -46,7 +46,7 @@ const BatchList = () => {
         search: fetchSearch,
       };
       const response = await axiosInstance.get('/faculty/batches', { params });
-      console.log('Fetched batches:', response.data);
+      // console.log('Fetched batches:', response.data);
       if (response.data.success) {
         setBatches(response.data.batches);
         setTotalPages(response.data.totalPages);
