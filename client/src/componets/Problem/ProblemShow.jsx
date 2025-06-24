@@ -46,16 +46,17 @@ const ProblemShow = () => {
       try {
         const response = await axiosInstance.get(`/problems/${id}`);
         setProblem(response.data.problem || response.data);
+        console.log("Fetched Problem:", response.data.problem || response.data);
         setError(null);
         // Check if problem is past due date for this batch
         if (batchId && response.data.batchDueDates && response.data.batchDueDates.length > 0) {
-          // console.log("Batch Due Dates:", response.data.batchDueDates);
+          console.log("Batch Due Dates:", response.data.batchDueDates);
           const entry = response.data.batchDueDates.find(
             (b) => b.batch === batchId || b.batchId === batchId
           );
           if (entry && entry.dueDate) {
             const dueDate = new Date(entry.dueDate);
-            // console.log("Due Date:", dueDate);
+            console.log("Due Date:", dueDate);
             setIsPastDue(new Date() > dueDate);
           } else {
             setIsPastDue(false);

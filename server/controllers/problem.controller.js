@@ -21,29 +21,36 @@ export const getRecentDueProblems = async (req, res) => {
         _id: { $in: batch.assignedProblems },
       }).select("_id title difficulty createdAt batchDueDates");
 
-      // For each problem, extract the due date for this batch
+      // For each problem, include regardless of due date
       problems.forEach((problem) => {
         const entry = (problem.batchDueDates || []).find(
           (b) => b.batch?.toString() === batch._id.toString()
         );
-        if (entry && entry.dueDate) {
-          problemsWithBatch.push({
-            _id: problem._id,
-            title: problem.title,
-            difficulty: problem.difficulty,
-            createdAt: problem.createdAt,
-            dueDate: entry.dueDate,
-            batchId: batch._id, // include batchId for frontend navigation
-          });
-        }
+
+        // Include all problems, with or without due dates
+        problemsWithBatch.push({
+          _id: problem._id,
+          title: problem.title,
+          difficulty: problem.difficulty,
+          createdAt: problem.createdAt,
+          dueDate: entry?.dueDate || null, // Use null if no due date
+          batchId: batch._id, // include batchId for frontend navigation
+        });
       });
     }
 
-    // Filter to only upcoming due dates
+    // Keep only upcoming due dates or problems with no due dates
     const now = new Date();
     problemsWithBatch = problemsWithBatch
-      .filter((p) => p.dueDate && new Date(p.dueDate) >= now)
-      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+      .filter((p) => !p.dueDate || new Date(p.dueDate) >= now)
+      .sort((a, b) => {
+        // Sort problems with due dates first, then by date
+        if (a.dueDate && !b.dueDate) return -1;
+        if (!a.dueDate && b.dueDate) return 1;
+        if (a.dueDate && b.dueDate)
+          return new Date(a.dueDate) - new Date(b.dueDate);
+        return new Date(b.createdAt) - new Date(a.createdAt); // For problems without due dates
+      })
       .slice(0, 5); // Top 5 soonest due
 
     return res.status(200).json({
@@ -648,6 +655,7 @@ export const getProblemById = async (req, res) => {
           outputFormat: problem.outputFormat,
           sampleInput: problem.sampleInput,
           sampleOutput: problem.sampleOutput,
+          sampleIO: problem.sampleIO, // Add this line
           createdAt: problem.createdAt,
           updatedAt: problem.updatedAt,
           // Include batch due dates for student's batches only
@@ -797,22 +805,14 @@ export const deleteProblem = async (req, res) => {
         .json({ message: "Unauthorized to delete this problem" });
     }
 
-    // Remove references to this problem from all batches
-    await Batch.updateMany(
-      { assignedProblems: req.params.id },
-      { $pull: { assignedProblems: req.params.id } }
-    );
-
     // Delete the problem
     await Problem.deleteOne({ _id: req.params.id });
 
     // Delete all related codes
-    await Code.deleteMany({ problemId: req.params.id }); 
-    
-    // Delete all related submissions
+    await Code.deleteMany({ problemId: req.params.id }); // Delete all related submissions
     await Submission.deleteMany({ problem_id: req.params.id });
 
-    res.json({ message: "Problem and all related data removed, and removed from all batches" });
+    res.json({ message: "Problem and all related data removed" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
