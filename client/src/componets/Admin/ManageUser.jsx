@@ -14,6 +14,7 @@ import {
 } from "react-icons/fa";
 import ConfirmationModal from "../ConfirmationModal";
 import { toast } from "react-hot-toast";
+// import { toast } from "react-hot-toast";
 
 const ManageUser = () => {
   // States remain the same
@@ -30,6 +31,10 @@ const ManageUser = () => {
   const [editUser, setEditUser] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false); 
+  const [userToResetPassword, setUserToResetPassword] = useState(null);
+  const [showExpireSessionModal, setShowExpireSessionModal] = useState(false);
+  const [userToExpireSession, setUserToExpireSession] = useState(null);
 
   const itemsPerPage = 10;
   const navigate = useNavigate();
@@ -158,6 +163,57 @@ const ManageUser = () => {
   const handleEditUser = (user) => {
     setEditUser(user);
   };
+
+  // Handle reset password functions
+  const handleResetPassword = (user) => {
+    setUserToResetPassword(user);
+    setShowResetPasswordModal(true);
+  };
+
+  // Confirm reset password
+  const confirmResetPassword = async () => {
+    try {
+      const response = await axiosInstance.post('/admin/resetUserPassword', {
+        userId: userToResetPassword._id
+      });
+      if (response.data.success) {
+        toast.success('Password reset successfully. New password is the user ID.');
+        setShowResetPasswordModal(false);
+        setUserToResetPassword(null);
+      } else {
+        toast.error(response.data.message || 'Failed to reset password.');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast.error('An error occurred while resetting the password.');
+    }
+  };
+
+  // Handle expire session functions
+  const handleExpireSession = (user) => {
+    setUserToExpireSession(user);
+    setShowExpireSessionModal(true);
+  };
+
+  // Confirm expire session
+  const confirmExpireSession = async () => {
+    try {
+      const response = await axiosInstance.post('/admin/expireUserSession', {
+        userId: userToExpireSession._id
+      });
+      if (response.data.success) {
+        toast.success('User session expired successfully.');
+        setShowExpireSessionModal(false);
+        setUserToExpireSession(null);
+      } else {
+        toast.error(response.data.message || 'Failed to expire session.');
+      }
+    } catch (error) {
+      console.error('Error expiring session:', error);
+      toast.error('An error occurred while expiring the session.');
+    }
+  };
+
   return (
     <div className="relative min-h-screen bg-gray-900 text-white p-0 md:p-4">
       {/* Header Section - Optimized for all screen sizes */}
@@ -396,13 +452,31 @@ const ManageUser = () => {
                           
                           {/* Actions Cell */}
                           <td className="py-3 sm:py-4 px-3 sm:px-6">
-                            <div className="flex items-center justify-center gap-2">
+                            <div className="flex items-center justify-center gap-2 flex-wrap">
                               <button
                                 className="p-1.5 sm:p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-colors"
                                 onClick={() => handleEditUser(user)}
                                 title="Edit"
                               >
                                 <FaEdit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              </button>
+                              <button
+                                className="p-1.5 sm:p-2 rounded-lg bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600/40 transition-colors"
+                                onClick={() => handleResetPassword(user)}
+                                title="Reset Password"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                                </svg>
+                              </button>
+                              <button
+                                className="p-1.5 sm:p-2 rounded-lg bg-purple-600/20 text-purple-400 hover:bg-purple-600/40 transition-colors"
+                                onClick={() => handleExpireSession(user)}
+                                title="Expire Session"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15m0-3l-3-3m0 0l-3 3m3-3V15" />
+                                </svg>
                               </button>
                               <button
                                 className="p-1.5 sm:p-2 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors"
@@ -440,8 +514,7 @@ const ManageUser = () => {
             </button>
 
             {/* Page Numbers */}
-            <div className="flex gap-1">
-              {totalPages <= 1 ? (
+            <div className="flex gap-1">              {totalPages <= 1 ? (
                 <span className="px-3 sm:px-4 py-2 rounded-lg font-medium bg-blue-600 text-white">
                   1
                 </span>
@@ -525,14 +598,14 @@ const ManageUser = () => {
                         id: editUser.id,
                       }
                     );
-                  } else {
-                    await axiosInstance.post(
+                  } else {                    await axiosInstance.post(
                       `/admin/editStudent/${editUser._id}`,
                       {
                         _id: editUser._id,
                         username: editUser.username,
                         id: editUser.id,
                         batch: editUser.batch,
+                        semester: editUser.semester,
                       }
                     );
                   }
@@ -586,8 +659,7 @@ const ManageUser = () => {
                   required
                 />
               </div>
-              
-              <div className="mb-3">
+                <div className="mb-3">
                 <label className="block text-gray-300 mb-1">
                   {userType === "teacher" ? "Branch" : "Batch"}
                 </label>
@@ -603,6 +675,29 @@ const ManageUser = () => {
                   required
                 />
               </div>
+              
+              {userType === "student" && (
+                <div className="mb-3">
+                  <label className="block text-gray-300 mb-1">Semester</label>
+                  <select
+                    className="w-full px-3 py-2 rounded bg-gray-700 text-white"
+                    value={editUser.semester || "1"}
+                    onChange={(e) =>
+                      setEditUser({ ...editUser, semester: e.target.value })
+                    }
+                    required
+                  >
+                    <option value="1">Semester 1</option>
+                    <option value="2">Semester 2</option>
+                    <option value="3">Semester 3</option>
+                    <option value="4">Semester 4</option>
+                    <option value="5">Semester 5</option>
+                    <option value="6">Semester 6</option>
+                    <option value="7">Semester 7</option>
+                    <option value="8">Semester 8</option>
+                  </select>
+                </div>
+              )}
               
               <div className="flex justify-end gap-2 mt-4">
                 <button
@@ -636,6 +731,38 @@ const ManageUser = () => {
           title="Delete User"
           message="Are you sure you want to delete this user? This action cannot be undone."
           confirmButtonText="Delete"
+          cancelButtonText="Cancel"
+        />
+      )}
+
+      {/* Confirmation Modal for Reset Password - New modal added */}
+      {showResetPasswordModal && (
+        <ConfirmationModal
+          isOpen={showResetPasswordModal}
+          onClose={() => {
+            setShowResetPasswordModal(false);
+            setUserToResetPassword(null);
+          }}
+          onConfirm={confirmResetPassword}
+          title="Reset Password"
+          message="Are you sure you want to reset the password for this user? The new password will be the user ID."
+          confirmButtonText="Reset Password"
+          cancelButtonText="Cancel"
+        />
+      )}
+
+      {/* Confirmation Modal for Expire Session - New modal added */}
+      {showExpireSessionModal && (
+        <ConfirmationModal
+          isOpen={showExpireSessionModal}
+          onClose={() => {
+            setShowExpireSessionModal(false);
+            setUserToExpireSession(null);
+          }}
+          onConfirm={confirmExpireSession}
+          title="Expire Session"
+          message="Are you sure you want to expire the current session for this user? They will need to log in again."
+          confirmButtonText="Expire Session"
           cancelButtonText="Cancel"
         />
       )}

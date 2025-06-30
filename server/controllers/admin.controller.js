@@ -29,8 +29,7 @@ const adminController = {
         .status(500)
         .json({ success: false, message: "Internal server error." });
     }
-  },
-  getFaculty: async (req, res) => {
+  },  getFaculty: async (req, res) => {
     const { page = 1, limit = 10, branch, batch, sort, search } = req.body;
 
     try {
@@ -43,6 +42,8 @@ const adminController = {
           { username: { $regex: search, $options: "i" } },
           { branch: { $regex: search, $options: "i" } },
           { batch: { $regex: search, $options: "i" } },
+          { id: { $regex: search, $options: "i" } },
+          { email: { $regex: search, $options: "i" } },
         ];
 
       let sortOption = { createdAt: -1 };
@@ -394,8 +395,7 @@ const adminController = {
         message: "Internal server error.",
       });
     }
-  },
-  getStudents: async (req, res) => {
+  },  getStudents: async (req, res) => {
     const { page = 1, limit = 10, branch, batch, sort, search } = req.body;
 
     try {
@@ -408,6 +408,7 @@ const adminController = {
           { username: { $regex: search, $options: "i" } },
           { branch: { $regex: search, $options: "i" } },
           { batch: { $regex: search, $options: "i" } },
+          { id: { $regex: search, $options: "i" } },
         ];
       }
 
@@ -1105,9 +1106,8 @@ const adminController = {
         .json({ success: false, message: "Internal server error." });
     }
   },
-
   editstudent: async (req, res) => {
-    const { _id, username, id, batch } = req.body;
+    const { _id, username, id, batch, semester } = req.body;
     if (!_id)
       return res
         .status(400)
@@ -1115,7 +1115,7 @@ const adminController = {
     try {
       const updated = await User.findByIdAndUpdate(
         _id,
-        { username, id, batch },
+        { username, id, batch, semester },
         { new: true }
       );
       if (!updated)
@@ -1380,6 +1380,111 @@ const adminController = {
     } catch (error) {
       console.error("Error fetching problems:", error);
       res.status(500).json({ success: false, message: "Failed to fetch problems." });
+    }
+  },
+
+  // New function for resetting user password
+  resetUserPassword: async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
+    }
+
+    try {
+      // Find the user
+      const user = await User.findById(userId);
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+
+      // Reset the password to be the same as ID and set firstTimeLogin to true
+      user.password = user.id;
+      user.firstTimeLogin = true;
+      await user.save();
+
+      // Send notification if possible
+      try {
+        const { notificationService } = await import("../app.js");
+        if (notificationService) {
+          await notificationService.createNotification(
+            userId,
+            "Password Reset",
+            `Your password has been reset by an administrator. Please login with your ID as password and set a new password.`,
+            "account",
+            { type: "password_reset" }
+          );
+        }
+      } catch (notifError) {
+        console.error("Failed to send password reset notification:", notifError);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "User password reset successfully. New password is the user's ID.",
+      });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "An error occurred while resetting the password.",
+        error: error.message
+      });
+    }
+  },
+
+  // New function for expiring user session
+  expireUserSession: async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
+    }
+
+    try {
+      // Find the user
+      const user = await User.findById(userId);
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+
+      // Clear the session ID to invalidate any active sessions
+      user.sessionId = null;
+      await user.save();
+
+      // Send notification if possible
+      try {
+        const { notificationService } = await import("../app.js");
+        if (notificationService) {
+          await notificationService.createNotification(
+            userId,
+            "Session Expired",
+            `Your session has been expired by an administrator. Please login again.`,
+            "account",
+            { type: "session_expired" }
+          );
+        }
+      } catch (notifError) {
+        console.error("Failed to send session expiration notification:", notifError);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "User session expired successfully.",
+      });
+    } catch (error) {
+      console.error("Error expiring session:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "An error occurred while expiring the session.",
+        error: error.message
+      });
     }
   },
 

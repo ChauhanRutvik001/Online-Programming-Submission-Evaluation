@@ -15,6 +15,10 @@ router.post("/getStudents", isAdmin, adminController.getStudents); // Used by: A
 router.post("/deleteFaculty", isAdmin, adminController.deleteFaculty); // Used by: Admin/ManageUser.jsx (for deleting faculty)
 router.post("/removeStudent", isAdmin, adminController.removeStudent); // Used by: Admin/ManageUser.jsx (for removing students)
 
+// New user management endpoints
+router.post("/resetUserPassword", isAdmin, adminController.resetUserPassword); // For resetting user passwords
+router.post("/expireUserSession", isAdmin, adminController.expireUserSession); // For expiring user sessions
+
 // Metadata endpoints for dropdowns
 router.get("/branches", isAdmin, adminController.getAllBranches); // Used for branch dropdown options (not directly visible in current components)
 router.get("/batches", isAdmin, adminController.getAllBatche); // Used for batch dropdown options (not directly visible in current components)
