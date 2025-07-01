@@ -109,72 +109,71 @@ const facultyController = {
         .json({ success: false, message: "Missing User ID." });
     }
 
-    const session = await mongoose.startSession();
-
     try {
-      await session.withTransaction(async () => {
-        // Check if the user exists
-        const user = await User.findById(userId).session(session);
-        if (!user) {
-          throw new Error("User not found.");
+      // Check if the user exists
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found.",
+        });
+      }
+
+      console.log("User found:", user);
+      const userName = user.id;
+
+      // Only allow removal of students by faculty
+      if (user.role !== "student") {
+        return res.status(400).json({
+          success: false,
+          message: "Faculty can only remove students.",
+        });
+      }
+
+      // 1. Remove profile picture from GridFS if exists
+      if (user.profile?.avatar) {
+        try {
+          const bucket = new GridFSBucket(mongoose.connection.db, {
+            bucketName: "uploads",
+          });
+          await bucket.delete(
+            new mongoose.Types.ObjectId(user.profile.avatar)
+          );
+        } catch (gridfsError) {
+          console.warn(
+            `Failed to delete profile picture for user ${userId}:`,
+            gridfsError.message
+          );
+          // Continue with deletion even if profile picture deletion fails
         }
+      }
 
-        console.log("User found:", user);
-        const userName = user.id;
+      // 2. Remove student from all batches' students array
+      await Batch.updateMany(
+        { students: userId },
+        { $pull: { students: userId } }
+      );
 
-        // Only allow removal of students by faculty
-        if (user.role !== "student") {
-          throw new Error("Faculty can only remove students.");
-        }
+      // 3. Remove student from contests' assignedStudents array
+      await Contest.updateMany(
+        { assignedStudents: userId },
+        { $pull: { assignedStudents: userId } }
+      );
 
-        // 1. Remove profile picture from GridFS if exists
-        if (user.profile?.avatar) {
-          try {
-            const bucket = new GridFSBucket(mongoose.connection.db, {
-              bucketName: "uploads",
-            });
-            await bucket.delete(
-              new mongoose.Types.ObjectId(user.profile.avatar)
-            );
-          } catch (gridfsError) {
-            console.warn(
-              `Failed to delete profile picture for user ${userId}:`,
-              gridfsError.message
-            );
-            // Continue with deletion even if profile picture deletion fails
-          }
-        }
+      // 4. Remove student from problems' assignedStudents array
+      await Problem.updateMany(
+        { assignedStudents: userId },
+        { $pull: { assignedStudents: userId } }
+      );
 
-        // 2. Remove student from all batches' students array
-        await Batch.updateMany(
-          { students: userId },
-          { $pull: { students: userId } },
-          { session }
-        );
+      // 5. Remove all submissions related to the user
+      await Submission.deleteMany({ user_id: userId });
 
-        // 3. Remove student from contests' assignedStudents array
-        await Contest.updateMany(
-          { assignedStudents: userId },
-          { $pull: { assignedStudents: userId } },
-          { session }
-        );
+      // 6. Remove all codes related to the user
+      await Code.deleteMany({ userId: userId });
 
-        // 4. Remove student from problems' assignedStudents array
-        await Problem.updateMany(
-          { assignedStudents: userId },
-          { $pull: { assignedStudents: userId } },
-          { session }
-        );
-
-        // 5. Remove all submissions related to the user
-        await Submission.deleteMany({ user_id: userId }, { session });
-
-        // 6. Remove all codes related to the user
-        await Code.deleteMany({ userId: userId }, { session });
-
-        // 7. Finally, remove the user
-        await User.deleteOne({ _id: userId }, { session });
-      });
+      // 7. Finally, remove the user
+      await User.deleteOne({ _id: userId });
 
       return res.status(200).json({
         success: true,
@@ -186,8 +185,6 @@ const facultyController = {
         success: false,
         message: error.message || "Internal server error.",
       });
-    } finally {
-      await session.endSession();
     }
   },
 

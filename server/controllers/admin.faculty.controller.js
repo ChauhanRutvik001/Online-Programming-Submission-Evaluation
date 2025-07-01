@@ -92,54 +92,55 @@ const adminFacultyController = {    getFaculty: async (req, res) => {
                 message: "Faculty ID is required." 
             });
         }
-
-        const session = await mongoose.startSession();
         
         try {
-            await session.withTransaction(async () => {
-                // Check if the faculty exists
-                const faculty = await User.findById(facultyId).session(session);
-                if (!faculty) {
-                    throw new Error("Faculty not found.");
+            // Check if the faculty exists
+            const faculty = await User.findById(facultyId);
+            if (!faculty) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Faculty not found.",
+                });
+            }
+
+            if (faculty.role !== "faculty") {
+                return res.status(400).json({
+                    success: false,
+                    message: "User is not a faculty member.",
+                });
+            }
+
+            // 1. Remove profile picture from GridFS if exists
+            if (faculty.profile?.avatar) {
+                try {
+                    const bucket = new GridFSBucket(mongoose.connection.db, {
+                        bucketName: "uploads",
+                    });
+                    await bucket.delete(new mongoose.Types.ObjectId(faculty.profile.avatar));
+                } catch (gridfsError) {
+                    console.warn(`Failed to delete profile picture for faculty ${facultyId}:`, gridfsError.message);
+                    // Continue with deletion even if profile picture deletion fails
                 }
+            }
 
-                if (faculty.role !== "faculty") {
-                    throw new Error("User is not a faculty member.");
-                }
+            // 2. Remove faculty from all batches' faculty field
+            await Batch.updateMany(
+                { faculty: facultyId },
+                { $unset: { faculty: 1 } }
+            );
 
-                // 1. Remove profile picture from GridFS if exists
-                if (faculty.profile?.avatar) {
-                    try {
-                        const bucket = new GridFSBucket(mongoose.connection.db, {
-                            bucketName: "uploads",
-                        });
-                        await bucket.delete(new mongoose.Types.ObjectId(faculty.profile.avatar));
-                    } catch (gridfsError) {
-                        console.warn(`Failed to delete profile picture for faculty ${facultyId}:`, gridfsError.message);
-                        // Continue with deletion even if profile picture deletion fails
-                    }
-                }
+            // 3. Handle contests created by this faculty
+            await Contest.deleteMany({ created_by: facultyId });
 
-                // 2. Remove faculty from all batches' faculty field
-                await Batch.updateMany(
-                    { faculty: facultyId },
-                    { $unset: { faculty: 1 } },
-                    { session }
-                );
+            // 4. Handle problems created by this faculty
+            await Problem.deleteMany({ createdBy: facultyId });
 
-                // 3. Handle contests created by this faculty
-                await Contest.deleteMany({ created_by: facultyId }, { session });
+            // 5. Remove faculty submissions and codes (if any)
+            await Submission.deleteMany({ user_id: facultyId });
+            await Code.deleteMany({ userId: facultyId });
 
-                // 4. Handle problems created by this faculty
-                await Problem.deleteMany({ createdBy: facultyId }, { session });
-
-                // 5. Remove faculty submissions and codes (if any)
-                await Submission.deleteMany({ user_id: facultyId }, { session });
-                await Code.deleteMany({ userId: facultyId }, { session });
-
-                // 6. Finally, remove the faculty user
-                await User.deleteOne({ _id: facultyId }, { session });
-            });
+            // 6. Finally, remove the faculty user
+            await User.deleteOne({ _id: facultyId });
 
             res.status(200).json({
                 success: true,
@@ -151,8 +152,6 @@ const adminFacultyController = {    getFaculty: async (req, res) => {
                 success: false, 
                 message: error.message || "Internal server error." 
             });
-        } finally {
-            await session.endSession();
         }
     },
     createFaculty: async (req, res) => {
@@ -478,66 +477,65 @@ const adminFacultyController = {    getFaculty: async (req, res) => {
       if (!userId) {
         return res.status(400).json({ success: false, message: "Missing User ID." });
       }
-    
-      const session = await mongoose.startSession();
       
       try {
-        await session.withTransaction(async () => {
-          // Check if the user exists and is a student
-          const user = await User.findById(userId).session(session);
-          if (!user) {
-            throw new Error("User not found.");
+        // Check if the user exists and is a student
+        const user = await User.findById(userId);
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: "User not found.",
+          });
+        }
+
+        if (user.role !== "student") {
+          return res.status(400).json({
+            success: false,
+            message: "User is not a student.",
+          });
+        }
+
+        const userName = user.id;
+
+        // 1. Remove profile picture from GridFS if exists
+        if (user.profile?.avatar) {
+          try {
+            const bucket = new GridFSBucket(mongoose.connection.db, {
+              bucketName: "uploads",
+            });
+            await bucket.delete(new mongoose.Types.ObjectId(user.profile.avatar));
+          } catch (gridfsError) {
+            console.warn(`Failed to delete profile picture for user ${userId}:`, gridfsError.message);
+            // Continue with deletion even if profile picture deletion fails
           }
+        }
 
-          if (user.role !== "student") {
-            throw new Error("User is not a student.");
-          }
+        // 2. Remove student from all batches' students array
+        await Batch.updateMany(
+          { students: userId },
+          { $pull: { students: userId } }
+        );
 
-          const userName = user.id;
+        // 3. Remove student from contests' assignedStudents array
+        await Contest.updateMany(
+          { assignedStudents: userId },
+          { $pull: { assignedStudents: userId } }
+        );
 
-          // 1. Remove profile picture from GridFS if exists
-          if (user.profile?.avatar) {
-            try {
-              const bucket = new GridFSBucket(mongoose.connection.db, {
-                bucketName: "uploads",
-              });
-              await bucket.delete(new mongoose.Types.ObjectId(user.profile.avatar));
-            } catch (gridfsError) {
-              console.warn(`Failed to delete profile picture for user ${userId}:`, gridfsError.message);
-              // Continue with deletion even if profile picture deletion fails
-            }
-          }
+        // 4. Remove student from problems' assignedStudents array
+        await Problem.updateMany(
+          { assignedStudents: userId },
+          { $pull: { assignedStudents: userId } }
+        );
 
-          // 2. Remove student from all batches' students array
-          await Batch.updateMany(
-            { students: userId },
-            { $pull: { students: userId } },
-            { session }
-          );
+        // 5. Remove all submissions related to the user
+        await Submission.deleteMany({ user_id: userId });
 
-          // 3. Remove student from contests' assignedStudents array
-          await Contest.updateMany(
-            { assignedStudents: userId },
-            { $pull: { assignedStudents: userId } },
-            { session }
-          );
+        // 6. Remove all codes related to the user
+        await Code.deleteMany({ userId: userId });
 
-          // 4. Remove student from problems' assignedStudents array
-          await Problem.updateMany(
-            { assignedStudents: userId },
-            { $pull: { assignedStudents: userId } },
-            { session }
-          );
-
-          // 5. Remove all submissions related to the user
-          await Submission.deleteMany({ user_id: userId }, { session });
-
-          // 6. Remove all codes related to the user
-          await Code.deleteMany({ userId: userId }, { session });
-
-          // 7. Finally, remove the user
-          await User.deleteOne({ _id: userId }, { session });
-        });
+        // 7. Finally, remove the user
+        await User.deleteOne({ _id: userId });
 
         return res.status(200).json({
           success: true,
@@ -549,8 +547,6 @@ const adminFacultyController = {    getFaculty: async (req, res) => {
           success: false,
           message: error.message || "Internal server error."
         });
-      } finally {
-        await session.endSession();
       }
     },
     registerStudent: async (req, res) => {
